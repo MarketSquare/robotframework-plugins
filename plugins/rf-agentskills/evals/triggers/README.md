@@ -1,9 +1,9 @@
 # Trigger query sets
 
-One file per shipped skill: `eval/triggers/<skill-name>.yaml`. A set measures
+One file per shipped skill: `plugins/rf-agentskills/evals/triggers/<skill-name>.yaml`. A set measures
 whether the skill's frontmatter `description` makes an agent load the skill
 for the right requests — and only for those. Task outcomes (does the skill
-*help*?) are measured separately by the task bank in `eval/tasks/`.
+*help*?) are measured separately by the task bank in `plugins/rf-agentskills/evals/tasks/`.
 
 ## Format
 
@@ -93,10 +93,10 @@ lists which other skills were loaded for failing queries.
   validation query is a finding, not a typo.
 - Rotate validation queries only when the skill's *intent* changes (a new
   sibling, a merged or retired skill), and record the rotation in the PR.
-- The stored result lives in `eval/baselines/triggers.json`; the PR gate fails
+- The stored result lives in `plugins/rf-agentskills/evals/baselines/triggers.json`; the PR gate fails
   when validation accuracy drops by more than one query's worth.
 
 ## Adding a skill
 
 A new skill under `skills/` needs a set here (and a narrow task in
-`eval/tasks/narrow/`) or `rf-skill-eval coverage` fails and names it.
+`plugins/rf-agentskills/evals/tasks/narrow/`) or `rf-skill-eval coverage` fails and names it.

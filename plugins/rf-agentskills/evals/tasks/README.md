@@ -10,7 +10,7 @@ the run succeeded.
 ## Directory layout
 
 ```
-eval/tasks/
+plugins/rf-agentskills/evals/tasks/
   narrow/        # Single-skill, deterministic, <=5 min wall time
   realistic/     # Multi-step, multi-file, <=15 min wall time
   adversarial/   # Tempts known failure modes (reported only, not gating)
@@ -36,7 +36,7 @@ eval/tasks/
 | `fixture` | yes | string | Fixture directory name under `eval/fixtures/`. |
 | `primary_metric` | yes | string | Grader-check `type` whose checks are **gating** (per ADR-004). |
 
-Every task needs at least one gating check. `rf-skill-eval validate-tasks eval/tasks`
+Every task needs at least one gating check. `rf-skill-eval validate-tasks plugins/rf-agentskills/evals/tasks`
 enforces all of the above (it also runs when a batch starts).
 
 ## Grader check types
@@ -117,7 +117,7 @@ are recorded as `incomplete` (reason `budget`) and the command exits non-zero.
 
 Skill *descriptions* (does the agent load the right skill?) are tested
 separately from skill bodies with per-skill query sets — see
-[eval/triggers/README.md](../triggers/README.md)
+[plugins/rf-agentskills/evals/triggers/README.md](../triggers/README.md)
 for the format and the train/validation discipline.
 
 ## Adding a new task
@@ -125,7 +125,7 @@ for the format and the train/validation discipline.
 1. Pick a tier directory.
 2. Create `<tier>-<skill>-<nn>.yaml` using an existing file as template.
 3. Ensure the `fixture` exists under `eval/fixtures/` (or create one).
-4. Run `uv run rf-skill-eval validate-tasks eval/tasks` and
+4. Run `uv run rf-skill-eval validate-tasks plugins/rf-agentskills/evals/tasks` and
    `uv run rf-skill-eval coverage`.
 5. Run the task once by hand (`uv run rf-skill-eval run --task … --max-cost-usd 1`)
    to confirm the prompt lands and the grader fires.

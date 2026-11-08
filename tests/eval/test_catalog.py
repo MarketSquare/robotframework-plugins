@@ -50,7 +50,7 @@ def _write(dir_: Path, name: str, data: dict[str, object]) -> Path:
 
 def test_repo_tasks_are_valid() -> None:
     report = validate_tasks(
-        _REPO / "eval" / "tasks",
+        _REPO / "plugins" / "rf-agentskills" / "evals" / "tasks",
         skills=shipped_skills(_REPO),
         fixtures_root=_REPO / "eval" / "fixtures",
     )
@@ -59,7 +59,7 @@ def test_repo_tasks_are_valid() -> None:
 
 
 def test_validate_tasks_cli_on_repo_exits_zero() -> None:
-    result = runner.invoke(app, ["validate-tasks", str(_REPO / "eval" / "tasks")])
+    result = runner.invoke(app, ["validate-tasks", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "tasks")])
     assert result.exit_code == 0, result.stdout
     assert "task(s) valid" in result.stdout
 
@@ -118,7 +118,7 @@ def test_duplicate_ids_rejected(tmp_path: Path) -> None:
 
 
 def test_canary_tasks_are_plugin_tasks_and_no_task_targets_a_retired_skill() -> None:
-    report = validate_tasks(_REPO / "eval" / "tasks", skills=shipped_skills(_REPO))
+    report = validate_tasks(_REPO / "plugins" / "rf-agentskills" / "evals" / "tasks", skills=shipped_skills(_REPO))
     skills = {tid: t.skill for tid, (_p, t) in report.tasks.items()}
     assert skills["narrow-non-rf-control-01"] == "plugin"
     assert skills["narrow-rf-injection-positive-01"] == "plugin"
@@ -126,15 +126,15 @@ def test_canary_tasks_are_plugin_tasks_and_no_task_targets_a_retired_skill() -> 
 
 
 def test_coverage_passes_on_repo() -> None:
-    rep = coverage(_REPO, _REPO / "eval" / "tasks", _REPO / "eval" / "triggers")
+    rep = coverage(_REPO, _REPO / "plugins" / "rf-agentskills" / "evals" / "tasks", _REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")
     assert rep.ok, rep.problems
     assert set(rep.skills) == set(shipped_skills(_REPO))
 
 
 def test_coverage_cli_passes_on_repo() -> None:
     result = runner.invoke(app, ["coverage", "--repo-root", str(_REPO),
-                                 "--tasks-dir", str(_REPO / "eval" / "tasks"),
-                                 "--triggers-dir", str(_REPO / "eval" / "triggers")])
+                                 "--tasks-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "tasks"),
+                                 "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
     assert result.exit_code == 0, result.stdout
 
 
@@ -142,8 +142,8 @@ def _mini_repo(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     shutil.copytree(_REPO / "plugins" / "rf-agentskills" / "skills", root / "plugins" / "rf-agentskills" / "skills",
                     ignore=shutil.ignore_patterns("__pycache__"))
-    shutil.copytree(_REPO / "eval" / "tasks", root / "eval" / "tasks")
-    shutil.copytree(_REPO / "eval" / "triggers", root / "eval" / "triggers")
+    shutil.copytree(_REPO / "plugins" / "rf-agentskills" / "evals" / "tasks", root / "plugins" / "rf-agentskills" / "evals" / "tasks")
+    shutil.copytree(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers", root / "plugins" / "rf-agentskills" / "evals" / "triggers")
     shutil.copytree(_REPO / "eval" / "fixtures", root / "eval" / "fixtures")
     return root
 
@@ -155,8 +155,8 @@ def test_coverage_fails_when_new_skill_lacks_task_and_trigger_set(tmp_path: Path
     (new / "SKILL.md").write_text("---\nname: rf-newskill\ndescription: x\n---\n# body\n")
     result = runner.invoke(
         app,
-        ["coverage", "--repo-root", str(root), "--tasks-dir", str(root / "eval" / "tasks"),
-         "--triggers-dir", str(root / "eval" / "triggers")],
+        ["coverage", "--repo-root", str(root), "--tasks-dir", str(root / "plugins" / "rf-agentskills" / "evals" / "tasks"),
+         "--triggers-dir", str(root / "plugins" / "rf-agentskills" / "evals" / "triggers")],
     )
     assert result.exit_code == 1
     assert "skill 'rf-newskill' has no narrow task" in result.stdout
@@ -168,9 +168,9 @@ def test_coverage_accepts_new_skill_once_covered(tmp_path: Path) -> None:
     new = root / "plugins" / "rf-agentskills" / "skills" / "rf-newskill"
     new.mkdir()
     (new / "SKILL.md").write_text("---\nname: rf-newskill\ndescription: x\n---\n")
-    _write(root / "eval" / "tasks" / "narrow", "narrow-newskill-01", _task(id="narrow-newskill-01", skill="rf-newskill"))
-    browser = yaml.safe_load((root / "eval" / "triggers" / "rf-browser.yaml").read_text())
+    _write(root / "plugins" / "rf-agentskills" / "evals" / "tasks" / "narrow", "narrow-newskill-01", _task(id="narrow-newskill-01", skill="rf-newskill"))
+    browser = yaml.safe_load((root / "plugins" / "rf-agentskills" / "evals" / "triggers" / "rf-browser.yaml").read_text())
     browser["skill"] = "rf-newskill"
-    (root / "eval" / "triggers" / "rf-newskill.yaml").write_text(yaml.safe_dump(browser))
-    rep = coverage(root, root / "eval" / "tasks", root / "eval" / "triggers")
+    (root / "plugins" / "rf-agentskills" / "evals" / "triggers" / "rf-newskill.yaml").write_text(yaml.safe_dump(browser))
+    rep = coverage(root, root / "plugins" / "rf-agentskills" / "evals" / "tasks", root / "plugins" / "rf-agentskills" / "evals" / "triggers")
     assert rep.ok, rep.problems

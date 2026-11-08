@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 PLUGIN = ROOT / "plugins" / "rf-agentskills"
 READMES = [ROOT / "README.md", PLUGIN / "README.md"]
 ISOLATED = re.compile(r"uvx robotcode|pipx (install|run) robotcode|uv tool install robotcode")

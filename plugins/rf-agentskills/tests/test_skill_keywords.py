@@ -11,7 +11,7 @@ import pytest
 pytest.importorskip("tomllib")  # checker reads its allowlist with tomllib (3.11+)
 pytest.importorskip("robot")
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = REPO_ROOT / "scripts" / "check-skill-keywords.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "skill_keywords"
 EMPTY_ALLOWLIST = FIXTURES / "empty-allowlist.toml"

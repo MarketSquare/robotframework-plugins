@@ -26,10 +26,10 @@ RUN_ROOT="eval/runs/local-$(date +%s)"
 NARROW_DIR="${RUN_ROOT}/narrow"
 _info "Gate 3/4: narrow-tier eval -> ${NARROW_DIR}"
 
-uv run rf-skill-eval validate-tasks eval/tasks
+uv run rf-skill-eval validate-tasks plugins/rf-agentskills/evals/tasks
 uv run rf-skill-eval coverage
 uv run rf-skill-eval run-batch \
-  --tasks-dir eval/tasks/narrow \
+  --tasks-dir plugins/rf-agentskills/evals/tasks/narrow \
   --arms "${EVAL_LOCAL_ARMS:-treatment}" \
   --runs "${EVAL_LOCAL_RUNS:-3}" \
   --max-cost-usd "${EVAL_LOCAL_MAX_COST_USD:-5}" \
@@ -53,7 +53,7 @@ if [[ "${run_realistic}" -eq 1 ]]; then
   REALISTIC_DIR="${RUN_ROOT}/realistic"
   _info "Gate 4/4: realistic-tier eval -> ${REALISTIC_DIR}"
   uv run rf-skill-eval run-batch \
-    --tasks-dir eval/tasks/realistic \
+    --tasks-dir plugins/rf-agentskills/evals/tasks/realistic \
     --arms "${EVAL_LOCAL_ARMS:-treatment}" \
     --runs "${EVAL_LOCAL_RUNS:-3}" \
     --max-cost-usd "${EVAL_LOCAL_MAX_COST_USD:-5}" \
@@ -63,7 +63,7 @@ fi
 # Final report
 REPORT_PATH="${RUN_ROOT}/report.md"
 _info "Generating combined report..."
-uv run rf-skill-eval report --runs-dir "${RUN_ROOT}" --tasks-dir eval/tasks --format md --output "${REPORT_PATH}"
+uv run rf-skill-eval report --runs-dir "${RUN_ROOT}" --tasks-dir plugins/rf-agentskills/evals/tasks --format md --output "${REPORT_PATH}"
 
 _info "All gates passed."
 _info "Report: ${REPORT_PATH}"

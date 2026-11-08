@@ -318,7 +318,7 @@ def test_cli_baseline_update_gate_and_report(tmp_path: Path, monkeypatch: pytest
 
 
 def test_committed_baseline_dir_exists_with_readme() -> None:
-    root = Path(__file__).resolve().parents[2] / "eval" / "baselines"
+    root = Path(__file__).resolve().parents[2] / "plugins" / "rf-agentskills" / "evals" / "baselines"
     assert (root / "README.md").is_file()
 
 

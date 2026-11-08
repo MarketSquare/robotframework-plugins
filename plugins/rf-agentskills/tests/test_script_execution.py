@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 CHANNELS = {
     "root": ROOT / "plugins" / "rf-agentskills" / "skills",
     "plugin": ROOT / "plugins" / "rf-agentskills" / "skills",

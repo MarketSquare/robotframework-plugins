@@ -25,9 +25,9 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 SETUP_SKILL_MD = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-setup" / "SKILL.md"
-FIXTURES = ROOT / "tests" / "fixtures" / "install_guidance"
+FIXTURES = ROOT / "plugins" / "rf-agentskills" / "tests" / "fixtures" / "install_guidance"
 
 LIBRARY_KEYS = ["browser", "selenium", "appium", "requests", "restinstance", "platynui"]
 

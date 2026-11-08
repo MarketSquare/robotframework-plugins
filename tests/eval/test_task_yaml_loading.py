@@ -1,7 +1,7 @@
 """Ensure every checked-in task YAML parses into a valid Task model.
 
 This is the integration contract between the YAML schema authored in
-``eval/tasks/`` and the Python domain model. If an author adds a field
+``plugins/rf-agentskills/evals/tasks/`` and the Python domain model. If an author adds a field
 the model does not understand, or removes one it requires, the build
 breaks here rather than at evaluation time.
 """
@@ -16,7 +16,7 @@ import yaml
 from rf_skill_eval.domain.task import Task
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-_TASKS_DIR = _REPO_ROOT / "eval" / "tasks"
+_TASKS_DIR = _REPO_ROOT / "plugins" / "rf-agentskills" / "evals" / "tasks"
 
 
 def _task_yaml_paths() -> list[pathlib.Path]:
@@ -46,7 +46,7 @@ def test_task_yaml_parses(yaml_path: pathlib.Path) -> None:
 
 def test_task_yaml_directory_is_populated() -> None:
     # Guard against the parametrize silently collecting zero cases.
-    assert _task_yaml_paths(), "expected at least one task YAML under eval/tasks/"
+    assert _task_yaml_paths(), "expected at least one task YAML under plugins/rf-agentskills/evals/tasks/"
 
 
 _PLUGIN_SKILLS_DIR = _REPO_ROOT / "plugins" / "rf-agentskills" / "skills"

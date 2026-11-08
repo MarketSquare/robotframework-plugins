@@ -192,7 +192,7 @@ def test_cli_two_budgets_in_one_output_directory(
     monkeypatch.setattr(cli, "RUNNER_FACTORY", lambda: FakeRunner(behaviour))
     out = tmp_path / "trig"
     base = ["trigger", "--skills", "rf-requests", "--split", "validation", "--runs", "1",
-            "--output", str(out), "--triggers-dir", str(_REPO / "eval" / "triggers"),
+            "--output", str(out), "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers"),
             "--baseline", str(tmp_path / "none.json")]
     res = cli_runner.invoke(cli.app, base)
     assert res.exit_code == 0, res.output
@@ -232,7 +232,7 @@ def test_cli_records_an_inherited_budget(tmp_path: Path, monkeypatch: pytest.Mon
     out = tmp_path / "trig"
     res = cli_runner.invoke(cli.app, [
         "trigger", "--skills", "rf-requests", "--split", "validation", "--runs", "1",
-        "--output", str(out), "--triggers-dir", str(_REPO / "eval" / "triggers"),
+        "--output", str(out), "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers"),
         "--baseline", str(tmp_path / "none.json")])
     assert res.exit_code == 0, res.output
     assert LISTING_BUDGET_ENV in res.output

@@ -31,7 +31,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 needs_tomllib = pytest.mark.skipif(tomllib is None, reason="tomllib needs Python 3.11+")
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 SKILL_DIR = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-setup"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 REFERENCES = SKILL_DIR / "references"

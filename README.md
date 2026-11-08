@@ -297,10 +297,13 @@ plugins/<name>/                # One folder per plugin; the only copy of its con
 ├── scripts/                   # Hook scripts (.mjs) only
 ├── agents/                    # Subagent definitions
 ├── hooks/                     # Session/edit hooks
-└── variants/                  # Generated: Codex TOML subagents, OpenCode agents + JS plugin
+├── variants/                  # Generated: Codex TOML subagents, OpenCode agents + JS plugin
+├── tests/                     # The plugin's own tests (not installed by the installer)
+└── evals/                     # Eval tasks, trigger sets and baselines (not installed by the installer)
 schemas/catalog.schema.json    # Schema of catalog.yaml
 installer/                     # The robotframework-plugins Python installer
-tests/                         # pytest test suite
+tests/                         # Shared tests: repository, catalogue, installer, eval harness
+eval/                          # Shared eval harness content: fixture projects and hidden graders
 scripts/                       # Build and check utilities
 ```
 
@@ -330,20 +333,28 @@ Both also run in CI.
 
 ### Running Tests
 
-```bash
-# Run all tests
-python -m pytest tests/ -v
+The shared tests and each plugin's tests run separately (plugins may reuse test file names):
 
-# Run specific test files
-python -m pytest tests/test_hook_scripts.py -v         # requires robotcode[all] for the validation tiers
+```bash
+# Shared tests (repository, catalogue, installer)
+python -m pytest tests/ --ignore=tests/eval -v
+
+# One plugin's tests
+python -m pytest plugins/rf-agentskills/tests/ -v
+
+# Specific test files
+python -m pytest plugins/rf-agentskills/tests/test_hook_scripts.py -v       # requires robotcode[all] for the validation tiers
+python -m pytest plugins/rf-agentskills/tests/test_rf_conventions.py -v     # requires robotframework
+python -m pytest plugins/rf-agentskills/tests/test_script_execution.py -v   # script CLI contract (exit codes, --help, --json-out)
+python -m pytest plugins/rf-agentskills/tests/test_skill_commands.py -v     # how SKILL.md / agents / hooks run the scripts
 python -m pytest tests/test_drift_detection.py -v
-python -m pytest tests/test_rf_conventions.py -v       # requires robotframework
-python -m pytest tests/test_script_execution.py -v    # script CLI contract (exit codes, --help, --json-out)
-python -m pytest tests/test_skill_commands.py -v      # how SKILL.md / agents / hooks run the scripts
-python -m pytest tests/test_libdoc_skill.py -v
 python -m pytest tests/test_marketplace_validation.py -v
 python -m pytest tests/test_skill_validation.py -v
 ```
+
+In a pull request, CI runs the shared tests plus the tests of each plugin the change touches; a change outside `plugins/` runs every plugin's tests (`scripts/select-plugin-tests.py`).
+
+The eval harness (`rf-skill-eval`, `uv run pytest tests/eval`) reads a plugin's eval content from `plugins/<name>/evals/`; pass `--plugin <name>` once more than one plugin has evals.
 
 ### Validate the Marketplace and Skills
 

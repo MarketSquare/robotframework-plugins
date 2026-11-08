@@ -72,4 +72,4 @@ task runs aren't penalized.
 ## References
 
 - `docs/ci/rf-agentskills-eval-implementation-plan.md` §3.3 — fixture design.
-- `eval/tasks/README.md` — how fixtures are consumed by tasks.
+- `plugins/rf-agentskills/evals/tasks/README.md` — how fixtures are consumed by tasks.

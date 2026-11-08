@@ -157,7 +157,7 @@ def test_trigger_cli_with_fake_runner(tmp_path: Path, monkeypatch: pytest.Monkey
     out = tmp_path / "trig"
     res = runner.invoke(cli.app, ["trigger", "--skills", "rf-browser", "--split", "validation",
                                   "--runs", "1", "--output", str(out),
-                                  "--triggers-dir", str(_REPO / "eval" / "triggers"),
+                                  "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers"),
                                   "--baseline", str(tmp_path / "none.json")])
     assert res.exit_code == 0, res.stdout
     assert all(not hooks and isolated for _id, hooks, isolated in seen)
@@ -169,7 +169,7 @@ def test_trigger_cli_with_fake_runner(tmp_path: Path, monkeypatch: pytest.Monkey
 def test_trigger_cli_rejects_unknown_skill(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = runner.invoke(cli.app, ["trigger", "--skills", "rf-keyword-builder",
-                                  "--triggers-dir", str(_REPO / "eval" / "triggers")])
+                                  "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
     assert res.exit_code == 2
     assert "rf-keyword-builder" in res.stdout
 

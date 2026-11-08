@@ -13,9 +13,9 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 HELPER = ROOT / "plugins" / "rf-agentskills" / "scripts" / "_hook_input.mjs"
-FIXTURES = ROOT / "tests" / "fixtures" / "hook_inputs"
+FIXTURES = ROOT / "plugins" / "rf-agentskills" / "tests" / "fixtures" / "hook_inputs"
 NODE = shutil.which("node")
 pytestmark = pytest.mark.skipif(NODE is None, reason="node not on PATH")
 CWD = "/work/proj"

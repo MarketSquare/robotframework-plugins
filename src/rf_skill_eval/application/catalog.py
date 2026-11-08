@@ -9,8 +9,9 @@ Validity rules (design D8, spec "Task coverage per shipped skill"):
 * every task has at least one gating check;
 * a task that allows ``mcp__rf-mcp__*`` tools declares ``mcp_servers: [rf-mcp]``.
 
-Coverage: every shipped skill needs at least one ``narrow`` task and one
-trigger set. New skills are picked up automatically from ``plugins/*/skills/``.
+Coverage: every skill a plugin ships needs at least one ``narrow`` task and one
+trigger set in that plugin's ``evals/``. New skills are picked up automatically
+from ``plugins/<name>/skills/``.
 """
 
 from __future__ import annotations
@@ -40,12 +41,33 @@ def find_repo_root(start: Path | None = None) -> Path:
     return here
 
 
-def shipped_skills(repo_root: Path) -> dict[str, str]:
-    """``{skill name: dir name}`` for every ``plugins/*/skills/*/SKILL.md``."""
+def shipped_skills(repo_root: Path, plugin: str | None = None) -> dict[str, str]:
+    """``{skill name: dir name}`` for every ``plugins/*/skills/*/SKILL.md``
+    (only ``plugins/<plugin>/skills/`` when ``plugin`` is given)."""
     found: dict[str, str] = {}
-    for skills_dir in sorted((repo_root / "plugins").glob("*/skills")):
+    for skills_dir in sorted((repo_root / "plugins").glob(f"{plugin or '*'}/skills")):
         found.update(skill_dir_map(skills_dir))
     return found
+
+
+def eval_plugins(repo_root: Path) -> list[str]:
+    """Plugins that carry their own evals (``plugins/<name>/evals/``)."""
+    return sorted(p.parent.name for p in (repo_root / "plugins").glob("*/evals") if p.is_dir())
+
+
+def default_eval_plugin(repo_root: Path) -> str:
+    """The plugin the harness evaluates when ``--plugin`` is not given: the
+    only plugin with evals. With several, the caller must choose."""
+    plugins = eval_plugins(repo_root)
+    if len(plugins) != 1:
+        found = ", ".join(plugins) or "none"
+        raise ValueError(f"choose a plugin with --plugin (plugins with evals: {found})")
+    return plugins[0]
+
+
+def plugin_evals_dir(repo_root: Path, plugin: str) -> Path:
+    """``plugins/<plugin>/evals/``: the plugin's tasks, trigger sets and baselines."""
+    return repo_root / "plugins" / plugin / "evals"
 
 
 def _read_mapping(path: Path) -> dict[str, Any]:
@@ -184,8 +206,10 @@ class CoverageReport:
         return not self.problems
 
 
-def coverage(repo_root: Path, tasks_dir: Path, triggers_dir: Path) -> CoverageReport:
-    skills = shipped_skills(repo_root)
+def coverage(
+    repo_root: Path, tasks_dir: Path, triggers_dir: Path, plugin: str | None = None
+) -> CoverageReport:
+    skills = shipped_skills(repo_root, plugin)
     validation = validate_tasks(tasks_dir, skills=skills, fixtures_root=repo_root / "eval" / "fixtures")
     sets, trigger_problems = load_trigger_sets(triggers_dir, skills=skills)
     narrow: dict[str, list[str]] = {name: [] for name in skills}

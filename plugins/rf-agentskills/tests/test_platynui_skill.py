@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 SKILL_DIR = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-platynui"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 

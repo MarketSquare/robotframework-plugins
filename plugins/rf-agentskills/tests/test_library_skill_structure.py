@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 CHECKER_SCRIPT = ROOT / "scripts" / "check-skill-keywords.py"
 
 # Skill key -> libdoc import name (also the module probed for the dry-run test).

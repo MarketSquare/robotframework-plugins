@@ -2,7 +2,7 @@ name: Skill Evaluation
 
 # Tiered skill evaluation (strengthen-skill-eval-harness, ADR-005):
 #   PR       -> narrow tier, treatment arm only, N=3, Haiku, scoped to the changed
-#               skills + `plugin` canaries, gated against eval/baselines/narrow.json;
+#               skills + `plugin` canaries, gated against plugins/rf-agentskills/evals/baselines/narrow.json;
 #               validation-split trigger evals when a SKILL.md description changed.
 #   weekly   -> all tiers in both arms, N=3, all trigger sets, candidate baseline.
 #   manual   -> same as weekly with model / runs / allow_opus inputs.
@@ -12,6 +12,8 @@ on:
   pull_request:
     paths:
       - 'plugins/rf-agentskills/**'
+      # The plugin's own pytest suite is CI's job, not a reason for agent runs.
+      - '!plugins/rf-agentskills/tests/**'
       - 'eval/**'
       - 'src/rf_skill_eval/**'
       - 'pyproject.toml'
@@ -122,7 +124,7 @@ jobs:
 
       - name: Validate tasks, trigger sets and coverage (no API calls)
         run: |
-          uv run rf-skill-eval validate-tasks eval/tasks
+          uv run rf-skill-eval validate-tasks plugins/rf-agentskills/evals/tasks
           uv run rf-skill-eval coverage
 
       - name: Detect credentials
@@ -248,7 +250,7 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: uv run rf-skill-eval doctor --tasks-dir eval/tasks/narrow --strict
+        run: uv run rf-skill-eval doctor --tasks-dir plugins/rf-agentskills/evals/tasks/narrow --strict
 
       - name: Run narrow tier (treatment arm)
         id: batch
@@ -261,7 +263,7 @@ jobs:
           SKILL_ARGS=()
           if [ -n "${SKILLS}" ]; then SKILL_ARGS=(--skills "${SKILLS}"); fi
           uv run rf-skill-eval run-batch \
-            --tasks-dir eval/tasks/narrow \
+            --tasks-dir plugins/rf-agentskills/evals/tasks/narrow \
             --tier narrow \
             "${SKILL_ARGS[@]}" \
             --arms treatment \
@@ -278,8 +280,8 @@ jobs:
           set +e
           uv run rf-skill-eval gate \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/pr \
-            --baseline eval/baselines/narrow.json \
-            --tasks-dir eval/tasks \
+            --baseline plugins/rf-agentskills/evals/baselines/narrow.json \
+            --tasks-dir plugins/rf-agentskills/evals/tasks \
             --token-budget 0.75 \
             --max-cost-usd "${PR_NARROW_CAP_USD}" \
             --report-output gate.txt
@@ -304,7 +306,7 @@ jobs:
           code=$?
           uv run rf-skill-eval gate \
             --trigger-results "${RUNNER_TEMP}"/eval-runs/triggers/trigger-results.json \
-            --trigger-baseline eval/baselines/triggers.json \
+            --trigger-baseline plugins/rf-agentskills/evals/baselines/triggers.json \
             --report-output trigger-gate.txt
           gate=$?
           if [ "$code" -ne 0 ]; then echo "exit_code=$code" >> "$GITHUB_OUTPUT"; else echo "exit_code=$gate" >> "$GITHUB_OUTPUT"; fi
@@ -314,8 +316,8 @@ jobs:
         run: |
           uv run rf-skill-eval report \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/pr \
-            --tasks-dir eval/tasks \
-            --baseline eval/baselines/narrow.json \
+            --tasks-dir plugins/rf-agentskills/evals/tasks \
+            --baseline plugins/rf-agentskills/evals/baselines/narrow.json \
             --format md \
             --output eval-report.md || echo "_no report (no runs recorded)_" > eval-report.md
           {
@@ -448,7 +450,7 @@ jobs:
       - name: Doctor
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: uv run rf-skill-eval doctor --tasks-dir eval/tasks --strict
+        run: uv run rf-skill-eval doctor --tasks-dir plugins/rf-agentskills/evals/tasks --strict
 
       - name: Run tiers
         id: batch
@@ -469,7 +471,7 @@ jobs:
             esac
             if [ -n "${MANUAL_CAP}" ]; then cap="${MANUAL_CAP}"; fi
             uv run rf-skill-eval run-batch \
-              --tasks-dir "eval/tasks/${tier}" \
+              --tasks-dir "plugins/rf-agentskills/evals/tasks/${tier}" \
               --tier "${tier}" \
               --arms "${ARMS}" \
               --runs "${RUNS}" \
@@ -505,18 +507,18 @@ jobs:
         run: |
           uv run rf-skill-eval baseline update \
             --from "${RUNNER_TEMP}"/eval-runs/full \
-            --tasks-dir eval/tasks \
+            --tasks-dir plugins/rf-agentskills/evals/tasks \
             --output-dir candidate-baseline || true
           uv run rf-skill-eval report \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/full \
-            --tasks-dir eval/tasks \
+            --tasks-dir plugins/rf-agentskills/evals/tasks \
             --format md \
             --output eval-report.md || echo "_no report_" > eval-report.md
           set +e
           uv run rf-skill-eval gate \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/full \
-            --baseline eval/baselines/narrow.json \
-            --tasks-dir eval/tasks \
+            --baseline plugins/rf-agentskills/evals/baselines/narrow.json \
+            --tasks-dir plugins/rf-agentskills/evals/tasks \
             --report-output gate.txt
           echo "GATE_EXIT=$?" >> "$GITHUB_ENV"
           {

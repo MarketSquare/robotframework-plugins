@@ -135,6 +135,9 @@ eval/  tests/  scripts/        shared harness, repository checks and tooling onl
 - Root `skills/`, `scripts/sync-skills.sh` and the root-to-plugin half of `scripts/check-drift.sh` are removed; `plugins/<name>/skills/` is the source. `check-drift.sh` keeps checking the generated Codex and OpenCode variants. Release tarballs and Desktop ZIPs are built from `plugins/<name>/skills/` of the plugin being released.
 - In other specs, a path `skills/<skill>/` means `plugins/<plugin>/skills/<skill>/`.
 - PR CI runs the tests and evals of the plugins a PR changes, plus the shared tests; `main` and the nightly job run everything.
+- `evals/` holds the plugin's tasks, trigger sets and baselines. The fixture projects (`eval/fixtures/`) and hidden grader suites (`eval/graders/`) stay shared, because tasks of several plugins use the same projects. `rf-skill-eval --plugin <name>` selects the plugin; without it the harness uses the only plugin with evals.
+- `scripts/select-plugin-tests.py` maps a PR's changed paths to plugins: a change under `plugins/<name>/`, or to a file one of the plugin's symlinks points to, selects that plugin; a change outside `plugins/` selects every plugin. CI runs the shared tests and each selected plugin's tests in separate pytest runs, so plugins may reuse test module names.
+- Cost: Claude Code copies a marketplace plugin's whole folder, so `tests/` and `evals/` (about 1 MB for `rf-agentskills`) reach users' plugin caches. The installer's bundle and the release tarball leave them out.
 - *Rejected: keeping root `skills/` with one subfolder per plugin.* It keeps a sync step and a second copy for no gain once each plugin has an owner.
 
 ### D14 Names are unique across the catalogue

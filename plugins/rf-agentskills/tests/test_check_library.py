@@ -19,9 +19,9 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-python-library" / "scripts" / "check_library.py"
-FIXTURES = ROOT / "tests" / "fixtures" / "python_library"
+FIXTURES = ROOT / "plugins" / "rf-agentskills" / "tests" / "fixtures" / "python_library"
 EXAMPLES = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-python-library" / "assets" / "examples"
 
 pytestmark = pytest.mark.skipif(importlib.util.find_spec("robot") is None,

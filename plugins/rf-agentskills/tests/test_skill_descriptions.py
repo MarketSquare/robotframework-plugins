@@ -17,7 +17,7 @@ Static checks, no network, no model calls:
 * every ``## Companion Skills`` table uses rows from the shared catalogue
   (design D4), names only shipped skills (never itself, never a retired one) and
   has the required rows for that skill;
-* every shipped skill has ``eval/triggers/<name>.yaml`` with >= 8 should-trigger
+* every shipped skill has ``plugins/rf-agentskills/evals/triggers/<name>.yaml`` with >= 8 should-trigger
   and >= 8 should-not-trigger queries in both splits, and no query leaks a skill id.
 
 The trigger-set shape duplicates the eval-harness loader on purpose so this runs
@@ -36,9 +36,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[3]
 SKILLS_ROOT = REPO / "plugins" / "rf-agentskills" / "skills"
-TRIGGERS = REPO / "eval" / "triggers"
+TRIGGERS = REPO / "plugins" / "rf-agentskills" / "evals" / "triggers"
 
 # ── compact contract constants (tune-skill-descriptions D11/D12) ────────────
 #

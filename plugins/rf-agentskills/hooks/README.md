@@ -369,7 +369,7 @@ subprocess with synthetic stdin payloads and asserts on the
 (stdout, exit-code) pair. No live Claude session needed:
 
 ```bash
-uv run pytest tests/test_hook_scripts.py -v
+uv run pytest plugins/rf-agentskills/tests/test_hook_scripts.py -v
 ```
 
 Parametrised cases covering positive triggers, negative misses,

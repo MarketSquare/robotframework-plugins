@@ -26,7 +26,7 @@ import pytest
 import yaml
 from _standalone import standalone_skills
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 SKILL = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-python-library"
 #: The standalone form (plain ``scripts/check_library.py`` commands); the plugin
 #: copy differs only in ``"${CLAUDE_SKILL_DIR}/scripts/..."``.

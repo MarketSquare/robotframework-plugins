@@ -11,8 +11,31 @@ permissions:
   contents: read
 
 jobs:
+  select-plugins:
+    name: Select plugin tests
+    # The shared tests in tests/ always run; a plugin's own tests run when the
+    # change touches that plugin (or a file it links to) or anything outside
+    # plugins/. Pushes and release calls run every plugin.
+    runs-on: ubuntu-latest
+    outputs:
+      plugins: ${{ steps.select.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: select
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || '' }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            python3 scripts/select-plugin-tests.py --base "origin/$BASE_REF" --github-output "$GITHUB_OUTPUT"
+          else
+            python3 scripts/select-plugin-tests.py --github-output "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: select-plugins
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -53,7 +76,7 @@ jobs:
         run: pip install robotframework-browser || echo "Browser unavailable — those libdoc tests will skip"
         shell: bash
       - name: Install other library-skill libraries (optional — example dry runs)
-        # tests/test_library_skill_structure.py dry-runs every example in
+        # plugins/rf-agentskills/tests/test_library_skill_structure.py dry-runs every example in
         # plugins/rf-agentskills/skills/rf-{selenium,appium,requests,restinstance}/assets/examples and
         # checks decision-table keywords against libdoc. Fail-soft: a library
         # that cannot be installed (RESTinstance needs Python >= 3.11) makes its
@@ -65,7 +88,7 @@ jobs:
           pip install RESTinstance || echo "RESTinstance unavailable on this interpreter — its example dry runs will skip"
         shell: bash
       - name: Install Robocop 9.x and PyYAML (optional — rf-language rule-ID fidelity and YAML example tests)
-        # tests/test_language_skill.py checks every Robocop rule ID the rf-language
+        # plugins/rf-agentskills/tests/test_language_skill.py checks every Robocop rule ID the rf-language
         # skill cites against Robocop 9.x (the version rf-setup recommends) and
         # runs the YAML variable-file example. Fail-soft: those cases skip.
         run: |
@@ -76,7 +99,7 @@ jobs:
         # plugins/rf-agentskills/skills/rf-python-library/assets/examples must really run (not only
         # dry-run), with the example listener, and the bundled checker must
         # report no error or warning finding for the three example libraries.
-        # tests/test_python_library_skill.py and tests/test_check_library.py
+        # plugins/rf-agentskills/tests/test_python_library_skill.py and test_check_library.py
         # (run below) cover the same plus every code block in the skill.
         run: |
           export PYTHONDONTWRITEBYTECODE=1
@@ -96,7 +119,19 @@ jobs:
         # run with `uv sync --all-extras && uv run pytest tests/eval/`.
         # This CI job stays focused on the plugin's own Python scripts
         # plus the public rf-agentskills installer (installed above).
-        run: python -m pytest tests/ --ignore=tests/eval -v --tb=short
+        # Shared tests first, then each selected plugin's tests in its own run
+        # (plugins may reuse test module names).
+        env:
+          PLUGINS: ${{ needs.select-plugins.outputs.plugins }}
+        run: |
+          status=0
+          python -m pytest tests/ --ignore=tests/eval -v --tb=short || status=1
+          for plugin in $(python -c "import json, os; print(' '.join(json.loads(os.environ['PLUGINS'])))"); do
+            echo "::group::plugins/$plugin/tests"
+            python -m pytest "plugins/$plugin/tests" -v --tb=short || status=1
+            echo "::endgroup::"
+          done
+          exit $status
         shell: bash
 
   lint:
@@ -111,7 +146,7 @@ jobs:
       - name: Lint plugin skill scripts
         run: ruff check plugins/*/skills/*/scripts/*.py --select E,F,W --ignore E501
       - name: Lint skill zip builder
-        run: ruff check scripts/build-skill-zips.py scripts/export-skills.py --select E,F,W --ignore E501
+        run: ruff check scripts/build-skill-zips.py scripts/export-skills.py scripts/select-plugin-tests.py --select E,F,W --ignore E501
       - name: Lint repo QA scripts
         run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py --select E,F,W --ignore E501
 

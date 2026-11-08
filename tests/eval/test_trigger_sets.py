@@ -10,7 +10,7 @@ import yaml
 from rf_skill_eval.application.catalog import load_trigger_set, load_trigger_sets, shipped_skills
 
 _REPO = Path(__file__).resolve().parents[2]
-_TRIGGERS = _REPO / "eval" / "triggers"
+_TRIGGERS = _REPO / "plugins" / "rf-agentskills" / "evals" / "triggers"
 _SKILLS = shipped_skills(_REPO)
 
 
@@ -137,4 +137,4 @@ def test_readme_documents_discipline_and_is_linked() -> None:
     readme = (_TRIGGERS / "README.md").read_text()
     assert "Never edit validation queries" in readme
     assert "train" in readme and "validation" in readme
-    assert "eval/triggers/README.md" in (_REPO / "eval" / "tasks" / "README.md").read_text()
+    assert "plugins/rf-agentskills/evals/triggers/README.md" in (_REPO / "plugins" / "rf-agentskills" / "evals" / "tasks" / "README.md").read_text()

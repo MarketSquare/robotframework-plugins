@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from _standalone import standalone_skills
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 PLUGIN = ROOT / "plugins" / "rf-agentskills"
 #: "root" is the standalone form (release tarballs, Desktop ZIPs), exported
 #: from the plugin; the repository has no root skills/ copy any more.

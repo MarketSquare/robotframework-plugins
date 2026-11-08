@@ -36,7 +36,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 SKILL = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-language"
 SKILL_MD = SKILL / "SKILL.md"
 REFS = SKILL / "references"

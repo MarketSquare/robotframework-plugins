@@ -46,7 +46,8 @@ jobs:
       - name: Package Claude plugin
         run: |
           cd plugins
-          tar -czf ../rf-agentskills-claude-plugin-${{ steps.version.outputs.version }}.tar.gz rf-agentskills/
+          tar -czf ../rf-agentskills-claude-plugin-${{ steps.version.outputs.version }}.tar.gz \
+            --exclude=rf-agentskills/tests --exclude=rf-agentskills/evals rf-agentskills/
 
       # ── Build standalone skills (any agent) ──
       - name: Package standalone skills

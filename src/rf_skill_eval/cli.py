@@ -48,9 +48,11 @@ from .application.catalog import (
     coverage as coverage_check,
 )
 from .application.catalog import (
+    default_eval_plugin,
     find_repo_root,
     load_task_file,
     load_trigger_sets,
+    plugin_evals_dir,
     shipped_skills,
     task_problems,
     validate_tasks,
@@ -103,8 +105,24 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
-baseline_app = typer.Typer(help="Manage stored baseline files (eval/baselines/).")
+baseline_app = typer.Typer(help="Manage stored baseline files (plugins/<plugin>/evals/baselines/).")
 app.add_typer(baseline_app, name="baseline")
+
+#: The plugin set with --plugin; None means the only plugin with evals.
+_PLUGIN: dict[str, str | None] = {"name": None}
+
+
+@app.callback()
+def _select_plugin(
+    plugin: str | None = typer.Option(
+        None,
+        "--plugin",
+        envvar="RF_EVAL_PLUGIN",
+        help="Plugin whose evals (plugins/<name>/evals/: tasks, triggers, baselines) "
+        "the command reads and writes. Default: the only plugin with evals.",
+    ),
+) -> None:
+    _PLUGIN["name"] = plugin
 
 #: Seam for tests: returns the SkillRunner used by run/run-batch/bench/trigger.
 RUNNER_FACTORY: Callable[[], SkillRunner] = ClaudeCodeRunner
@@ -115,6 +133,21 @@ RUNNER_FACTORY: Callable[[], SkillRunner] = ClaudeCodeRunner
 
 def _repo_root() -> Path:
     return find_repo_root()
+
+
+def _plugin(root: Path | None = None) -> str:
+    if _PLUGIN["name"]:
+        return _PLUGIN["name"]
+    try:
+        return default_eval_plugin(root or _repo_root())
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+
+def _evals(*parts: str, root: Path | None = None) -> Path:
+    """``plugins/<plugin>/evals/<parts>``: the default for the eval content options."""
+    root = root or _repo_root()
+    return plugin_evals_dir(root, _plugin(root)).joinpath(*parts)
 
 
 def _load_task(path: Path, *, validate_skill: bool = True) -> Task:
@@ -317,11 +350,12 @@ def run(
     allow_opus: bool = typer.Option(False, "--allow-opus", help="Opt in to claude-opus-5-5"),
     max_cost_usd: float | None = typer.Option(None, "--max-cost-usd", min=0.0),
     output: Path = typer.Option(Path("eval/runs"), "--output", help="Run artifacts directory"),
-    baseline_dir: Path = typer.Option(Path("eval/baselines"), "--baseline-dir"),
+    baseline_dir: Path | None = typer.Option(None, "--baseline-dir"),
 ) -> None:
     """Execute ONE task in ONE arm, grade it and persist the result."""
 
     configure_logging()
+    baseline_dir = baseline_dir or _evals("baselines")
     task_obj = _load_task(task)
     arms = _resolve_arms(arm if profile is None else None, profile)
     if model:
@@ -353,7 +387,7 @@ def run_batch(
     allow_opus: bool = typer.Option(False, "--allow-opus"),
     max_cost_usd: float | None = typer.Option(None, "--max-cost-usd", min=0.0),
     output: Path = typer.Option(Path("eval/runs"), "--output"),
-    baseline_dir: Path = typer.Option(Path("eval/baselines"), "--baseline-dir"),
+    baseline_dir: Path | None = typer.Option(None, "--baseline-dir"),
     concurrency: int = typer.Option(
         1,
         "--concurrency",
@@ -366,8 +400,9 @@ def run_batch(
 
     configure_logging()
     root = _repo_root()
+    baseline_dir = baseline_dir or _evals("baselines", root=root)
     validation = validate_tasks(
-        tasks_dir, skills=shipped_skills(root), fixtures_root=root / "eval" / "fixtures"
+        tasks_dir, skills=shipped_skills(root, _plugin(root)), fixtures_root=root / "eval" / "fixtures"
     )
     if not validation.ok:
         for p in validation.problems:
@@ -416,7 +451,7 @@ def bench(
         plan_batch([task_obj], _resolve_arms(arms, None), runs),
         output,
         max_cost_usd=max_cost_usd,
-        baseline_dir=Path("eval/baselines"),
+        baseline_dir=_evals("baselines"),
     )
     results = load_run_results(output, None)
     for s in aggregate_replicates(r for r in results if r.task_id == task_obj.id):
@@ -534,7 +569,7 @@ def report(
         "--output",
         help="Destination path. Use '-' to stream to stdout.",
     ),
-    tasks_dir: Path = typer.Option(Path("eval/tasks"), "--tasks-dir"),
+    tasks_dir: Path | None = typer.Option(None, "--tasks-dir"),
     baseline: Path | None = typer.Option(
         None, "--baseline", help="Stored tier baseline used when the baseline arm was not run"
     ),
@@ -542,6 +577,7 @@ def report(
     """Render the arm-aware report (per task × arm, deltas, skipped checks)."""
 
     configure_logging()
+    tasks_dir = tasks_dir or _evals("tasks")
     if fmt not in {"md", "json"}:
         raise typer.BadParameter("format must be 'md' or 'json'")
     if not any(runs_dir.rglob("eval.db")):
@@ -731,14 +767,18 @@ def _claude_auth_ping(claude_binary: str) -> tuple[bool, str]:
 
 @app.command("validate-tasks")
 def validate_tasks_cmd(
-    tasks_dir: Path = typer.Argument(Path("eval/tasks"), exists=True, file_okay=False),
+    tasks_dir: Path | None = typer.Argument(None, file_okay=False, help="Default: <evals>/tasks"),
     repo_root: Path | None = typer.Option(None, "--repo-root"),
 ) -> None:
     """Validate task schema, model ids, skills (shipped or 'plugin'), fixtures, gating."""
 
     root = (repo_root or _repo_root()).resolve()
+    plugin = _plugin(root)
+    tasks_dir = tasks_dir or _evals("tasks", root=root)
+    if not tasks_dir.is_dir():
+        raise typer.BadParameter(f"tasks directory not found: {tasks_dir}")
     report = validate_tasks(
-        tasks_dir, skills=shipped_skills(root), fixtures_root=root / "eval" / "fixtures"
+        tasks_dir, skills=shipped_skills(root, plugin), fixtures_root=root / "eval" / "fixtures"
     )
     for problem in report.problems:
         console.print(f"[red]invalid:[/red] {problem}")
@@ -749,14 +789,20 @@ def validate_tasks_cmd(
 
 @app.command()
 def coverage(
-    tasks_dir: Path = typer.Option(Path("eval/tasks"), "--tasks-dir"),
-    triggers_dir: Path = typer.Option(Path("eval/triggers"), "--triggers-dir"),
+    tasks_dir: Path | None = typer.Option(None, "--tasks-dir"),
+    triggers_dir: Path | None = typer.Option(None, "--triggers-dir"),
     repo_root: Path | None = typer.Option(None, "--repo-root"),
 ) -> None:
     """Fail when a shipped skill lacks a narrow task or a trigger set."""
 
     root = (repo_root or _repo_root()).resolve()
-    rep = coverage_check(root, tasks_dir, triggers_dir)
+    plugin = _plugin(root)
+    rep = coverage_check(
+        root,
+        tasks_dir or _evals("tasks", root=root),
+        triggers_dir or _evals("triggers", root=root),
+        plugin,
+    )
     table = Table(title="rf-skill-eval coverage")
     table.add_column("skill")
     table.add_column("narrow tasks")
@@ -883,9 +929,11 @@ def trigger(
     model: str | None = typer.Option(None, "--model"),
     allow_opus: bool = typer.Option(False, "--allow-opus"),
     max_cost_usd: float | None = typer.Option(None, "--max-cost-usd", min=0.0),
-    triggers_dir: Path = typer.Option(Path("eval/triggers"), "--triggers-dir"),
+    triggers_dir: Path | None = typer.Option(None, "--triggers-dir"),
     output: Path = typer.Option(Path("eval/runs/triggers"), "--output"),
-    baseline: Path | None = typer.Option(Path("eval/baselines/triggers.json"), "--baseline"),
+    baseline: Path | None = typer.Option(
+        None, "--baseline", help="Default: <evals>/baselines/triggers.json"
+    ),
     concurrency: int = typer.Option(
         1, "--concurrency", help=f"Queries run at once (1..{MAX_TRIGGER_CONCURRENCY}, ADR-002)"
     ),
@@ -918,9 +966,11 @@ def trigger(
             f"--concurrency must be 1..{MAX_TRIGGER_CONCURRENCY} (ADR-002 OAuth cap)"
         )
     root = _repo_root()
+    triggers_dir = triggers_dir or _evals("triggers", root=root)
+    baseline = baseline or _evals("baselines", "triggers.json", root=root)
     plugin_root, variant_id = _variant(variant_root, root)
     names_root = variant_root if variant_root and (variant_root / "plugins").is_dir() else root
-    sets, problems = load_trigger_sets(triggers_dir, skills=shipped_skills(names_root))
+    sets, problems = load_trigger_sets(triggers_dir, skills=shipped_skills(names_root, _plugin(root)))
     for p in problems:
         console.print(f"[red]invalid trigger set:[/red] {p}")
     if problems:
@@ -991,13 +1041,15 @@ def trigger(
 @baseline_app.command("update")
 def baseline_update(
     from_dir: Path = typer.Option(..., "--from", exists=True, file_okay=False),
-    tasks_dir: Path = typer.Option(Path("eval/tasks"), "--tasks-dir"),
-    output_dir: Path = typer.Option(Path("eval/baselines"), "--output-dir"),
+    tasks_dir: Path | None = typer.Option(None, "--tasks-dir"),
+    output_dir: Path | None = typer.Option(None, "--output-dir"),
     claude_code_version: str | None = typer.Option(None, "--claude-code-version"),
 ) -> None:
     """Write <tier>.json (from eval.db runs) and triggers.json (from trigger-results.json)."""
 
     root = _repo_root()
+    tasks_dir = tasks_dir or _evals("tasks", root=root)
+    output_dir = output_dir or _evals("baselines", root=root)
     written: list[Path] = []
     cc_version = claude_code_version or _detect_claude_code_version()
     if any(from_dir.rglob("eval.db")):
@@ -1038,15 +1090,15 @@ def _detect_claude_code_version() -> str:
 @app.command()
 def gate(
     runs_dir: Path | None = typer.Option(None, "--runs-dir"),
-    baseline: Path = typer.Option(Path("eval/baselines/narrow.json"), "--baseline"),
-    tasks_dir: Path = typer.Option(Path("eval/tasks"), "--tasks-dir"),
+    baseline: Path | None = typer.Option(None, "--baseline", help="Default: <evals>/baselines/narrow.json"),
+    tasks_dir: Path | None = typer.Option(None, "--tasks-dir"),
     tolerance: float | None = typer.Option(
         None, "--tolerance", help="Allowed pass-rate drop; default: Fisher exact p < 0.05 vs a >=6-run baseline, else > 1/N fails"
     ),
     token_budget: float = typer.Option(0.30, "--token-budget", help="Allowed input-token rise"),
     trigger_results: Path | None = typer.Option(None, "--trigger-results"),
-    trigger_baseline: Path = typer.Option(
-        Path("eval/baselines/triggers.json"), "--trigger-baseline"
+    trigger_baseline: Path | None = typer.Option(
+        None, "--trigger-baseline", help="Default: <evals>/baselines/triggers.json"
     ),
     max_cost_usd: float | None = typer.Option(
         None, "--max-cost-usd", min=0.0, help="Fail when the gated runs' reported cost exceeds it"
@@ -1058,6 +1110,9 @@ def gate(
 
     if runs_dir is None and trigger_results is None:
         raise typer.BadParameter("give --runs-dir and/or --trigger-results")
+    tasks_dir = tasks_dir or _evals("tasks")
+    baseline = baseline or _evals("baselines", "narrow.json")
+    trigger_baseline = trigger_baseline or _evals("baselines", "triggers.json")
     report_obj = GateReport()
     spent = 0.0
     if runs_dir is not None:
@@ -1090,7 +1145,7 @@ def gate(
         current = TriggerEvalResult.from_json(json.loads(trigger_results.read_text("utf-8")))
         spent += current.spent_usd
         gate_triggers(current, load_json(trigger_baseline), report_obj)
-        gate_listing(current, shipped_skills(_repo_root()), report_obj)
+        gate_listing(current, shipped_skills(_repo_root(), _plugin()), report_obj)
     gate_cost(report_obj, spent, max_cost_usd)
     text = report_obj.render()
     console.print(text, markup=False, highlight=False)
@@ -1136,7 +1191,7 @@ def preflight(
     paths_file: Path | None = typer.Option(
         None, "--paths-file", help="Changed paths, one per line (instead of --base)"
     ),
-    tasks_dir: Path = typer.Option(Path("eval/tasks"), "--tasks-dir"),
+    tasks_dir: Path | None = typer.Option(None, "--tasks-dir"),
     github_output: Path | None = typer.Option(
         None, "--github-output", help="Append key=value outputs (e.g. $GITHUB_OUTPUT)"
     ),
@@ -1147,7 +1202,8 @@ def preflight(
         raise typer.BadParameter("give exactly one of --base or --paths-file")
     paths = _changed_paths(base, paths_file)
     root = _repo_root()
-    index = _task_index(tasks_dir)
+    plugin = _plugin(root)
+    index = _task_index(tasks_dir or _evals("tasks", root=root))
     by_path = {str(p.resolve().relative_to(root)): t.skill for p, t in index.values()}
     fixture_skills: dict[str, set[str]] = {}
     for _p, t in index.values():
@@ -1155,10 +1211,11 @@ def preflight(
             fixture_skills.setdefault(t.fixture, set()).add(t.skill)
     result = map_changed_paths(
         paths,
-        dir_to_skill={d: n for n, d in shipped_skills(root).items()},
+        dir_to_skill={d: n for n, d in shipped_skills(root, plugin).items()},
         task_skill=lambda p: by_path.get(p),
         fixture_skills=fixture_skills,
         description_changed=lambda path: _description_changed(root, base, path),
+        plugin=plugin,
     )
     for reason in result.reasons:
         console.print(f"- {reason}")

@@ -244,8 +244,8 @@ ignore_missing_imports = true
 # --- Pytest ------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "8.0"
-# tests/eval is the harness test suite; `tests/` legacy dir holds plugin tests
-# and is kept out of the default collection to avoid import conflicts.
+# tests/eval is the harness test suite; the shared tests in `tests/` and each
+# plugin's `plugins/<name>/tests/` run separately (see the README).
 testpaths = ["tests/eval"]
 asyncio_mode = "auto"
 addopts = [

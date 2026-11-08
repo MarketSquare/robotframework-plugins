@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 PLUGIN = ROOT / "plugins" / "rf-agentskills"
 AGENTS_DIR = PLUGIN / "agents"
 AGENT_NAMES = ("rf-test-architect", "rf-migration-guide", "rf-debug-expert")

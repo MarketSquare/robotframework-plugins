@@ -26,7 +26,7 @@ from rf_skill_eval.scoring.rubric import RubricGrader
 
 _REPO = Path(__file__).resolve().parents[2]
 _FIXTURES = _REPO / "eval" / "fixtures"
-_TASKS = _REPO / "eval" / "tasks"
+_TASKS = _REPO / "plugins" / "rf-agentskills" / "evals" / "tasks"
 _GOLDEN = Path(__file__).parent / "golden"
 
 pytestmark = pytest.mark.integration

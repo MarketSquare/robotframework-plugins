@@ -32,7 +32,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 PLUGIN_SCRIPTS = (
-    Path(__file__).resolve().parent.parent
+    Path(__file__).resolve().parents[3]
     / "plugins"
     / "rf-agentskills"
     / "scripts"

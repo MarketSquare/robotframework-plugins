@@ -65,7 +65,7 @@ class TriggerQuery(BaseModel):
 
 
 class TriggerSet(BaseModel):
-    """``eval/triggers/<skill>.yaml``."""
+    """``plugins/rf-agentskills/evals/triggers/<skill>.yaml``."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

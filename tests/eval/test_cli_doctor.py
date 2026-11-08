@@ -91,7 +91,7 @@ def _no_ping(monkeypatch) -> None:
 
 def test_doctor_lists_grader_requirements_of_selected_tasks(monkeypatch) -> None:
     _no_ping(monkeypatch)
-    result = runner.invoke(app, ["doctor", "--tasks-dir", str(_REPO / "eval" / "tasks" / "narrow")])
+    result = runner.invoke(app, ["doctor", "--tasks-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "tasks" / "narrow")])
     assert result.exit_code == 0, result.stdout
     for req in ("tool:robot", "module:Browser", "module:SeleniumLibrary", "module:REST"):
         assert f"grader {req}" in result.stdout

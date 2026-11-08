@@ -145,7 +145,7 @@ def test_trigger_profile_requests_restriction_and_fixture(
             raise cli.RfSkillEvalError("stop")
 
     fn = cli._runner_trigger_fn(Capture(), tmp_path, None, workspace_fixture=_FIXTURE)  # type: ignore[arg-type]
-    tset = load_trigger_set(_REPO / "eval" / "triggers" / "rf-requests.yaml", skills=_SKILLS)
+    tset = load_trigger_set(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers" / "rf-requests.yaml", skills=_SKILLS)
     run = fn(tset, tset.queries[0], 0)
     assert run.error == "stop"
     assert seen[0].restrict_tools is True
@@ -243,7 +243,7 @@ def test_unknown_split_rejected(tmp_path: Path) -> None:
 def test_cli_rejects_unknown_split(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = cli_runner.invoke(cli.app, ["trigger", "--skills", "rf-browser", "--split", "test",
-                                      "--triggers-dir", str(_REPO / "eval" / "triggers")])
+                                      "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
     assert res.exit_code == 2
     assert "holdout" in res.output
 
@@ -300,7 +300,7 @@ def test_malformed_holdout_names_rejected(tmp_path: Path, bad: str) -> None:
 def test_cli_rejects_malformed_holdout_split(monkeypatch: pytest.MonkeyPatch, bad: str) -> None:
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = cli_runner.invoke(cli.app, ["trigger", "--skills", "rf-browser", "--split", bad,
-                                      "--triggers-dir", str(_REPO / "eval" / "triggers")])
+                                      "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
     assert res.exit_code == 2
     # Rich colours and wraps the usage error to the terminal width (CI differs
     # from local), so strip ANSI codes and whitespace before matching.
@@ -465,7 +465,7 @@ def test_cli_resume_and_variant_recorded(tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.setattr(cli, "RUNNER_FACTORY", lambda: FakeRunner(behaviour))
     out = tmp_path / "trig"
     args = ["trigger", "--skills", "rf-browser", "--split", "validation", "--runs", "1",
-            "--output", str(out), "--triggers-dir", str(_REPO / "eval" / "triggers"),
+            "--output", str(out), "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers"),
             "--baseline", str(tmp_path / "none.json"), "--variant-root", str(variant),
             "--concurrency", "2"]
     res = cli_runner.invoke(cli.app, args)
@@ -522,7 +522,7 @@ def test_concurrency_above_two_rejected(tmp_path: Path, monkeypatch: pytest.Monk
                               concurrency=3)
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = cli_runner.invoke(cli.app, ["trigger", "--concurrency", "3",
-                                      "--triggers-dir", str(_REPO / "eval" / "triggers")])
+                                      "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
     assert res.exit_code == 2
     assert "concurrency" in res.output
 
@@ -610,6 +610,6 @@ def test_builder_script_prints_variant_id(tmp_path: Path) -> None:
 def test_cli_rejects_variant_root_without_plugin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = cli_runner.invoke(cli.app, ["trigger", "--variant-root", str(tmp_path),
-                                      "--triggers-dir", str(_REPO / "eval" / "triggers")])
+                                      "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
     assert res.exit_code == 2
     assert "plugins" in res.output

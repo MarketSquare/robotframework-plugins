@@ -21,7 +21,7 @@ try:
 except ModuleNotFoundError:  # Python 3.10: the installer's tomli dependency
     import tomli as tomllib
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 PLUGIN = ROOT / "plugins" / "rf-agentskills"
 VARIANTS = PLUGIN / "variants"
 GENERATOR = ROOT / "scripts" / "build-agent-variants.py"
