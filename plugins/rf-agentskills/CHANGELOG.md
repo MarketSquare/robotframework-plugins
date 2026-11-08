@@ -1,0 +1,189 @@
+# Changelog
+
+This is the **content channel** version: the `rf-agentskills` plugin, its
+marketplace entry and the skills tarballs. The `rf-agentskills` Python
+installer is versioned independently; see `RELEASING.md` at the repo root
+for the policy. (Until 2.0.0 this file lived in `vscode-extension/`.)
+
+## 3.0.0 (2026-11-07)
+
+Breaking content release: robotcode is now a documented prerequisite, and the skills that overlapped with it are gone.
+
+- **Requires the robotcode CLI.** Install `robotcode[all]>=2.8` in the project environment (`uv add --dev "robotcode[all]>=2.8"`; Poetry and pip forms in the README and `rf-setup`). `[all]` is needed because it alone brings the `runner`, `analyze` and `repl` extras and Robocop. No plugin dependency is declared: rf-agentskills loads with or without the RobotCode project's `robotcode` plugin, which the README recommends as a companion (install commands per agent; the RobotCode VS Code extension already bundles it).
+- **Removed skills:** `rf-robotcode` (use the `robotcode` skill of `robotcode@robotframework-agent-plugins`), `rf-libdoc` and its `rf_libdoc.py` (use `robotcode doc keywords <Library> [pattern]` / `robotcode doc keyword <Library> "<Keyword>"`), `rf-results` and its `rf_results.py` (use `robotcode results summary|show|log|stats|diff`; for a CI artifact outside any project: `uvx --from "robotcode[runner]" --with robotframework robotcode results summary -o output.xml`). Their Claude Desktop archives are gone too. 9 skills remain.
+- **Removed subagent:** `rf-keyword-consultant` (use `robotcode doc`, or the REPL's `.kw`).
+- **`rf-debug-expert` is read-only.** It reads the recorded run (`robotcode results`), groups failures by cause, classifies each cause, debugs one representative test with `robotcode robot-debug -bl`, and returns a FAILURE / CATEGORY / ROOT CAUSE / EVIDENCE / FIX / PREVENTION block per cause instead of editing files (`tools: Read, Grep, Glob, Bash`; OpenCode `permission: edit: deny`). It never proposes weakening an assertion, expected value or tag.
+- **Subagents** have situation-based descriptions, and the shared verification loop uses `robotcode doc keyword`, `robotcode analyze code`, Robocop, a longname run (`robotcode robot -bl`) and `robotcode results`.
+- **Skills use robotcode inline.** The library skills, `rf-language` and `rf-python-library` look keywords up with `robotcode doc`, check files with `robotcode analyze code`, run tests by longname and read results with `robotcode results`; Companion Skills tables no longer list the removed skills. Every skill's `compatibility` names `robotcode[all]>=2.8`. `rf-setup` installs robotcode as a required step and verifies with `robotcode discover info` and `robotcode analyze code`.
+- **Validation hook checks errors with robotcode.** `validate_robot.mjs` runs `robotcode --format json analyze code <file>` (with Robocop's deprecation and formatting checks in parallel; about 1 s per edit with a warm `.robotcode_cache/`). Syntax, argument and import errors block (exit 2); unknown keywords and variables are advisory on edit and block at Stop if they are still unresolved, so writing a keyword in a second file is not interrupted. Robocop no longer decides what blocks. The edit hook timeout is 60 s.
+- **Project tier** (`RF_AGENTSKILLS_PROJECT_VALIDATION`) runs `robotcode analyze code --collect-unused` instead of `robot --dryrun` and `robotframework-find-unused`.
+- **Context hooks:** SessionStart reports the robotcode version (and that 2.8 is needed); the prompt hint, the `robot` error hints and the end-of-session reminder use `robotcode doc` / `robotcode results` instead of the removed skills.
+- **rf-requests:** new gotcha: RequestsLibrary logs credentials and token headers at INFO.
+
+- **One plugin marketplace for every agent.** The repository's `.claude-plugin/marketplace.json` now serves Claude Code, GitHub Copilot CLI, VS Code (Copilot), Codex and Cursor; the README has the install, scope and pinning steps per agent. Pin a release with its `v<version>` tag.
+- **VS Code extension retired.** No `.vsix` is built or attached to releases any more. Instead, VS Code users add `manykarim/robotframework-agentskills` to `chat.plugins.marketplaces` (user scope), accept the workspace recommendation from a committed `.claude/settings.json` (project scope), or run `rf-agentskills install --agent copilot` (files). Unlike the extension, the plugin also brings subagents and hooks.
+- **No default main agent.** The plugin's `settings.json` (`"agent": "rf-test-architect"`) is removed, so enabling the plugin no longer replaces your main agent. The four subagents remain available for delegation; to keep `rf-test-architect` as your main agent, select it yourself (for example `"agent"` in your own Claude Code settings).
+- **Hooks read every agent's input.** `validate_robot.mjs` and `rf_error_hints.mjs` accept the tool names and input shapes of Claude Code, Copilot CLI, VS Code (`create_file`, `replace_string_in_file`, `apply_patch`, `run_in_terminal`), Codex (`apply_patch`, `Bash`) and Cursor, validate every `.robot`/`.resource` file a patch touches, and exit silently for other tools. Validation errors are now also reported as `{"decision": "block", "reason": ...}`, the only hook output Copilot CLI passes to its model.
+- **Unfixed validation errors are re-checked at Stop.** A new Stop hook, `report_pending_errors.mjs`, re-validates the `.robot`/`.resource` files whose validation failed in the session and are still broken, and hands the errors to the model for one more turn. This covers VS Code's Local agent harness, which sends the next model request without waiting for PostToolUse hooks. Each content version of a file is reported once, and the hook is silent on `stop_hook_active`.
+- **Generated per-agent variants** in `variants/` (from `scripts/build-agent-variants.py`, drift-checked in CI): Codex TOML subagents, OpenCode subagents (`mode: subagent`) and an OpenCode JS plugin that runs the same validation, error-hint and environment hooks.
+
+## 2.0.0 (never tagged; shipped in 3.0.0)
+
+- Skill descriptions trimmed to fit Claude Code 2.1.288's smaller skill listing (all 12 visible, 1210 characters) and sibling cues added (rf-appium/rf-selenium/rf-restinstance → rf-setup for installs and drivers, rf-libdoc/rf-results → rf-robotcode when robotcode is installed).
+
+- **`rf-tools` MCP server removed** from the content bundle: the skills run their scripts directly, so no MCP tools (`rf_libdoc_search`, `rf_libdoc_explain`, `rf_results_analyze`, `rf_conventions`, `rf_check_library`) are shipped. The VS Code extension never shipped the server; this only affects the Claude Code plugin and the installer.
+
+- rf-language: concrete embedded-argument recipe (`${team:\S+}`, text between arguments is literal) and the "No keyword with name … for an `[Arguments]` keyword" gotcha.
+
+Breaking content release. Later changes in this release cycle add their
+entries here.
+
+- **rf-language / rf-setup:** every documented `robocop check` / `robocop
+  format` command passes `--no-cache` (Robocop otherwise leaves a
+  `.robocop_cache/` directory in the project).
+- **rf-appium:** duplicate H1 heading removed.
+- **New skill `rf-language`:** writing and reviewing Robot Framework test
+  cases (keyword-driven, data-driven, BDD), suites and `__init__.robot`,
+  tags and selection, user keywords and arguments, embedded arguments,
+  variables, resource and variable files, with a version gate, verified
+  gotchas, a legacy-to-modern migration table (Robocop 9 rule IDs) and
+  examples labelled "RF 7.0+". Its bundled `scripts/rf_conventions.py`
+  detects the project's conventions. The Companion Skills tables of
+  rf-setup, rf-robotcode and the six library skills link to it.
+- **New skill `rf-python-library`:** writing and fixing Robot Framework
+  keyword libraries and listeners in Python (template, scope by state
+  lifetime per the RF User Guide, conversion, failures and logging,
+  dynamic/hybrid APIs, listener API v3, libdoc), with a version gate,
+  thirteen verified gotchas and examples labelled "RF 7.0+". Its bundled
+  `scripts/check_library.py` checks project libraries for RF-specific defects
+  before tests run. rf-language's description and Companion Skills table and
+  rf-setup's project layout point to it.
+- **Removed skills:** `rf-keyword-builder`, `rf-testcase-builder`,
+  `rf-resource-architect` (and in the Claude Code plugin the slash commands
+  `/rf-agentskills:keyword-builder`, `:testcase-builder`,
+  `:resource-architect`), plus their scripts `keyword_builder.py`,
+  `testcase_builder.py`, `resource_architect.py`.
+- **Removed MCP tools** (`rf-tools` server): `rf_keyword_builder`,
+  `rf_testcase_builder`, `rf_resource_architect`. Calling them returns the
+  normal unknown-tool error.
+- **Why:** the JSON → script → paste round trip cost more turns and tokens
+  than writing Robot Framework directly, and the scripts lagged the language
+  (no RF 7 typed arguments, unimplemented layout modes).
+- **Use instead:** write keywords, test cases and resource files directly;
+  check keyword names and arguments with `rf-libdoc`
+  (or `robotcode libdoc`), and validate with
+  `robot --dryrun`. The companion tables of the library skills, `rf-setup`
+  and `rf-robotcode` no longer list the generators; the subagents follow the
+  write-directly workflow.
+- **Upgrade notes:** the VS Code extension and the Claude Code plugin replace
+  the skill tree on update. `rf-agentskills` installer users re-run
+  `rf-agentskills install` (0.7.0 prunes the old copies). Skills-tarball
+  users delete `rf-keyword-builder/`, `rf-testcase-builder/` and
+  `rf-resource-architect/` from their skills directory by hand. To keep the
+  generators, stay on 1.2.0.
+- **Merged skills:** `rf-libdoc-search` and `rf-libdoc-explain` are
+  replaced by one skill, `rf-libdoc` (Claude Code plugin: slash command
+  `/rf-agentskills:rf-libdoc` replaces `:libdoc-search` and `:libdoc-explain`).
+  It finds keywords for a use case, explains a keyword's arguments (with
+  search fallback) and lists a library's keywords, and points to
+  `robotcode libdoc` when robotcode is installed. `rf_libdoc.py` flags and
+  JSON output are unchanged; the MCP tools `rf_libdoc_search` and
+  `rf_libdoc_explain` keep their names. The script ships as one regular file
+  (no symlink). **Upgrade:** the extension and plugin replace the skill tree;
+  installer users re-run `rf-agentskills install`; users who copied skill
+  folders by hand delete `rf-libdoc-search/` and `rf-libdoc-explain/`.
+- **One identifier per skill (Claude Code plugin, installer, tarballs).**
+  Every skill's folder name now equals its `name` (`rf-<topic>`) in every
+  channel. The VS Code extension already used these names, so **VS Code users
+  see no change**. Elsewhere: repo/tarball folders `robotframework-browser-skill`,
+  `-selenium-skill`, `-appium-skill`, `-requests-skill`, `-restinstance-skill`,
+  `-platynui-skill`, `-robotcode-skill`, `-setup-skill` and
+  `robotframework-results` become `rf-browser`, `rf-selenium`, `rf-appium`,
+  `rf-requests`, `rf-restinstance`, `rf-platynui`, `rf-robotcode`, `rf-setup`
+  and `rf-results`; the Claude Code plugin folders and slash commands change
+  from the short names (`/rf-agentskills:browser`, `:setup`, `:results`,
+  `:libdoc`, …) to `/rf-agentskills:rf-browser`, `:rf-setup`, `:rf-results`,
+  `:rf-libdoc`, …. Installer users re-run `rf-agentskills install` (old
+  folders are pruned); tarball users delete the old folders by hand
+  (`rf-agentskills doctor` lists them).
+- Every `SKILL.md` declares `license`, `compatibility` (runtime needs) and
+  `metadata` (`author`, `version`); CI validates all channels against the
+  agentskills.io frontmatter rules (`scripts/validate-skills.py`).
+- **Skill scripts run in the project environment.** `rf-libdoc` and
+  `rf-results` now document `uv run python scripts/rf_libdoc.py …` /
+  `uv run python scripts/rf_results.py …` (paths relative to the skill folder)
+  plus one fallback line for non-uv projects (`.venv/bin/python` /
+  `poetry run python`, see rf-setup). Commands copied from 1.x
+  (`python scripts/…`) still work but use whatever `python` is on PATH.
+- **Script CLI contract:** exit codes `0` ok, `1` internal error, `2` usage,
+  `3` Robot Framework missing or older than 7, `4` input not found or not
+  loadable (previously `1` for all failures); diagnostics are `error:` /
+  `warning:` / `hint:` lines on stderr (no JSON error on stderr, no
+  `pip install` advice); `--help` works without Robot Framework and ends with
+  examples. Both scripts carry PEP 723 metadata (`robotframework>=7`).
+- **Bounded output:** `rf_libdoc.py --max-doc-chars` (default 4000, `0` = full
+  text, truncation marker inside `doc`); `rf_results.py --limit` (default 50)
+  caps `details` test entries (failed first) and each `errors` list and reports
+  `omitted` counts; both scripts accept `--json-out FILE`.
+- **Sharper skill descriptions:** every skill's `description` now opens with
+  what it does and for which library or tool, has a `Use when` clause with the
+  terms users type (`Library    Browser`, `output.xml`, `robot.toml`,
+  `No module named 'Browser'`, `No keyword with name`) and ends with the
+  sibling to use instead: rf-browser vs rf-selenium (by import; rf-browser is
+  the default for new web tests), rf-requests vs rf-restinstance (by import or
+  JSON Schema/OpenAPI; rf-requests is the default for API tests),
+  rf-results / rf-libdoc vs rf-robotcode (robotcode installed or named), and
+  rf-setup for installing and environment errors. No more "Guide AI agents…"
+  phrasing.
+- **Compact skill descriptions:** agents list skill descriptions only while
+  they fit a character budget (about 8000 characters in Claude Code for
+  200k-context models), so every description is now at most 160 characters
+  and starts with a load-first cue ("Use first, before exploring or
+  answering, for Robot Framework web tests with Browser Library (Playwright):
+  selectors, waits."). The trigger terms, pasted errors and sibling boundaries
+  moved into a `## When to use` block near the top of each `SKILL.md`.
+- **Standard Companion Skills tables:** every skill (now including rf-libdoc
+  and rf-results) has a `Need | Skill` table built from one shared catalogue,
+  with rows for its sibling, `rf-setup`, keyword lookup (`rf-libdoc`, or
+  `robotcode libdoc`) and result analysis (`rf-results`, or
+  `robotcode results`).
+- **Library skills restructured** (rf-browser, rf-selenium, rf-appium,
+  rf-requests, rf-restinstance): one shared layout (Installation, Import and
+  defaults, a "which keyword for which situation" table, an agent workflow
+  with a libdoc → dry run → run → results → fix loop, verified Gotchas, a
+  gated reference table). Breaking for anyone who read the files directly:
+  every `references/keywords-reference.md` catalog is deleted (query libdoc
+  with `robotcode libdoc <Library> list/show` or the rf-libdoc skill
+  instead), and several references were merged or renamed (rf-browser
+  `tabs-windows.md` → `browser-context-page.md`; rf-selenium
+  `webdriver-setup.md` → `browser-setup.md`, `screenshots-logs.md` →
+  `troubleshooting.md`; rf-appium `device-capabilities.md` →
+  `capabilities.md`, `android-specific.md` + `ios-specific.md` →
+  `platform-specific.md`; rf-requests `http-methods.md` →
+  `request-options.md`). Examples were trimmed to suites that pass
+  `robot --dryrun`.
+
+Companion: `rf-agentskills` installer 0.7.0 ships the same content bundle
+(`bundled content: 2.0.0`).
+
+## 1.2.0 (2026-03-17)
+
+- Fix: VS Code skill dirs now match the `name:` field per the Agent
+  Skills spec (so chat skills resolve correctly in Copilot 1.108+).
+- Architecture overhaul: MCP server, script drift, hooks, tests, and
+  build infrastructure.
+
+Companion: `rf-agentskills` installer ≥ 0.3.0 ships the same content
+bundle (`bundled content: 1.2.0`).
+
+## 1.1.0
+
+- Iterative skill updates and minor fixes.
+
+## 1.0.0 (2026-02-27)
+
+- Initial release with 11 Robot Framework Agent Skills
+- Skills for Browser, Selenium, Appium, Requests, RESTinstance libraries
+- Keyword builder, test case builder, resource architect generators
+- Library documentation search and explanation tools
+- Results analysis for output.xml files
