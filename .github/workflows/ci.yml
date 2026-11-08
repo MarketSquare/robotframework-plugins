@@ -28,7 +28,7 @@ jobs:
         # tests/installer/ imports robotframework_plugins; install it from the
         # in-repo package so the test collector can resolve it. The
         # editable install also runs the hatchling build hook that
-        # mirrors plugins/rf-agentskills/ into the package's _assets/
+        # bundles every active plugin under plugins/ into the package's _assets/
         # tree — that's what the runtime asset-loader reads.
         run: |
           # pytest-asyncio is required by `asyncio_mode = "auto"` in

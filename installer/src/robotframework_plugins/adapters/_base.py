@@ -32,6 +32,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Protocol
 
+from .._assets import DEFAULT_PLUGIN
+
 
 # ---------------------------------------------------------------------------
 # Public types
@@ -52,6 +54,10 @@ class InstallOptions:
     force: bool = False                 # overwrite even when destination is user-modified
     mode: str = "files"                 # "files" (copy the bundle) | "plugin" (point at the marketplace)
     ref: str | None = None              # plugin mode: pin the marketplace to this git ref / tag
+    # The bundled plugins this run installs, and the one an adapter's
+    # ``plan`` is planning right now (the CLI plans each in turn).
+    plugins: tuple[str, ...] = (DEFAULT_PLUGIN,)
+    plugin: str = DEFAULT_PLUGIN
 
 
 @dataclass(frozen=True)
@@ -71,6 +77,7 @@ class InstallTarget:
     payload: bytes
     transform_name: str | None = None
     executable: bool = False
+    plugin: str | None = None           # bundled plugin the file comes from (set by the CLI)
 
 
 @dataclass(frozen=True)
@@ -212,6 +219,13 @@ OLD_MARKETPLACE_NAME = "robotframework-agentskills"
 OLD_MARKETPLACE_REPO = "manykarim/robotframework-agentskills"
 PLUGIN_NAME = "rf-agentskills"
 PLUGIN_ID = f"{PLUGIN_NAME}@{MARKETPLACE_NAME}"
+
+
+def support_dir_name(plugin: str) -> str:
+    """Folder that holds a plugin's scripts, hooks and skill scripts in file mode."""
+    return f"{plugin}-files"
+
+
 #: Test hook: a local checkout to use as the marketplace instead of GitHub.
 MARKETPLACE_DIR_ENV = "RF_AGENTSKILLS_MARKETPLACE_DIR"
 

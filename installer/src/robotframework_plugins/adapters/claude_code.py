@@ -40,12 +40,12 @@ from ._base import (
     marketplace_settings_merges,
     old_marketplace_note,
     skill_script_files,
+    support_dir_name,
 )
 
 
 HOOKS_KEY = "hooks"
 SETTINGS_HOOKS_KEYS = ("PostToolUse", "UserPromptSubmit", "SessionStart", "Stop")
-PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
 
 
 @dataclass
@@ -73,7 +73,7 @@ class ClaudeCodeAdapter(AdapterBase):
 
     def plan(self, opts: InstallOptions) -> InstallPlan:
         root = self.install_root(opts)
-        plugin_dst = root / PLUGIN_FILES_SUBDIR  # holds scripts/, hooks/, skills/*/scripts
+        plugin_dst = root / support_dir_name(opts.plugin)  # holds scripts/, hooks/, skills/*/scripts
         plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
 
         # Hooks invoke `node "<…>.mjs"` (cross-platform). If Node isn't
@@ -82,7 +82,7 @@ class ClaudeCodeAdapter(AdapterBase):
         # references an unrunnable command.
         register_hooks = "hooks" in opts.what and _x.node_available()
 
-        with _assets.asset_root_path() as src_root:
+        with _assets.asset_root_path(opts.plugin) as src_root:
             targets = list(self._collect_targets(
                 src_root=src_root,
                 root=root,

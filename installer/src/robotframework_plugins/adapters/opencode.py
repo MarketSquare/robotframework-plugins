@@ -32,10 +32,9 @@ from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, InstallOptions, InstallPlan, InstallTarget
+from ._base import AdapterBase, InstallOptions, InstallPlan, InstallTarget, support_dir_name
 
 
-PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
 OPENCODE_JSON = "opencode.json"
 
 
@@ -61,10 +60,10 @@ class OpenCodeAdapter(AdapterBase):
 
     def plan(self, opts: InstallOptions) -> InstallPlan:
         root = self.install_root(opts)
-        plugin_dst = root / PLUGIN_FILES_SUBDIR
+        plugin_dst = root / support_dir_name(opts.plugin)
         plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
 
-        with _assets.asset_root_path() as src_root:
+        with _assets.asset_root_path(opts.plugin) as src_root:
             targets = list(self._collect_targets(
                 src_root=src_root,
                 root=root,

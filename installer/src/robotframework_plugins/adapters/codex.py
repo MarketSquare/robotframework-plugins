@@ -38,10 +38,18 @@ from typing import Iterable
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import MARKETPLACE_REPO, PLUGIN_ID, AdapterBase, InstallOptions, InstallPlan, InstallTarget, skill_script_files
+from ._base import (
+    MARKETPLACE_REPO,
+    PLUGIN_ID,
+    AdapterBase,
+    InstallOptions,
+    InstallPlan,
+    InstallTarget,
+    skill_script_files,
+    support_dir_name,
+)
 
 
-PLUGIN_FILES_SUBDIR = "rf-agentskills-files"
 CONFIG_TOML_FILENAME = "config.toml"
 HOOKS_JSON_FILENAME = "hooks.json"
 
@@ -81,7 +89,7 @@ class CodexAdapter(AdapterBase):
 
     def plan(self, opts: InstallOptions) -> InstallPlan:
         root = self.install_root(opts)
-        plugin_dst = root / PLUGIN_FILES_SUBDIR
+        plugin_dst = root / support_dir_name(opts.plugin)
         plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
 
         # Codex hooks invoke `node "<…>.mjs"`. If Node isn't on PATH at
@@ -89,7 +97,7 @@ class CodexAdapter(AdapterBase):
         # post_install note (the file would be inert anyway).
         register_hooks = "hooks" in opts.what and _x.node_available()
 
-        with _assets.asset_root_path() as src_root:
+        with _assets.asset_root_path(opts.plugin) as src_root:
             targets = list(self._collect_targets(
                 src_root=src_root,
                 root=root,
@@ -120,7 +128,7 @@ class CodexAdapter(AdapterBase):
         """Codex reads no committed marketplace: install the subagents (plugins
         cannot ship them) and hand over the per-user plugin commands."""
         root = self.install_root(opts)
-        with _assets.asset_root_path() as src_root:
+        with _assets.asset_root_path(opts.plugin) as src_root:
             targets = [
                 InstallTarget(dst=root / "agents" / f.name, payload=f.read_bytes(),
                               transform_name="codex_agent_variant")

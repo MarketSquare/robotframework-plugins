@@ -25,7 +25,7 @@ from pathlib import Path
 
 from .. import _assets
 from .. import transforms as _x
-from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget
+from ._base import AdapterBase, ConfigMergeOp, InstallOptions, InstallPlan, InstallTarget, support_dir_name
 
 
 EXTENSIONS_KEY = "extensions"
@@ -115,7 +115,7 @@ class GooseAdapter(AdapterBase):
         merges: list[ConfigMergeOp] = []
         notes: list[str] = []
 
-        with _assets.asset_root_path() as src_root:
+        with _assets.asset_root_path(opts.plugin) as src_root:
             # 1. Skills → ~/.agents/skills/<name>/ (Goose v1.25+ Summon
             #    extension auto-discovers them). SKILL.md format is
             #    identical to Anthropic's — verbatim copy plus
@@ -129,7 +129,7 @@ class GooseAdapter(AdapterBase):
                 skills_src = src_root / "skills"
                 if skills_src.is_dir():
                     plugin_root_abs = _x.to_native_path_string(
-                        (root / "rf-agentskills-files").resolve()
+                        (root / support_dir_name(opts.plugin)).resolve()
                     )
                     for f in sorted(skills_src.rglob("*")):
                         if not f.is_file():

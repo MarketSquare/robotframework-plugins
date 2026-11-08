@@ -310,7 +310,7 @@ def cmd_install(args: argparse.Namespace) -> int:
                     "installing files instead."
                 )
                 agent_opts = replace(opts, mode="files")
-            plan = adapter.plan(agent_opts)
+            plan = _plan_plugins(adapter, agent_opts)
         if opts.dry_run:
             _render_plan_dry_run(adapter, plan, agent_opts, manifest_path)
             continue
@@ -318,6 +318,24 @@ def cmd_install(args: argparse.Namespace) -> int:
         if agent_opts.mode == "plugin":
             rc |= _run_plugin_commands(adapter, agent_opts, run=bool(getattr(args, "yes", False)))
     return rc
+
+
+def _plan_plugins(adapter: Adapter, opts: InstallOptions) -> InstallPlan:
+    """One plan covering every plugin in ``opts.plugins``.
+
+    The adapter plans each plugin on its own; the parts are joined so that
+    the stale-file pass sees the whole install and doesn't remove one
+    plugin's files while installing another. Each file records its plugin.
+    """
+    targets: list[InstallTarget] = []
+    merges: list[ConfigMergeOp] = []
+    notes: list[str] = []
+    for plugin in opts.plugins:
+        part = adapter.plan(replace(opts, plugin=plugin))
+        targets.extend(replace(t, plugin=plugin) for t in part.targets)
+        merges.extend(part.merges)
+        notes.extend(n for n in part.notes if n not in notes)
+    return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
 
 
 def _run_plugin_commands(adapter: Adapter, opts: InstallOptions, *, run: bool) -> int:
@@ -684,7 +702,7 @@ def cmd_version(_args: argparse.Namespace) -> int:
 def _bundled_content_version() -> str | None:
     """Read the version of the staged plugin bundle.
 
-    Reads ``_assets/.claude-plugin/plugin.json`` via importlib.resources
+    Reads ``_assets/plugins/rf-agentskills/.claude-plugin/plugin.json`` via importlib.resources
     so it works under wheel install, editable install, and zipapp.
     Returns ``None`` if the file isn't present (e.g. pre-build editable
     install before the hatch hook ran).
@@ -725,7 +743,7 @@ def _is_retired_file(entry: _m.FileEntry, agent: str) -> bool:
     """A file an older install wrote only for the retired MCP server."""
     parts = Path(entry.path).parts
     if _m.SUPPORT_DIR_NAME not in parts:
-        return False
+        return False  # only rf-agentskills ever shipped the rf-tools server
     rel = parts[parts.index(_m.SUPPORT_DIR_NAME) + 1:]
     return agent in _SUPPORT_FOR_MCP_ONLY or (bool(rel) and rel[0] == "servers")
 
@@ -954,7 +972,7 @@ def _execute_plan(
         os.replace(tmp, tgt.dst)
         if tgt.executable and os.name != "nt":
             os.chmod(tgt.dst, 0o755)
-        files_written.append(_m.file_entry_for(tgt.dst, transform=tgt.transform_name))
+        files_written.append(_m.file_entry_for(tgt.dst, transform=tgt.transform_name, plugin=tgt.plugin))
 
     # 2. Config merges.
     for merge in plan.merges:

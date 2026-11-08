@@ -86,7 +86,7 @@ class ClaudeDesktopAdapter(AdapterBase):
         notes: list[str] = []
 
         if "skills" in opts.what:
-            with _assets.asset_root_path() as src_root:
+            with _assets.asset_root_path(opts.plugin) as src_root:
                 skills_src = src_root / "skills"
                 for skill_dir in sorted(p for p in skills_src.iterdir() if p.is_dir()):
                     if not (skill_dir / "SKILL.md").is_file():

@@ -82,6 +82,10 @@ class FileEntry:
     # "other"). Written from installer 0.7.0 on; older records lack it and
     # the category is derived from the path (see ``category_for_path``).
     category: str | None = None
+    # Bundled plugin the file belongs to. Written from robotframework-plugins
+    # on; older records lack it and mean ``rf-agentskills``, the only plugin
+    # earlier installers shipped.
+    plugin: str | None = None
 
 
 @dataclass
@@ -153,6 +157,7 @@ class Manifest:
                             sha256=f["sha256"],
                             transform=f.get("transform"),
                             category=f.get("category"),
+                            plugin=f.get("plugin"),
                         )
                         for f in entry.get("files", [])
                     ],
@@ -233,19 +238,30 @@ def now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
-def file_entry_for(dest: Path, transform: str | None = None) -> FileEntry:
+def file_entry_for(dest: Path, transform: str | None = None, plugin: str | None = None) -> FileEntry:
     """Build a FileEntry by reading the on-disk hash at ``dest``."""
     return FileEntry(
         path=str(dest),
         sha256=sha256_file(dest),
         transform=transform,
         category=category_for_path(dest),
+        plugin=plugin,
     )
 
 
 # Directory that holds the co-located plugin files (scripts/, servers/,
-# hooks/, .claude-plugin/) for every adapter.
+# hooks/, .claude-plugin/) for every adapter: ``<plugin>-files``. Installs
+# before robotframework-plugins only ever wrote this one.
 SUPPORT_DIR_NAME = "rf-agentskills-files"
+SUPPORT_DIR_SUFFIX = "-files"
+
+
+def support_dir_index(parts: tuple[str, ...]) -> int | None:
+    """Index of the ``<plugin>-files`` component in an installed path, if any."""
+    for i, part in enumerate(parts[:-1]):
+        if part.endswith(SUPPORT_DIR_SUFFIX) and len(part) > len(SUPPORT_DIR_SUFFIX):
+            return i
+    return None
 
 
 def category_for_path(path: str | Path) -> str:
@@ -264,7 +280,7 @@ def category_for_path(path: str | Path) -> str:
     """
     p = Path(path)
     parts = p.parts
-    if SUPPORT_DIR_NAME in parts:
+    if support_dir_index(parts) is not None:
         return "support"
     if p.name == ".goosehints":
         return "hints"
