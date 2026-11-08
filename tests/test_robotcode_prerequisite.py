@@ -34,7 +34,7 @@ def test_readme_recommends_robotcode_plugin(readme: Path) -> None:
 def test_readme_per_agent_companion_commands() -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     for agent in ("claude", "copilot", "codex"):
-        ours = text.index(f"{agent} plugin marketplace add manykarim/robotframework-agentskills")
+        ours = text.index(f"{agent} plugin marketplace add MarketSquare/robotframework-plugins")
         theirs = text.index(f"{agent} plugin marketplace add robotcodedev/robotframework-agent-plugins")
         assert ours < theirs, agent
 

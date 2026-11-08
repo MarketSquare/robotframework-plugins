@@ -11,7 +11,7 @@
 - [x] 2.2 Rename the installer package to `robotframework-plugins`, the module `rf_agentskills` to `robotframework_plugins`, the CLI to `robotframework-plugins`, the project URLs and the release tag pattern to `robotframework-plugins-v*`. Set the version to the CalVer of the planned release month (for example `2026.12.0`). Verify that `uv build` in `installer/` produces `robotframework_plugins-<that version>` and that `uvx --from ./dist/<wheel> robotframework-plugins version` runs.
 - [x] 2.3 Update the installer adapters and plugin mode to the new marketplace key and GitHub source, including the Codex commands. Verify with the updated `test_plugin_mode.py` scenarios from `installer-plugin-bootstrap`.
 - [x] 2.4 Add migration of old `robotframework-agentskills` settings entries, keeping a `--ref` pin. Verify with a new test for the "Old marketplace entry migrated" scenario.
-- [ ] 2.5 Replace every remaining `manykarim/robotframework-agentskills` reference in tracked files outside the exempt paths (archived changes, changelogs, dated reports): README, `RELEASING.md`, `release.yml`, `plugin.json`, docs and tests. Verify that the "No stale repository references" scan in a new test returns only migration notes.
+- [x] 2.5 Replace every remaining `manykarim/robotframework-agentskills` reference in tracked files outside the exempt paths (archived changes, changelogs, dated reports): README, `RELEASING.md`, `release.yml`, `plugin.json`, docs and tests. Verify that the "No stale repository references" scan in a new test returns only migration notes.
 
 ## 3. Plugin catalogue and layout
 

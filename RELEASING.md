@@ -7,7 +7,7 @@ today. This document captures why and when that's expected to change.
 
 | Scope | Channel | Source of truth | Current version |
 |---|---|---|---|
-| **Content** | `rf-agentskills` plugin via the `robotframework-agentskills` marketplace · skills tarballs · Claude Desktop skill ZIPs | `VERSION`, kept equal in `plugins/rf-agentskills/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` by `scripts/bump-version.sh` | **3.0.0** |
+| **Content** | `rf-agentskills` plugin via the `robotframework-plugins` marketplace · skills tarballs · Claude Desktop skill ZIPs | `VERSION`, kept equal in `plugins/rf-agentskills/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` by `scripts/bump-version.sh` | **3.0.0** |
 | **Tooling** | `rf-agentskills` Python installer (PyPI / GitHub release) | `installer/pyproject.toml` | **0.8.0** |
 
 Internal-only:
@@ -44,7 +44,7 @@ would falsely advertise stability and violate SemVer expectations of
 | Tag pattern | Workflow | What it produces |
 |---|---|---|
 | `v*` (e.g. `v1.3.0`) | `.github/workflows/release.yml` | Plugin tarball, skills tarballs (Codex/Copilot/generic), Claude Desktop skill ZIPs, GitHub release. Force-pushes `stable` and `latest` branches. The tag is also the pinnable marketplace ref (see below). |
-| `rf-agentskills-v*` (e.g. `rf-agentskills-v0.4.0`) | none (manual `gh release create` + `uv publish` today) | Wheel + sdist on a GitHub release **and** on PyPI (`uvx rf-agentskills`). |
+| `robotframework-plugins-v*` (e.g. `robotframework-plugins-v2026.12.0`) | none (manual `gh release create` + `uv publish` today) | Wheel + sdist on a GitHub release **and** on PyPI (`uvx robotframework-plugins`). |
 
 The two patterns are non-overlapping so the flows can co-trigger or
 fire independently as needed.
@@ -56,8 +56,8 @@ git tree, so a git ref is the version a user gets:
 
 - No ref: the default branch (`main`), i.e. unreleased content.
 - `v<version>` tag (e.g. `v3.0.0`): exactly that content release. This is
-  what users pin to: `rf-agentskills install --mode plugin --ref v3.0.0`,
-  `codex plugin marketplace add manykarim/robotframework-agentskills --ref v3.0.0`,
+  what users pin to: `robotframework-plugins install --mode plugin --ref v3.0.0`,
+  `codex plugin marketplace add MarketSquare/robotframework-plugins --ref v3.0.0`,
   or `"ref": "v3.0.0"` in `extraKnownMarketplaces`.
 - `stable` / `latest` branches: the most recent release, moved by
   `release.yml`.
@@ -76,12 +76,12 @@ can correlate:
   `rf-agentskills` ≥ 0.3.0"* (or whatever the current installer version
   is). When the installer bumps in lockstep with a content change,
   call that out too.
-- **`rf-agentskills-v0.x` release notes** should include: *"bundled
+- **`robotframework-plugins-v*` release notes** should include: *"bundled
   content: 1.2.0"* (read from
   `plugins/rf-agentskills/.claude-plugin/plugin.json` at build time).
-  The `rf-agentskills version` CLI prints this automatically:
+  The `robotframework-plugins version` CLI prints this automatically:
   ```
-  $ rf-agentskills version
+  $ robotframework-plugins version
   rf-agentskills 0.4.0
   bundled content: 1.2.0  (from rf-agentskills plugin manifest)
   ```
@@ -95,7 +95,7 @@ becomes a deliberate milestone:
 1. Pick a coordinated version (e.g. `v2.0.0` for both content and
    installer) that's higher than both current numbers.
 2. Tag both `v2.0.0` (triggers the content release flow) and
-   `rf-agentskills-v2.0.0` (triggers the PyPI release flow once that's
+   `robotframework-plugins-v2.0.0` (triggers the PyPI release flow once that's
    wired up).
 3. From that point forward, **track major versions** when there's a
    coupled content + tooling release; minor / patch versions remain
@@ -118,26 +118,26 @@ during the messy pre-1.0 phase.
 5. `release.yml` runs, attaches the artifacts to the GitHub release,
    and updates `stable` / `latest` branches.
 
-## Release checklist (tooling, `rf-agentskills-v*`)
+## Release checklist (tooling, `robotframework-plugins-v*`)
 
 1. Bump `installer/pyproject.toml` `version`.
-2. Bump `installer/src/rf_agentskills/__init__.py` `__version__`.
+2. Bump `installer/src/robotframework_plugins/__init__.py` `__version__`.
 3. Update `installer/CHANGELOG.md`.
 4. `bash scripts/build-packages.sh --clean --check` (validates with
    `twine check`).
 5. Commit, push.
-6. `gh release create rf-agentskills-vX.Y.Z dist/rf_agentskills-*` with
+6. `gh release create robotframework-plugins-vX.Y.Z dist/robotframework_plugins-*` with
    release notes referencing the bundled content version.
-7. **Publish to PyPI** so `uvx rf-agentskills` / `pipx run rf-agentskills`
+7. **Publish to PyPI** so `uvx robotframework-plugins` / `pipx run robotframework-plugins`
    resolves the new version:
    ```bash
    # API token in $PYPI_TOKEN (or a CI secret); never commit it.
-   uv publish --token "$PYPI_TOKEN" dist/rf_agentskills-*
-   # or: twine upload -u __token__ -p "$PYPI_TOKEN" dist/rf_agentskills-*
+   uv publish --token "$PYPI_TOKEN" dist/robotframework_plugins-*
+   # or: twine upload -u __token__ -p "$PYPI_TOKEN" dist/robotframework_plugins-*
    ```
-   Only `rf_agentskills-*` is public; the internal `rf-skill-eval` harness is
+   Only `robotframework_plugins-*` is public; the internal `rf-skill-eval` harness is
    classified `Private :: Do Not Upload` and PyPI rejects it. After upload,
    smoke-test the published artifact:
    ```bash
-   uvx --refresh rf-agentskills@X.Y.Z version
+   uvx --refresh robotframework-plugins@X.Y.Z version
    ```

@@ -1,6 +1,6 @@
 # rf-agentskills plugin
 
-Robot Framework skills, subagents and validation hooks for coding agents. Install instructions for every agent are in the [repository README](https://github.com/manykarim/robotframework-agentskills#install).
+Robot Framework skills, subagents and validation hooks for coding agents. Install instructions for every agent are in the [repository README](https://github.com/MarketSquare/robotframework-plugins#install).
 
 ## Requires robotcode
 

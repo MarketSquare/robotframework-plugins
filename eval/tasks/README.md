@@ -1,6 +1,6 @@
 # Task Bank
 
-Task definitions for the `robotframework-agentskills` evaluation harness.
+Task definitions for the `robotframework-plugins` evaluation harness.
 
 Each task YAML is an input to the runner, which hands `prompt` to Claude Code
 headlessly (`claude -p`) inside a fresh copy of the task's `fixture`. The

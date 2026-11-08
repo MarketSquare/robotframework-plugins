@@ -89,8 +89,8 @@ dev = [
 rf-skill-eval = "rf_skill_eval.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/manykarim/robotframework-agentskills"
-Repository = "https://github.com/manykarim/robotframework-agentskills"
+Homepage = "https://github.com/MarketSquare/robotframework-plugins"
+Repository = "https://github.com/MarketSquare/robotframework-plugins"
 
 [tool.uv]
 # Prefer the highest compatible versions; lockfile is committed for reproducibility.

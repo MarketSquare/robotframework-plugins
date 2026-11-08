@@ -8,7 +8,7 @@ AI agent skills for Robot Framework test automation, distributed for **eight cod
 
 There are two ways to install, and both work at **user scope** (every project on your machine) or **project scope** (one repository, shared with your team):
 
-- **Plugin marketplace**: Claude Code, GitHub Copilot CLI, VS Code (Copilot), OpenAI Codex and Cursor all read this repository's `.claude-plugin/marketplace.json`. Add the marketplace `manykarim/robotframework-agentskills` and install the plugin `rf-agentskills`. Updates arrive through the agent.
+- **Plugin marketplace**: Claude Code, GitHub Copilot CLI, VS Code (Copilot), OpenAI Codex and Cursor all read this repository's `.claude-plugin/marketplace.json`. Add the marketplace `MarketSquare/robotframework-plugins` and install the plugin `rf-agentskills`. Updates arrive through the agent.
 - **Python installer** (`rf-agentskills`): copies the files into each agent's own folders. Use it for OpenCode, Goose and Claude Desktop, which have no plugin marketplace, or wherever you prefer plain files. It can also write the marketplace settings for you (`--mode plugin`).
 
 ### Plugin marketplace, per agent
@@ -23,17 +23,17 @@ There are two ways to install, and both work at **user scope** (every project on
 
 The plugin does not set a default main agent. The three subagents are available for delegation, and you can still choose one as your main agent yourself.
 
-**Project scope for your team.** Commit this `.claude/settings.json` (or let `rf-agentskills install --mode plugin` merge it into the existing file):
+**Project scope for your team.** Commit this `.claude/settings.json` (or let `robotframework-plugins install --mode plugin` merge it into the existing file):
 
 ```json
 {
   "extraKnownMarketplaces": {
-    "robotframework-agentskills": {
-      "source": { "source": "github", "repo": "manykarim/robotframework-agentskills", "ref": "v3.0.0" }
+    "robotframework-plugins": {
+      "source": { "source": "github", "repo": "MarketSquare/robotframework-plugins", "ref": "v3.0.0" }
     }
   },
   "enabledPlugins": {
-    "rf-agentskills@robotframework-agentskills": true
+    "rf-agentskills@robotframework-plugins": true
   }
 }
 ```
@@ -43,8 +43,8 @@ Leave out `ref` to follow `main`, or use `stable` for the latest release. Each c
 #### Claude Code
 
 ```bash
-claude plugin marketplace add manykarim/robotframework-agentskills       # pin: ...agentskills#v3.0.0
-claude plugin install rf-agentskills@robotframework-agentskills          # --scope user (default) | project | local
+claude plugin marketplace add MarketSquare/robotframework-plugins       # pin: ...plugins#v3.0.0
+claude plugin install rf-agentskills@robotframework-plugins          # --scope user (default) | project | local
 # recommended companion: the robotcode plugin
 claude plugin marketplace add robotcodedev/robotframework-agent-plugins
 claude plugin install robotcode@robotframework-agent-plugins
@@ -55,8 +55,8 @@ In a session, `/plugin marketplace add …` and `/plugin install …` do the sam
 #### GitHub Copilot CLI
 
 ```bash
-copilot plugin marketplace add manykarim/robotframework-agentskills
-copilot plugin install rf-agentskills@robotframework-agentskills
+copilot plugin marketplace add MarketSquare/robotframework-plugins
+copilot plugin install rf-agentskills@robotframework-plugins
 # recommended companion: the robotcode plugin
 copilot plugin marketplace add robotcodedev/robotframework-agent-plugins
 copilot plugin install robotcode@robotframework-agent-plugins
@@ -74,11 +74,11 @@ Plugins and hooks are preview features. In your **user** settings, enable them a
 {
   "chat.plugins.enabled": true,
   "chat.useHooks": true,
-  "chat.plugins.marketplaces": ["manykarim/robotframework-agentskills"]
+  "chat.plugins.marketplaces": ["MarketSquare/robotframework-plugins"]
 }
 ```
 
-Pin with `"manykarim/robotframework-agentskills#v3.0.0"`. Then install `rf-agentskills` from that marketplace in the Extensions view. For project scope, the committed `.claude/settings.json` recommends the plugin to everyone who opens the workspace (`chat.plugins.marketplaces` itself is a user-only setting). VS Code asks before running hook commands unless your chat approval mode allows them. The [RobotCode extension](https://marketplace.visualstudio.com/items?itemName=d-biehl.robotcode) already bundles the `robotcode` plugin for Copilot Chat, so it needs no separate install.
+Pin with `"MarketSquare/robotframework-plugins#v3.0.0"`. Then install `rf-agentskills` from that marketplace in the Extensions view. For project scope, the committed `.claude/settings.json` recommends the plugin to everyone who opens the workspace (`chat.plugins.marketplaces` itself is a user-only setting). VS Code asks before running hook commands unless your chat approval mode allows them. The [RobotCode extension](https://marketplace.visualstudio.com/items?itemName=d-biehl.robotcode) already bundles the `robotcode` plugin for Copilot Chat, so it needs no separate install.
 
 VS Code 1.142 has two agent harnesses, with different gaps:
 
@@ -88,8 +88,8 @@ VS Code 1.142 has two agent harnesses, with different gaps:
 #### OpenAI Codex
 
 ```bash
-codex plugin marketplace add manykarim/robotframework-agentskills        # pin: --ref v3.0.0
-codex plugin add rf-agentskills@robotframework-agentskills
+codex plugin marketplace add MarketSquare/robotframework-plugins        # pin: --ref v3.0.0
+codex plugin add rf-agentskills@robotframework-plugins
 # recommended companion: the robotcode plugin
 codex plugin marketplace add robotcodedev/robotframework-agent-plugins
 codex plugin add robotcode@robotframework-agent-plugins
@@ -98,15 +98,15 @@ codex plugin add robotcode@robotframework-agent-plugins
 Then, once, run `/hooks` in a Codex session and trust the plugin's hooks; Codex runs none of them before that. Codex plugins cannot ship subagents, so install the three TOML subagents with the installer:
 
 ```bash
-uvx rf-agentskills install --agent codex --mode plugin            # writes .codex/agents/*.toml, prints the two commands
-uvx rf-agentskills install --agent codex --mode plugin --yes      # also runs them
+uvx robotframework-plugins install --agent codex --mode plugin            # writes .codex/agents/*.toml, prints the two commands
+uvx robotframework-plugins install --agent codex --mode plugin --yes      # also runs them
 ```
 
 Codex has no committed project-scope plugin file: every user runs the two `codex plugin` commands once. The subagents can be committed in `.codex/agents/`.
 
 #### Cursor
 
-Add the marketplace by its git URL, `https://github.com/manykarim/robotframework-agentskills` (Customize → Plugins, or `cursor-agent plugin marketplace add …`), install `rf-agentskills` and choose project or user scope. Cursor keeps marketplaces on your Cursor account. It also imports the plugin when it is installed in Claude Code or enabled in `.claude/settings.json` (Settings → Third-Party Imports). Add `https://github.com/robotcodedev/robotframework-agent-plugins` the same way for the `robotcode` plugin.
+Add the marketplace by its git URL, `https://github.com/MarketSquare/robotframework-plugins` (Customize → Plugins, or `cursor-agent plugin marketplace add …`), install `rf-agentskills` and choose project or user scope. Cursor keeps marketplaces on your Cursor account. It also imports the plugin when it is installed in Claude Code or enabled in `.claude/settings.json` (Settings → Third-Party Imports). Add `https://github.com/robotcodedev/robotframework-agent-plugins` the same way for the `robotcode` plugin.
 
 ### Python installer (`rf-agentskills`)
 
@@ -115,20 +115,20 @@ Run it with zero install and let it walk you through the agents to set up:
 ```bash
 # Zero-install: bare `install` is interactive — multi-select of known agents,
 # with the ones detected on your machine pre-checked.
-uvx rf-agentskills install            # or: pipx run rf-agentskills install
+uvx robotframework-plugins install            # or: pipx run robotframework-plugins install
 
 # See what's detected first
-uvx rf-agentskills targets
+uvx robotframework-plugins targets
 ```
 
 Fully scriptable too — no prompt with an explicit selection, `--yes`, or a non-TTY stdin:
 
 ```bash
-rf-agentskills install --agents all                 # every known agent
-rf-agentskills install --agents claude-code,cursor  # explicit list
-rf-agentskills install --agents detected --yes      # only detected, headless
-rf-agentskills install --agent claude-code          # single (back-compat)
-rf-agentskills install --agent claude-code --mode plugin --ref v3.0.0   # marketplace settings instead of files
+robotframework-plugins install --agents all                 # every known agent
+robotframework-plugins install --agents claude-code,cursor  # explicit list
+robotframework-plugins install --agents detected --yes      # only detected, headless
+robotframework-plugins install --agent claude-code          # single (back-compat)
+robotframework-plugins install --agent claude-code --mode plugin --ref v3.0.0   # marketplace settings instead of files
 ```
 
 Installs default to **project scope** (into the current directory, e.g. `./.claude/`); add `--scope user` for a global install under your home directory. Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope project|user [--project DIR]`, `--mode files|plugin [--ref TAG]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks`, `--force`, `--no-input`.
@@ -147,7 +147,7 @@ A manifest (per-project under `<project>/.rf-agentskills/`, or global for user s
 | **Project Goose** ≥ 1.25 | `~/.agents/skills` (Summon), `.goosehints` persona | skills; subagents folded into hints; hooks N/A |
 | **Claude Desktop** | one upload-ready `rf-*.zip` per skill in `~/rf-agentskills-claude-desktop/` | skills via upload (Customize → Skills → Upload a skill; needs code execution); no subagents/hooks |
 
-Release notes, sha256 hashes, and the latest wheel + sdist are on the **[rf-agentskills releases](https://github.com/manykarim/robotframework-agentskills/releases)** page (tag prefix `rf-agentskills-v*`) and on [PyPI](https://pypi.org/project/rf-agentskills/).
+Release notes, sha256 hashes, and the latest wheel + sdist are on the **[robotframework-plugins releases](https://github.com/MarketSquare/robotframework-plugins/releases)** page (tag prefix `robotframework-plugins-v*`) and on [PyPI](https://pypi.org/project/rf-agentskills/).
 
 ### Manual: drop skill files into your project
 
@@ -164,13 +164,13 @@ This works for any agent that reads SKILL.md files from a project-local director
 This repo ships two release scopes — see **[`RELEASING.md`](RELEASING.md)** for the policy:
 
 - **Content** (the marketplace plugin / skills tarballs) — currently `v3.0.0`, tagged `v*`; a tag is the ref you pin a marketplace to.
-- **Tooling** (`rf-agentskills` Python installer) — currently `0.8.0`, tagged `rf-agentskills-v*`.
+- **Tooling** (`robotframework-plugins` Python installer) — calendar versions, currently `2026.12.0`, tagged `robotframework-plugins-v*`.
 
-The two channels are versioned independently. `rf-agentskills version` prints both:
+The two channels are versioned independently. `robotframework-plugins version` prints both:
 
 ```console
-$ rf-agentskills version
-rf-agentskills 0.8.0
+$ robotframework-plugins version
+robotframework-plugins 2026.12.0
 bundled content: 3.0.0  (from rf-agentskills plugin manifest)
 ```
 
@@ -192,7 +192,7 @@ bundled content: 3.0.0  (from rf-agentskills plugin manifest)
 
 #### Renamed in 2.0
 
-Every skill now has one identifier, `rf-<topic>`, used as its folder name and its `name` in every channel (agentskills.io requires the two to match). In Claude Code the plugin skills are invoked as `/rf-agentskills:rf-browser` instead of `/rf-agentskills:browser`; description-based auto-loading is unaffected. `rf-agentskills install` migrates earlier installs automatically (old folders it installed are removed; files you edited are kept and reported). Folders you copied by hand are not touched — `rf-agentskills doctor` lists them so you can delete them.
+Every skill now has one identifier, `rf-<topic>`, used as its folder name and its `name` in every channel (agentskills.io requires the two to match). In Claude Code the plugin skills are invoked as `/rf-agentskills:rf-browser` instead of `/rf-agentskills:browser`; description-based auto-loading is unaffected. `robotframework-plugins install` migrates earlier installs automatically (old folders it installed are removed; files you edited are kept and reported). Folders you copied by hand are not touched — `robotframework-plugins doctor` lists them so you can delete them.
 
 | Before 2.0: repo `skills/` folder | Before 2.0: plugin / installer folder and command | Now (everywhere) |
 |---|---|---|
@@ -220,7 +220,7 @@ These overlapped with the RobotCode project's `robotcode` plugin and with `robot
 | `rf-results` skill, `rf_results.py` | `robotcode results summary / show / log / stats / diff` |
 | `rf-keyword-consultant` subagent | `robotcode doc`, or the REPL's `.kw` |
 
-`rf-agentskills install` removes the copies it installed earlier; folders you copied by hand are reported, not deleted.
+`robotframework-plugins install` removes the copies it installed earlier; folders you copied by hand are reported, not deleted.
 
 ### 3 Specialized Agents
 
@@ -349,7 +349,7 @@ Skills run their Python scripts directly (`uv run python scripts/<name>.py …`,
 
 ### Claude Desktop and claude.ai
 
-Claude Desktop loads custom skills uploaded as ZIP files, not from disk. `rf-agentskills install --agent claude-desktop` writes one archive per skill to `~/rf-agentskills-claude-desktop/` (the CI and release artifacts contain the same archives). Upload each under **Customize → Skills → + → Create skill → Upload a skill** and start a new chat; code execution must be enabled. Build them from a checkout with `python scripts/build-skill-zips.py --out dist/skill-zips`.
+Claude Desktop loads custom skills uploaded as ZIP files, not from disk. `robotframework-plugins install --agent claude-desktop` writes one archive per skill to `~/rf-agentskills-claude-desktop/` (the CI and release artifacts contain the same archives). Upload each under **Customize → Skills → + → Create skill → Upload a skill** and start a new chat; code execution must be enabled. Build them from a checkout with `python scripts/build-skill-zips.py --out dist/skill-zips`.
 
 ### Test the Plugin Locally
 

@@ -88,9 +88,9 @@ jobs:
 
           ### Installation
 
-          **Plugin marketplace** (Claude Code, GitHub Copilot CLI, VS Code, Codex, Cursor): add `manykarim/robotframework-agentskills` as a marketplace and install `rf-agentskills`. Pin this release with the ref `v${{ steps.version.outputs.version }}`. Per-agent commands: see the README.
+          **Plugin marketplace** (Claude Code, GitHub Copilot CLI, VS Code, Codex, Cursor): add `MarketSquare/robotframework-plugins` as a marketplace and install `rf-agentskills`. Pin this release with the ref `v${{ steps.version.outputs.version }}`. Per-agent commands: see the README.
 
-          **Python installer** (any agent, also OpenCode, Goose, Claude Desktop): `pip install rf-agentskills && rf-agentskills install --agent <agent>`.
+          **Python installer** (any agent, also OpenCode, Goose, Claude Desktop): `pip install robotframework-plugins && robotframework-plugins install --agent <agent>`.
 
           **Codex:** Extract `robotframework-skills-codex-*.tar.gz` into your project root.
 
