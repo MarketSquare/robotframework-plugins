@@ -158,3 +158,73 @@ def test_agents_without_marketplace_fall_back_to_files(
     assert _install(project, "--agent", agent, "--mode", "plugin") == 0
     assert "installing files instead" in " ".join(capsys.readouterr().out.split())
     assert list(project.rglob("SKILL.md")) or list(fake_home.rglob("SKILL.md"))
+
+
+OLD_MARKETPLACE = "robotframework-agentskills"
+OLD_PLUGIN_ID = "rf-agentskills@robotframework-agentskills"
+
+
+def _old_settings(ref: str | None = None) -> dict:
+    source = {"source": "github", "repo": "manykarim/robotframework-agentskills"}
+    if ref:
+        source["ref"] = ref
+    return {
+        "model": "opus",
+        "extraKnownMarketplaces": {OLD_MARKETPLACE: {"source": source}, "mkt": {"source": {"source": "github", "repo": "o/r"}}},
+        "enabledPlugins": {OLD_PLUGIN_ID: True, "other@mkt": True},
+    }
+
+
+def test_old_marketplace_entry_migrated(
+    tmp_path: Path, fake_home: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = tmp_path / "proj"
+    (project / ".claude").mkdir(parents=True)
+    settings = project / ".claude" / "settings.json"
+    settings.write_text(json.dumps(_old_settings()), encoding="utf-8")
+    assert _install(project, "--agent", "claude-code", "--mode", "plugin", "--yes") == 0
+    data = _settings(settings)
+    assert data["model"] == "opus"
+    assert set(data["extraKnownMarketplaces"]) == {"mkt", MARKETPLACE}
+    assert data["enabledPlugins"] == {"other@mkt": True, PLUGIN_ID: True}
+    out = " ".join(capsys.readouterr().out.split())
+    assert "replaced the robotframework-agentskills marketplace" in out
+
+
+def test_old_marketplace_ref_pin_is_kept(tmp_path: Path, fake_home: Path) -> None:
+    project = tmp_path / "proj"
+    (project / ".claude").mkdir(parents=True)
+    settings = project / ".claude" / "settings.json"
+    settings.write_text(json.dumps(_old_settings(ref="v3.0.0")), encoding="utf-8")
+    assert _install(project, "--agent", "claude-code", "--mode", "plugin", "--yes") == 0
+    assert _settings(settings)["extraKnownMarketplaces"][MARKETPLACE]["source"]["ref"] == "v3.0.0"
+
+
+def test_new_ref_overrides_old_pin(tmp_path: Path, fake_home: Path) -> None:
+    project = tmp_path / "proj"
+    (project / ".claude").mkdir(parents=True)
+    settings = project / ".claude" / "settings.json"
+    settings.write_text(json.dumps(_old_settings(ref="v3.0.0")), encoding="utf-8")
+    assert _install(project, "--agent", "claude-code", "--mode", "plugin", "--yes", "--ref", "rf-agentskills--v3.1.0") == 0
+    assert _settings(settings)["extraKnownMarketplaces"][MARKETPLACE]["source"]["ref"] == "rf-agentskills--v3.1.0"
+
+
+def test_same_named_foreign_marketplace_is_not_migrated(tmp_path: Path, fake_home: Path) -> None:
+    project = tmp_path / "proj"
+    (project / ".claude").mkdir(parents=True)
+    settings = project / ".claude" / "settings.json"
+    foreign = {"extraKnownMarketplaces": {OLD_MARKETPLACE: {"source": {"source": "github", "repo": "someone/fork"}}}}
+    settings.write_text(json.dumps(foreign), encoding="utf-8")
+    assert _install(project, "--agent", "claude-code", "--mode", "plugin", "--yes") == 0
+    assert OLD_MARKETPLACE in _settings(settings)["extraKnownMarketplaces"]
+
+
+def test_copilot_settings_migrated_too(tmp_path: Path, fake_home: Path) -> None:
+    project = tmp_path / "proj"
+    for rel in (".claude/settings.json", ".github/copilot/settings.json"):
+        (project / rel).parent.mkdir(parents=True, exist_ok=True)
+        (project / rel).write_text(json.dumps(_old_settings()), encoding="utf-8")
+    assert _install(project, "--agent", "copilot", "--mode", "plugin", "--yes") == 0
+    for rel in (".claude/settings.json", ".github/copilot/settings.json"):
+        assert OLD_MARKETPLACE not in _settings(project / rel)["extraKnownMarketplaces"]
+        assert PLUGIN_ID in _settings(project / rel)["enabledPlugins"]

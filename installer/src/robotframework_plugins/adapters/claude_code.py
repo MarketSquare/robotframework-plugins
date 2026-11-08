@@ -38,6 +38,7 @@ from ._base import (
     InstallPlan,
     InstallTarget,
     marketplace_settings_merges,
+    old_marketplace_note,
     skill_script_files,
 )
 
@@ -131,6 +132,9 @@ class ClaudeCodeAdapter(AdapterBase):
                 "Commit .claude/settings.json. Copilot CLI loads the plugin from it in a "
                 "trusted folder; VS Code shows it as a workspace recommendation."
             )
+        migrated = old_marketplace_note(settings)
+        if migrated:
+            notes.append(migrated)
         return InstallPlan(merges=tuple(marketplace_settings_merges(settings, opts.ref)), notes=tuple(notes))
 
     def _collect_targets(

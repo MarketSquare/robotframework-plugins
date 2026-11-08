@@ -227,14 +227,73 @@ def marketplace_source(ref: str | None) -> dict[str, Any]:
     return source
 
 
+def _old_marketplace_entry(settings_path: Path) -> dict[str, Any] | None:
+    """The ``robotframework-agentskills`` marketplace entry in ``settings_path``, if any.
+
+    Only an entry whose source is the old GitHub repository counts, so a
+    user's own marketplace that happens to share the name is left alone.
+    """
+    import json
+
+    try:
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("extraKnownMarketplaces"), dict):
+        return None
+    entry = data["extraKnownMarketplaces"].get(OLD_MARKETPLACE_NAME)
+    if not isinstance(entry, dict):
+        return None
+    source = entry.get("source")
+    if not isinstance(source, dict) or source.get("repo") != OLD_MARKETPLACE_REPO:
+        return None
+    return entry
+
+
+def old_marketplace_note(settings_path: Path) -> str | None:
+    """A note naming the migration, when ``settings_path`` holds the old entry."""
+    if _old_marketplace_entry(settings_path) is None:
+        return None
+    return (
+        f"{settings_path}: replaced the {OLD_MARKETPLACE_NAME} marketplace "
+        f"({OLD_MARKETPLACE_REPO}) with {MARKETPLACE_NAME} ({MARKETPLACE_REPO})."
+    )
+
+
 def marketplace_settings_merges(settings_path: Path, ref: str | None) -> list[ConfigMergeOp]:
     """Merge ``extraKnownMarketplaces`` + ``enabledPlugins`` into a settings JSON.
 
     The shape Claude Code, Copilot CLI and VS Code read from ``.claude/settings.json``
     (Copilot also from ``.github/copilot/settings.json``). Each key is its own
     ``json_nested`` merge, so uninstall removes exactly the entries we added.
+
+    When the file still holds the old ``robotframework-agentskills`` entries,
+    they are removed first, and the old entry's ``ref`` pin is kept unless
+    ``ref`` is given. The removal adds no keys, so uninstall has nothing of
+    it to undo.
     """
     from .. import transforms as _x
+
+    migrations: list[ConfigMergeOp] = []
+    old = _old_marketplace_entry(settings_path)
+    if old is not None:
+        if ref is None:
+            ref = old["source"].get("ref")
+
+        def drop_old() -> list[str]:
+            _x.remove_json_keys_at_path(settings_path, ["extraKnownMarketplaces"], [OLD_MARKETPLACE_NAME])
+            _x.remove_json_keys_at_path(
+                settings_path, ["enabledPlugins"], [f"{PLUGIN_NAME}@{OLD_MARKETPLACE_NAME}"])
+            return []
+
+        migrations.append(ConfigMergeOp(
+            path=settings_path,
+            description=f"replace marketplace {OLD_MARKETPLACE_NAME} in {settings_path}",
+            apply=drop_old,
+            revert=lambda: None,
+            kind="json_nested",
+            key_path=("extraKnownMarketplaces",),
+        ))
 
     def op(key: str, values: dict[str, Any], what: str) -> ConfigMergeOp:
         return ConfigMergeOp(
@@ -247,6 +306,7 @@ def marketplace_settings_merges(settings_path: Path, ref: str | None) -> list[Co
         )
 
     return [
+        *migrations,
         op("extraKnownMarketplaces", {MARKETPLACE_NAME: {"source": marketplace_source(ref)}},
            f"marketplace {MARKETPLACE_NAME}"),
         op("enabledPlugins", {PLUGIN_ID: True}, f"enabled plugin {PLUGIN_ID}"),
