@@ -6,6 +6,13 @@ checked against ``schemas/catalog.schema.json`` (spec ``plugin-catalogue``).
 
     python scripts/build-catalog.py            # validate, then regenerate
     python scripts/build-catalog.py --check    # validate, fail if anything is stale
+    python scripts/build-catalog.py --check --base origin/main   # also: renames is append-only
+    python scripts/build-catalog.py --version-table   # print the installer release-notes table
+
+Besides the manifests, the check fails when two listed plugins ship the same
+skill, subagent or hook install path, when a symlink in a plugin is absolute
+or leaves the repository, and (with ``--base``) when an existing ``renames``
+entry of the marketplace was deleted or changed.
 
 ``--root`` points at another tree (tests use scratch copies).
 """
@@ -14,6 +21,9 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
+import os
+import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -120,6 +130,93 @@ def load_plugins(root: Path = REPO) -> list[Plugin]:
 
 
 # ---------------------------------------------------------------------------
+# Cross-plugin checks
+# ---------------------------------------------------------------------------
+
+_NAME_LINE = re.compile(r"^name:\s*['\"]?([^'\"\s]+)", re.MULTILINE)
+
+
+def _frontmatter_name(path: Path) -> str | None:
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    match = _NAME_LINE.search(text[3:end if end > 0 else len(text)])
+    return match.group(1) if match else None
+
+
+def shipped_names(p: Plugin) -> dict[str, set[str]]:
+    """What a plugin installs under a name another plugin could also use."""
+    skills = {d.name for d in sorted((p.path / "skills").glob("*")) if (d / "SKILL.md").is_file()}
+    agents: set[str] = set()
+    for f in sorted((p.path / "agents").glob("*.md")):
+        agents.add(f.stem)
+        name = _frontmatter_name(f)
+        if name:
+            agents.add(name)
+    # Hook scripts install into the plugin's own support folder; the OpenCode
+    # JS plugin is the one hook file that lands in a folder shared by plugins.
+    hooks = {f"plugins/{f.name}" for f in sorted((p.path / "variants" / "opencode" / "plugins").glob("*"))}
+    return {"skill": skills, "subagent": agents, "hook install path": hooks}
+
+
+def name_problems(plugins: list[Plugin]) -> list[str]:
+    owners: dict[tuple[str, str], list[str]] = {}
+    for p in listed(plugins):
+        for kind, names in shipped_names(p).items():
+            for name in names:
+                owners.setdefault((kind, name), []).append(p.name)
+    return [
+        f"{kind} {name!r} is shipped by more than one plugin: {', '.join(sorted(who))}"
+        for (kind, name), who in sorted(owners.items()) if len(who) > 1
+    ]
+
+
+def symlink_problems(root: Path, plugins: list[Plugin]) -> list[str]:
+    """Shared files are relative symlinks that stay inside the repository."""
+    problems = []
+    top = root.resolve()
+    for p in plugins:
+        for dirpath, dirnames, filenames in os.walk(p.path):
+            for name in sorted(dirnames + filenames):
+                link = Path(dirpath) / name
+                if not link.is_symlink():
+                    continue
+                rel = link.relative_to(root).as_posix()
+                target = os.readlink(link)
+                if os.path.isabs(target):
+                    problems.append(f"{rel}: symlink target {target!r} is absolute; use a relative path")
+                    continue
+                resolved = (link.parent / target).resolve()
+                if resolved != top and top not in resolved.parents:
+                    problems.append(f"{rel}: symlink points outside the repository ({target})")
+    return problems
+
+
+def renames_problems(base: dict[str, Any], current: dict[str, Any]) -> list[str]:
+    """The ``renames`` map is append-only: every entry of ``base`` stays as it was."""
+    problems = []
+    for old, new in base.items():
+        if old not in current:
+            problems.append(f"marketplace renames: entry {old!r} (-> {new!r}) was deleted; the map is append-only")
+        elif current[old] != new:
+            problems.append(
+                f"marketplace renames: entry {old!r} changed from {new!r} to {current[old]!r}; the map is append-only")
+    return problems
+
+
+def base_renames(root: Path, ref: str) -> dict[str, Any]:
+    """``renames`` of the marketplace at git ``ref`` (empty when it has none)."""
+    out = subprocess.run(
+        ["git", "show", f"{ref}:{MARKETPLACE_REL.as_posix()}"],
+        cwd=root, capture_output=True, text=True,
+    )
+    if out.returncode != 0:
+        return {}
+    return json.loads(out.stdout).get("renames", {})
+
+
+# ---------------------------------------------------------------------------
 # Generated files
 # ---------------------------------------------------------------------------
 
@@ -128,6 +225,8 @@ README_START = "<!-- catalog:start (generated by scripts/build-catalog.py; do no
 README_END = "<!-- catalog:end -->"
 MARKETPLACE_REL = Path(".claude-plugin") / "marketplace.json"
 CATALOG_DOC_REL = Path("docs") / "catalog.md"
+INSTALLER_PYPROJECT_REL = Path("installer") / "pyproject.toml"
+INSTALLER_NAME = "robotframework-plugins"
 #: plugin.json fields copied into the marketplace entry when present. Not
 #: ``version``: it lives only in plugin.json, which Claude Code reads first.
 ENTRY_FIELDS_FROM_PLUGIN_JSON = ("author", "homepage", "repository", "license", "keywords")
@@ -166,30 +265,55 @@ def catalog_table(plugins: list[Plugin]) -> str:
     return "\n".join(rows)
 
 
-def readme_block(plugins: list[Plugin]) -> str:
+def installer_version(root: Path) -> str:
+    path = root / INSTALLER_PYPROJECT_REL
+    if not path.is_file():
+        raise CatalogError([f"{INSTALLER_PYPROJECT_REL.as_posix()}: missing; the version table needs the installer version"])
+    match = re.search(r'^version\s*=\s*"([^"]+)"', path.read_text(encoding="utf-8"), re.MULTILINE)
+    if not match:
+        raise CatalogError([f"{INSTALLER_PYPROJECT_REL.as_posix()}: no version"])
+    return match.group(1)
+
+
+def version_table(version: str, plugins: list[Plugin]) -> str:
+    """What one installer release bundles: active and deprecated plugins."""
+    rows = [f"| {INSTALLER_NAME} {version} bundles | Version | Tier |", "|---|---|---|"]
+    rows += [f"| `{p.name}` | {p.version or '-'} | {p.tier} |" for p in listed(plugins)]
+    return "\n".join(rows)
+
+
+def readme_block(plugins: list[Plugin], version: str) -> str:
     return (
         f"{README_START}\n"
         f"{catalog_table(plugins)}\n\n"
         "Tiers and what they mean: [GOVERNANCE.md](GOVERNANCE.md). Full details per plugin: "
-        f"[docs/catalog.md](docs/catalog.md).\n"
+        f"[docs/catalog.md](docs/catalog.md).\n\n"
+        f"The Python installer bundles these plugin versions:\n\n"
+        f"{version_table(version, plugins)}\n"
         f"{README_END}"
     )
 
 
-def render_readme(text: str, plugins: list[Plugin]) -> str:
+def render_readme(text: str, plugins: list[Plugin], version: str) -> str:
     start, end = text.find(README_START), text.find(README_END)
     if start < 0 or end < start:
         raise CatalogError([f"README.md: markers {README_START!r} … {README_END!r} not found"])
-    return text[:start] + readme_block(plugins) + text[end + len(README_END):]
+    return text[:start] + readme_block(plugins, version) + text[end + len(README_END):]
 
 
-def render_catalog_doc(plugins: list[Plugin]) -> str:
+def render_catalog_doc(plugins: list[Plugin], version: str) -> str:
     out = [
         "# Plugin catalogue",
         "",
         "<!-- Generated by scripts/build-catalog.py from plugins/*/catalog.yaml. Do not edit. -->",
         "",
         catalog_table(plugins),
+        "",
+        "## Installer",
+        "",
+        f"`pip install {INSTALLER_NAME}=={version}` installs these plugin versions:",
+        "",
+        version_table(version, plugins),
         "",
     ]
     for p in listed(plugins):
@@ -229,7 +353,12 @@ def marketplace_entry(p: Plugin) -> dict[str, Any]:
 
 
 def render_marketplace(current: dict[str, Any], plugins: list[Plugin]) -> dict[str, Any]:
-    """``current`` with its ``plugins`` list regenerated; other top-level keys kept."""
+    """``current`` with its ``plugins`` list regenerated; other top-level keys kept.
+
+    A ``removed`` plugin's name is appended to ``renames`` as ``null``; existing
+    entries (hand-written ``"<old>": "<new>"`` renames too) stay. Claude Code
+    uninstalls plugins that leave the marketplace (``forceRemoveDeletedPlugins``).
+    """
     out = dict(current)
     metadata = {k: v for k, v in out.get("metadata", {}).items() if k != "version"}
     if metadata:
@@ -237,6 +366,13 @@ def render_marketplace(current: dict[str, Any], plugins: list[Plugin]) -> dict[s
     else:
         out.pop("metadata", None)
     out["plugins"] = [marketplace_entry(p) for p in listed(plugins)]
+    renames = dict(out.get("renames", {}))
+    for p in plugins:
+        if p.status == "removed":
+            renames.setdefault(p.name, None)
+    if renames:
+        out["renames"] = renames
+    out["forceRemoveDeletedPlugins"] = True
     return out
 
 
@@ -248,9 +384,10 @@ def generated_files(root: Path, plugins: list[Plugin]) -> dict[Path, str]:
     """Every generated file and the content it should have."""
     readme = root / "README.md"
     market = root / MARKETPLACE_REL
+    version = installer_version(root)
     return {
-        readme: render_readme(readme.read_text(encoding="utf-8"), plugins),
-        root / CATALOG_DOC_REL: render_catalog_doc(plugins),
+        readme: render_readme(readme.read_text(encoding="utf-8"), plugins, version),
+        root / CATALOG_DOC_REL: render_catalog_doc(plugins, version),
         market: _dump_json(render_marketplace(json.loads(market.read_text(encoding="utf-8")), plugins)),
     }
 
@@ -259,10 +396,22 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--check", action="store_true", help="validate and fail on stale generated files")
     ap.add_argument("--root", type=Path, default=REPO, help="repository root (default: this checkout)")
+    ap.add_argument("--base", help="git ref (the PR base) whose marketplace renames must all be kept")
+    ap.add_argument("--version-table", action="store_true",
+                    help="print the table of bundled plugin versions (installer release notes) and exit")
     args = ap.parse_args(argv)
     root = args.root.resolve()
     try:
         plugins = load_plugins(root)
+        if args.version_table:
+            print(version_table(installer_version(root), plugins))
+            return 0
+        problems = name_problems(plugins) + symlink_problems(root, plugins)
+        market = json.loads((root / MARKETPLACE_REL).read_text(encoding="utf-8"))
+        if args.base:
+            problems += renames_problems(base_renames(root, args.base), market.get("renames", {}))
+        if problems:
+            raise CatalogError(problems)
         files = generated_files(root, plugins)
     except CatalogError as exc:
         for p in exc.problems:

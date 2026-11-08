@@ -12,6 +12,12 @@ AI agent skills for Robot Framework test automation, distributed for **eight cod
 | `rf-agentskills` | 3.0.0 | verified | active | Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing. | Browser, SeleniumLibrary, AppiumLibrary, RequestsLibrary, RESTinstance, PlatynUI | [@manykarim](https://github.com/manykarim) |
 
 Tiers and what they mean: [GOVERNANCE.md](GOVERNANCE.md). Full details per plugin: [docs/catalog.md](docs/catalog.md).
+
+The Python installer bundles these plugin versions:
+
+| robotframework-plugins 2026.12.0 bundles | Version | Tier |
+|---|---|---|
+| `rf-agentskills` | 3.0.0 | verified |
 <!-- catalog:end -->
 
 ## Install

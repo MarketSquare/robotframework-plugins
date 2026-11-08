@@ -6,6 +6,14 @@
 |---|---|---|---|---|---|---|
 | `rf-agentskills` | 3.0.0 | verified | active | Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing. | Browser, SeleniumLibrary, AppiumLibrary, RequestsLibrary, RESTinstance, PlatynUI | [@manykarim](https://github.com/manykarim) |
 
+## Installer
+
+`pip install robotframework-plugins==2026.12.0` installs these plugin versions:
+
+| robotframework-plugins 2026.12.0 bundles | Version | Tier |
+|---|---|---|
+| `rf-agentskills` | 3.0.0 | verified |
+
 ## rf-agentskills
 
 Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing.

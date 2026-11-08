@@ -155,6 +155,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The PR base is needed to check that marketplace renames are append-only.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -162,7 +165,16 @@ jobs:
       # (pytest 9+ errors on the unknown config option without it).
       - run: pip install pytest pytest-asyncio pyyaml "jsonschema>=4.18"
       - name: Validate the plugin catalogue
-        run: python scripts/build-catalog.py --check
+        # Also: unique skill, subagent and hook install names across plugins,
+        # symlinks inside the repository, and (in PRs) append-only renames.
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || '' }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            python scripts/build-catalog.py --check --base "origin/$BASE_REF"
+          else
+            python scripts/build-catalog.py --check
+          fi
       - name: Validate manifests and SKILL.md frontmatter
         # Includes the marketplace/plugin manifest consistency checks.
         run: python -m pytest tests/test_marketplace_validation.py -v

@@ -76,9 +76,10 @@ can correlate:
   `rf-agentskills` ≥ 0.3.0"* (or whatever the current installer version
   is). When the installer bumps in lockstep with a content change,
   call that out too.
-- **`robotframework-plugins-v*` release notes** should include: *"bundled
-  content: 1.2.0"* (read from
-  `plugins/rf-agentskills/.claude-plugin/plugin.json` at build time).
+- **`robotframework-plugins-v*` release notes** start with the table of
+  bundled plugin versions that `python scripts/build-catalog.py --version-table`
+  prints (installer version, then each plugin's name, version and tier);
+  `robotframework-plugins catalog --json` gives the same data.
   The `robotframework-plugins version` CLI prints this automatically:
   ```
   $ robotframework-plugins version
@@ -126,8 +127,13 @@ during the messy pre-1.0 phase.
 4. `bash scripts/build-packages.sh --clean --check` (validates with
    `twine check`).
 5. Commit, push.
-6. `gh release create robotframework-plugins-vX.Y.Z dist/robotframework_plugins-*` with
-   release notes referencing the bundled content version.
+6. Create the GitHub release. Its notes start with the generated table of
+   the bundled plugin versions, then the installer changes:
+   ```bash
+   python scripts/build-catalog.py --version-table > notes.md
+   # append this release's installer/CHANGELOG.md section to notes.md
+   gh release create robotframework-plugins-vX.Y.Z dist/robotframework_plugins-* --notes-file notes.md
+   ```
 7. **Publish to PyPI** so `uvx robotframework-plugins` / `pipx run robotframework-plugins`
    resolves the new version:
    ```bash
