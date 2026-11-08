@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Make this repository the plugin marketplace from which Claude Code, GitHub Copilot (CLI and VS Code), Codex and Cursor install rf-agentskills, at user or project scope, at a released or pinned version.
+Make this repository the `robotframework-plugins` marketplace from which Claude Code, GitHub Copilot (CLI and VS Code), Codex and Cursor install the programme's plugins, at user or project scope, at a released or pinned version.
 
 ## Requirements
 
