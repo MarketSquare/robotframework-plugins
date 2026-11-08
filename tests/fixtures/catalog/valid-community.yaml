@@ -1,0 +1,12 @@
+name: rf-example
+summary: A community plugin used as a test fixture for the catalogue tooling.
+tier: community
+status: active
+maintainers:
+  - github: someone
+libraries:
+  - name: DatabaseLibrary
+    package: robotframework-databaselibrary
+    versions: ">=2"
+robotframework: ">=7.0"
+agents: [claude-code, codex]

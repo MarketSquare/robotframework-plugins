@@ -36,7 +36,7 @@ jobs:
           # fatal error otherwise. robotcode[all] (the documented
           # prerequisite; it also brings Robocop) lets the validation-hook
           # tests run for real here instead of skipping.
-          pip install robotframework pytest pytest-asyncio pyyaml "robotcode[all]>=2.8"
+          pip install robotframework pytest pytest-asyncio pyyaml "jsonschema>=4.18" "robotcode[all]>=2.8"
           pip install -e ./installer
         shell: bash
       - name: Install PlatynUI (optional — rf-platynui keyword-fidelity test)
@@ -127,7 +127,9 @@ jobs:
           python-version: "3.12"
       # pytest-asyncio satisfies `asyncio_mode = "auto"` in pyproject
       # (pytest 9+ errors on the unknown config option without it).
-      - run: pip install pytest pytest-asyncio
+      - run: pip install pytest pytest-asyncio pyyaml "jsonschema>=4.18"
+      - name: Validate the plugin catalogue
+        run: python scripts/build-catalog.py --check
       - name: Validate manifests and SKILL.md frontmatter
         # Includes the marketplace/plugin manifest consistency checks.
         run: python -m pytest tests/test_marketplace_validation.py -v

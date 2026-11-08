@@ -1,0 +1,37 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+name: rf-agentskills
+summary: Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing.
+tier: verified
+status: active
+maintainers:
+  - github: manykarim
+    name: Many Kasiriha
+libraries:
+  - name: Browser
+    package: robotframework-browser
+    versions: ">=20,<21"
+  - name: SeleniumLibrary
+    package: robotframework-seleniumlibrary
+    versions: ">=6.9,<7"
+  - name: AppiumLibrary
+    package: robotframework-appiumlibrary
+    versions: ">=3,<4"
+  - name: RequestsLibrary
+    package: robotframework-requests
+    versions: ">=0.9.7"
+  - name: RESTinstance
+    package: RESTinstance
+    versions: ">=1.8,<2"
+  - name: PlatynUI
+    package: robotframework-PlatynUI
+    versions: ">=0.12.0.dev0"
+robotframework: ">=7.0"
+agents:
+  - claude-code
+  - copilot-cli
+  - vscode-copilot
+  - codex
+  - cursor
+  - opencode
+  - goose
+  - claude-desktop

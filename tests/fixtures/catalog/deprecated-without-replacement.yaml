@@ -1,0 +1,10 @@
+name: rf-old
+summary: A plugin that was deprecated without naming what to use instead.
+tier: community
+status: deprecated
+deprecated_since: "2026-11-08"
+maintainers:
+  - github: someone
+libraries: []
+robotframework: ">=7.0"
+agents: [claude-code]
