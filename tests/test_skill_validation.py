@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import importlib.util
 import shutil
 import subprocess
@@ -44,7 +45,9 @@ def render(fields: dict) -> str:
 
 
 def make_repo(tmp_path: Path, skills: dict[str, str], version: str = VERSION) -> Path:
-    (tmp_path / "VERSION").write_text(version + "\n", encoding="utf-8")
+    manifest = tmp_path / "plugins" / "rf-agentskills" / ".claude-plugin" / "plugin.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(f'{{"name": "rf-agentskills", "version": "{version}"}}\n', encoding="utf-8")
     for dir_name, text in skills.items():
         d = tmp_path / "skills" / dir_name
         d.mkdir(parents=True)
@@ -138,20 +141,26 @@ def test_real_tree_all_channels_valid(use_yaml):
 def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     repo = tmp_path / "repo"
     shutil.copytree(ROOT / "skills", repo / "skills")
-    shutil.copy2(ROOT / "VERSION", repo / "VERSION")
+    shutil.copytree(ROOT / "plugins" / "rf-agentskills" / "skills", repo / "plugins" / "rf-agentskills" / "skills")
     (repo / "scripts").mkdir()
     shutil.copy2(ROOT / "scripts" / "bump-version.sh", repo / "scripts" / "bump-version.sh")
-    for rel in (".claude-plugin/marketplace.json", "plugins/rf-agentskills/.claude-plugin/plugin.json"):
-        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(ROOT / rel, repo / rel)
-    res = subprocess.run([BASH, str(repo / "scripts" / "bump-version.sh"), "patch"], capture_output=True,
-                         text=True, env={"REPO_ROOT": str(repo), "PATH": "/usr/bin:/bin"})
+    rel = "plugins/rf-agentskills/.claude-plugin/plugin.json"
+    (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ROOT / rel, repo / rel)
+    old = json.loads((ROOT / rel).read_text())["version"]
+    res = subprocess.run([BASH, str(repo / "scripts" / "bump-version.sh"), "rf-agentskills", "patch"],
+                         capture_output=True, text=True, env={"REPO_ROOT": str(repo), "PATH": "/usr/bin:/bin"})
     assert res.returncode == 0, res.stdout + res.stderr
-    new = (repo / "VERSION").read_text().strip()
-    assert new != (ROOT / "VERSION").read_text().strip()
-    assert vs.validate(repo, ["root"]) == []
-    for rel in (".claude-plugin/marketplace.json", "plugins/rf-agentskills/.claude-plugin/plugin.json"):
-        assert f'"version": "{new}"' in (repo / rel).read_text()
+    new = json.loads((repo / rel).read_text())["version"]
+    assert new != old and f"rf-agentskills--v{new}" in res.stdout
+    assert vs.validate(repo, ["root", "plugin"]) == []
+
+
+@requires_posix_bash
+def test_bump_version_needs_a_plugin(tmp_path):
+    res = subprocess.run([BASH, str(ROOT / "scripts" / "bump-version.sh"), "patch"], capture_output=True,
+                         text=True, env={"REPO_ROOT": str(tmp_path), "PATH": "/usr/bin:/bin"})
+    assert res.returncode != 0 and "Usage" in res.stderr
 
 
 def _frontmatter_field(md: Path, field: str) -> str:

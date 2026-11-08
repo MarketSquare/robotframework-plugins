@@ -4,15 +4,13 @@
     "name": "Robot Framework Foundation"
   },
   "metadata": {
-    "description": "Robot Framework agent skills for Claude Code - web, API, mobile and desktop testing, environment setup, and RF analysis tools",
-    "version": "3.0.0"
+    "description": "Robot Framework agent plugins from the Robot Framework Foundation: skills, subagents and hooks for coding agents."
   },
   "plugins": [
     {
       "name": "rf-agentskills",
       "source": "./plugins/rf-agentskills",
       "description": "Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing.",
-      "version": "3.0.0",
       "author": {
         "name": "manykarim",
         "email": "manykarim@users.noreply.github.com"

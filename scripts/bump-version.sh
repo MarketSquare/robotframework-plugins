@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Usage: ./scripts/bump-version.sh <major|minor|patch>
-# Bumps the CONTENT version (see RELEASING.md) everywhere it is recorded:
-#   VERSION, .claude-plugin/marketplace.json (metadata + rf-agentskills entry),
-#   plugins/rf-agentskills/.claude-plugin/plugin.json and
-#   metadata.version in every skills/*/SKILL.md (checked by validate-skills.py).
-# Run scripts/sync-skills.sh afterwards to propagate the SKILL.md changes.
+# Usage: ./scripts/bump-version.sh <plugin> <major|minor|patch>
+# Bumps one plugin's version (see RELEASING.md) everywhere it is recorded:
+#   plugins/<plugin>/.claude-plugin/plugin.json (the one source of truth) and
+#   metadata.version in every plugins/<plugin>/skills/*/SKILL.md (checked by
+#   validate-skills.py). Then regenerate the marketplace and catalogue with
+#   scripts/build-catalog.py. Marketplace entries carry no version.
 #
 # REPO_ROOT can be overridden (used by tests to run against a scratch tree).
 set -euo pipefail
@@ -14,82 +14,67 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 # exist and /d/a/... paths are not valid for a native Windows Python.
 PY="$(command -v python3 || command -v python)"
 if command -v cygpath >/dev/null 2>&1; then PY_ROOT="$(cygpath -m "$REPO_ROOT")"; else PY_ROOT="$REPO_ROOT"; fi
-BUMP_TYPE="${1:-patch}"
-VERSION_FILE="$REPO_ROOT/VERSION"
 
-if [ ! -f "$VERSION_FILE" ]; then
-    echo "ERROR: $VERSION_FILE not found" >&2
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <plugin> <major|minor|patch>" >&2
+    exit 1
+fi
+PLUGIN="$1"
+BUMP_TYPE="$2"
+case "$BUMP_TYPE" in
+    major|minor|patch) ;;
+    *) echo "Usage: $0 <plugin> <major|minor|patch>" >&2; exit 1 ;;
+esac
+if [ ! -f "$REPO_ROOT/plugins/$PLUGIN/.claude-plugin/plugin.json" ]; then
+    echo "ERROR: plugins/$PLUGIN/.claude-plugin/plugin.json not found" >&2
     exit 1
 fi
 
-CURRENT=$(tr -d '[:space:]' < "$VERSION_FILE")
-IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-
-case "$BUMP_TYPE" in
-    major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-    minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-    patch) PATCH=$((PATCH + 1)) ;;
-    *)
-        echo "Usage: $0 <major|minor|patch>" >&2
-        exit 1
-        ;;
-esac
-
-NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-echo "$NEW_VERSION" > "$VERSION_FILE"
-
-"$PY" - "$PY_ROOT" "$NEW_VERSION" <<'PY'
+"$PY" - "$PY_ROOT" "$PLUGIN" "$BUMP_TYPE" <<'PY'
 import json
 import re
 import sys
 from pathlib import Path
 
-root, new = Path(sys.argv[1]), sys.argv[2]
+root, plugin, bump = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+manifest = root / "plugins" / plugin / ".claude-plugin" / "plugin.json"
+data = json.loads(manifest.read_text(encoding="utf-8"))
+current = data.get("version")
+if not current:
+    sys.exit(f"ERROR: {manifest.relative_to(root)} has no version")
+major, minor, patch = (int(p) for p in current.split("."))
+if bump == "major":
+    major, minor, patch = major + 1, 0, 0
+elif bump == "minor":
+    minor, patch = minor + 1, 0
+else:
+    patch += 1
+new = f"{major}.{minor}.{patch}"
+data["version"] = new
+manifest.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+print(f"  {manifest.relative_to(root).as_posix()}")
 
-
-def update_json(rel, mutate):
-    path = root / rel
-    if not path.is_file():
-        print(f"  skip (missing): {rel}")
-        return
-    data = json.loads(path.read_text(encoding="utf-8"))
-    mutate(data)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"  {rel}")
-
-
-def marketplace(data):
-    if "version" in data.get("metadata", {}):
-        data["metadata"]["version"] = new
-    for plugin in data.get("plugins", []):
-        if plugin.get("name") == "rf-agentskills" and "version" in plugin:
-            plugin["version"] = new
-
-
-def top_level(data):
-    data["version"] = new
-
-
-update_json(".claude-plugin/marketplace.json", marketplace)
-update_json("plugins/rf-agentskills/.claude-plugin/plugin.json", top_level)
-
-# metadata.version in each root SKILL.md frontmatter (the indented `version:`
+# metadata.version in each SKILL.md frontmatter (the indented `version:`
 # line of the metadata map, inside the leading --- block only).
+skill_globs = [f"plugins/{plugin}/skills/*/SKILL.md"]
+# Until the root skills/ copy is retired it is rf-agentskills' source.
+if plugin == "rf-agentskills" and (root / "skills").is_dir():
+    skill_globs.append("skills/*/SKILL.md")
 pattern = re.compile(r"^(metadata:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+version:[ \t]*)[^\n]*$", re.M)
-for skill_md in sorted(root.glob("skills/*/SKILL.md")):
-    text = skill_md.read_text(encoding="utf-8")
-    end = text.find("\n---", 3) if text.startswith("---\n") else -1
-    new_fm, n = pattern.subn(lambda m: f'{m.group(1)}"{new}"', text[:end + 1], count=1) if end > 0 else ("", 0)
-    if n:
-        skill_md.write_text(new_fm + text[end + 1:], encoding="utf-8")
-        print(f"  {skill_md.relative_to(root).as_posix()}")
-    else:
-        print(f"  WARNING: no metadata.version in {skill_md.relative_to(root).as_posix()}", file=sys.stderr)
+for glob in skill_globs:
+    for skill_md in sorted(root.glob(glob)):
+        text = skill_md.read_text(encoding="utf-8")
+        end = text.find("\n---", 3) if text.startswith("---\n") else -1
+        new_fm, n = pattern.subn(lambda m: f'{m.group(1)}"{new}"', text[:end + 1], count=1) if end > 0 else ("", 0)
+        if n:
+            skill_md.write_text(new_fm + text[end + 1:], encoding="utf-8")
+            print(f"  {skill_md.relative_to(root).as_posix()}")
+        else:
+            print(f"  WARNING: no metadata.version in {skill_md.relative_to(root).as_posix()}", file=sys.stderr)
+print(f"Bumped {plugin}: {current} -> {new}")
+print("")
+print("Next steps:")
+print("  python3 scripts/build-catalog.py && python3 scripts/validate-skills.py --channel all")
+print(f"  git add -A && git commit -m 'release: {plugin} {new}'")
+print(f"  git tag {plugin}--v{new} && git push origin main {plugin}--v{new}")
 PY
-
-echo "Bumped content version: $CURRENT -> $NEW_VERSION"
-echo ""
-echo "Next steps:"
-echo "  bash scripts/sync-skills.sh && python3 scripts/validate-skills.py --channel all"
-echo "  git add -A && git commit -m 'release: v${NEW_VERSION}'"
-echo "  git tag v${NEW_VERSION} && git push origin main --tags"

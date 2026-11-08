@@ -90,7 +90,9 @@ def test_marketplace_and_plugin_manifests_agree():
     manifest = _json(PLUGIN_ROOT / ".claude-plugin" / "plugin.json")
     [entry] = [p for p in marketplace["plugins"] if p["name"] == manifest["name"]]
     assert entry["source"] == "./plugins/rf-agentskills"
-    assert entry["version"] == manifest["version"]
-    assert marketplace.get("metadata", {}).get("version") == manifest["version"]
-    # A v<VERSION> tag is the pinnable marketplace ref (RELEASING.md).
-    assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == manifest["version"]
+    # One version per plugin, only in plugin.json: Claude Code reads it first
+    # and warns when an entry disagrees (RELEASING.md, plugin tags <plugin>--v<version>).
+    assert manifest["version"]
+    assert all("version" not in e for e in marketplace["plugins"])
+    assert "version" not in marketplace.get("metadata", {})
+    assert not (ROOT / "VERSION").exists()

@@ -221,7 +221,7 @@ jobs:
           python-version: "3.12"
       # Stdlib-only: name == dir, charset/length, description <= 1024,
       # compatibility <= 500, no tags, allowed keys, license, metadata,
-      # metadata.version == VERSION, same skill set in root and plugin.
+      # metadata.version == the plugin.json version, same skill set in root and plugin.
       - name: Validate all channels
         run: python scripts/validate-skills.py --channel all
       # Non-blocking cross-check against the reference implementation, so we
