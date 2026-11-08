@@ -75,7 +75,7 @@ class CopilotAdapter(ClaudeCodeAdapter):
             *base.notes,
             f"{copilot_settings} carries the same entries for Copilot CLI.",
             "VS Code: enable `chat.plugins.enabled` and `chat.useHooks`; add "
-            '"manykarim/robotframework-agentskills" to `chat.plugins.marketplaces` '
+            '"MarketSquare/robotframework-plugins" to `chat.plugins.marketplaces` '
             "(user settings) to install it outside this workspace.",
         )
         return InstallPlan(

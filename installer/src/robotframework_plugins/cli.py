@@ -94,7 +94,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("files", "plugin"),
         default="files",
         help="files (default): copy skills/agents/hooks. plugin: point the agent at the "
-             "robotframework-agentskills marketplace (committed settings for project "
+             "robotframework-plugins marketplace (committed settings for project "
              "scope); agents without a marketplace fall back to files.",
     )
     sp.add_argument("--ref", help="With --mode plugin: pin the marketplace to this git tag/branch.")

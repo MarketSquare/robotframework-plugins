@@ -1,6 +1,6 @@
 """``robotframework-plugins install --mode plugin`` (marketplace-distribution, installer-plugin-bootstrap).
 
-Plugin mode points agents at the robotframework-agentskills marketplace instead
+Plugin mode points agents at the robotframework-plugins marketplace instead
 of copying files: committed ``.claude/settings.json`` entries for Claude Code,
 Copilot (also ``.github/copilot/settings.json``), VS Code and Cursor; Codex gets
 its TOML subagents plus the per-user ``codex plugin`` commands.
@@ -14,8 +14,8 @@ import pytest
 from robotframework_plugins import transforms as _x
 from robotframework_plugins.cli import main
 
-MARKETPLACE = "robotframework-agentskills"
-PLUGIN_ID = "rf-agentskills@robotframework-agentskills"
+MARKETPLACE = "robotframework-plugins"
+PLUGIN_ID = "rf-agentskills@robotframework-plugins"
 
 
 @pytest.fixture(autouse=True)
@@ -37,7 +37,7 @@ def test_plugin_mode_writes_marketplace_settings_and_no_files(tmp_path: Path, fa
     assert _install(project, "--agent", "claude-code", "--mode", "plugin") == 0
     data = _settings(project / ".claude" / "settings.json")
     assert data["extraKnownMarketplaces"][MARKETPLACE]["source"] == {
-        "source": "github", "repo": "manykarim/robotframework-agentskills"}
+        "source": "github", "repo": "MarketSquare/robotframework-plugins"}
     assert data["enabledPlugins"] == {PLUGIN_ID: True}
     assert not (project / ".claude" / "skills").exists()
     assert not (project / ".claude" / "agents").exists()
@@ -111,7 +111,7 @@ def test_codex_plugin_mode_installs_agents_and_prints_commands(
     agents = sorted(p.name for p in (project / ".codex" / "agents").glob("*.toml"))
     assert len(agents) == 3 and "rf-debug-expert.toml" in agents
     out = " ".join(capsys.readouterr().out.split())
-    assert "codex plugin marketplace add manykarim/robotframework-agentskills --ref v2.1.0" in out
+    assert "codex plugin marketplace add MarketSquare/robotframework-plugins --ref v2.1.0" in out
     assert f"codex plugin add {PLUGIN_ID}" in out and "/hooks" in out
     assert calls == []
     assert not (project / ".codex" / "skills").exists()
@@ -133,7 +133,7 @@ def test_codex_plugin_mode_runs_commands_with_yes(
     project.mkdir()
     assert _install(project, "--agent", "codex", "--mode", "plugin", "--yes") == 0
     assert calls == [
-        ["codex", "plugin", "marketplace", "add", "manykarim/robotframework-agentskills"],
+        ["codex", "plugin", "marketplace", "add", "MarketSquare/robotframework-plugins"],
         ["codex", "plugin", "add", PLUGIN_ID],
     ]
 
@@ -145,7 +145,7 @@ def test_cursor_plugin_mode_prints_steps_only(
     project.mkdir()
     assert _install(project, "--agent", "cursor", "--mode", "plugin") == 0
     out = " ".join(capsys.readouterr().out.split())
-    assert "https://github.com/manykarim/robotframework-agentskills" in out
+    assert "https://github.com/MarketSquare/robotframework-plugins" in out
     assert not (project / ".cursor").exists()
 
 

@@ -205,8 +205,11 @@ class AdapterBase:
 # Plugin mode (marketplace-distribution): point an agent at the marketplace
 # ---------------------------------------------------------------------------
 
-MARKETPLACE_NAME = "robotframework-agentskills"
-MARKETPLACE_REPO = "manykarim/robotframework-agentskills"
+MARKETPLACE_NAME = "robotframework-plugins"
+MARKETPLACE_REPO = "MarketSquare/robotframework-plugins"
+#: The marketplace this one replaces; its settings entries are migrated on reinstall.
+OLD_MARKETPLACE_NAME = "robotframework-agentskills"
+OLD_MARKETPLACE_REPO = "manykarim/robotframework-agentskills"
 PLUGIN_NAME = "rf-agentskills"
 PLUGIN_ID = f"{PLUGIN_NAME}@{MARKETPLACE_NAME}"
 #: Test hook: a local checkout to use as the marketplace instead of GitHub.

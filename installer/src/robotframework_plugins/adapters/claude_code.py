@@ -120,7 +120,7 @@ class ClaudeCodeAdapter(AdapterBase):
         settings = self.install_root(opts) / "settings.json"
         scope = "project" if opts.scope == "project" and opts.prefix is None else "user"
         notes = [
-            f"{settings} now registers the robotframework-agentskills marketplace and "
+            f"{settings} now registers the robotframework-plugins marketplace and "
             f"enables {PLUGIN_ID}.",
             "Claude Code: each collaborator installs it once with "
             f"`claude plugin install {PLUGIN_ID} --scope {scope}` (Claude Code also "
