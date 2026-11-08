@@ -37,7 +37,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL = ROOT / "skills" / "rf-language"
+SKILL = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-language"
 SKILL_MD = SKILL / "SKILL.md"
 REFS = SKILL / "references"
 EXAMPLES = SKILL / "assets" / "examples"
@@ -325,7 +325,7 @@ def test_description_boundary() -> None:
     boundary = use_when.split("Multiple keywords with name", 1)[1]
     assert "Python keyword libraries" in boundary and "rf-browser" in boundary and "rf-requests" in boundary
     assert "rf-python-library" in boundary
-    shipped = {p.parent.name for p in (ROOT / "skills").glob("*/SKILL.md")}
+    shipped = {p.parent.name for p in (ROOT / "plugins" / "rf-agentskills" / "skills").glob("*/SKILL.md")}
     named = set(re.findall(r"\brf-[a-z-]+\b", desc))
     assert named <= shipped, named - shipped
 
@@ -621,7 +621,7 @@ def test_companion_rows() -> None:
         assert retired not in sec, retired
     assert "robotcode@robotframework-agent-plugins" in sec
     for skill in EIGHT_SKILLS:
-        other = _section(_text(ROOT / "skills" / skill / "SKILL.md"), "Companion Skills")
+        other = _section(_text(ROOT / "plugins" / "rf-agentskills" / "skills" / skill / "SKILL.md"), "Companion Skills")
         row = [r for r in _rows(other) if r[0] == LANGUAGE_NEED]
         assert len(row) == 1 and "`rf-language`" in row[0][-1], skill
         for retired in ("rf-test-design", "rf-keyword-design", "rf-resource-architect"):

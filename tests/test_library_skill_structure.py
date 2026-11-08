@@ -35,7 +35,7 @@ LIBRARIES: dict[str, str] = {
     "restinstance": "REST",
 }
 KEYS = list(LIBRARIES)
-SKILL_DIRS = {k: ROOT / "skills" / f"rf-{k}" for k in KEYS}
+SKILL_DIRS = {k: ROOT / "plugins" / "rf-agentskills" / "skills" / f"rf-{k}" for k in KEYS}
 
 # Skills not yet restructured: their cases are xfails (non-strict: some rules, such as the
 # example dry run, already hold for the old content). Emptied as each skill is done.
@@ -392,7 +392,7 @@ CHANNEL_PARAMS = [
         marks=[pytest.mark.xfail(strict=False, reason="catalogs not deleted yet")] if PENDING else [],
     )
     for name, path in (
-        ("root", ROOT / "skills"),
+        ("root", ROOT / "plugins" / "rf-agentskills" / "skills"),
         ("plugin", ROOT / "plugins" / "rf-agentskills" / "skills"),
     )
 ]

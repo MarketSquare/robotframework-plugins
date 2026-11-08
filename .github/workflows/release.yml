@@ -34,8 +34,10 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Sync distribution channels
-        run: bash scripts/sync-skills.sh
+      - name: Export standalone skills from the plugin
+        # Writes skills/ on the runner only (the release tarballs, ZIPs and the
+        # skill count below read it); the repository has no root copy.
+        run: python scripts/export-skills.py rf-agentskills skills
 
       - name: Check drift
         run: bash scripts/check-drift.sh

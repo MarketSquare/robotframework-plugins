@@ -10,11 +10,14 @@ import re
 from pathlib import Path
 
 import pytest
+from _standalone import standalone_skills
 
 ROOT = Path(__file__).resolve().parent.parent
 PLUGIN = ROOT / "plugins" / "rf-agentskills"
+#: "root" is the standalone form (release tarballs, Desktop ZIPs), exported
+#: from the plugin; the repository has no root skills/ copy any more.
 CHANNELS = {
-    "root": ROOT / "skills",
+    "root": standalone_skills(),
     "plugin": PLUGIN / "skills",
 }
 SCRIPT_SKILLS = {"rf-language": "rf_conventions.py", "rf-python-library": "check_library.py"}
@@ -46,7 +49,14 @@ def _is_bare(line: str) -> bool:
     return False
 
 
-SKILL_IDS = [str(p.relative_to(ROOT)) for p in _skill_mds()]
+def _skill_id(md: Path) -> str:
+    try:
+        return str(md.relative_to(ROOT))
+    except ValueError:
+        return "standalone/" + str(md.relative_to(CHANNELS["root"]))
+
+
+SKILL_IDS = [_skill_id(p) for p in _skill_mds()]
 
 
 @pytest.mark.parametrize("md", _skill_mds(), ids=SKILL_IDS)

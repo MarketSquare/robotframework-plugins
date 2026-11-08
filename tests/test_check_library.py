@@ -20,9 +20,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = ROOT / "skills" / "rf-python-library" / "scripts" / "check_library.py"
+SCRIPT = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-python-library" / "scripts" / "check_library.py"
 FIXTURES = ROOT / "tests" / "fixtures" / "python_library"
-EXAMPLES = ROOT / "skills" / "rf-python-library" / "assets" / "examples"
+EXAMPLES = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-python-library" / "assets" / "examples"
 
 pytestmark = pytest.mark.skipif(importlib.util.find_spec("robot") is None,
                                 reason="robotframework not installed")

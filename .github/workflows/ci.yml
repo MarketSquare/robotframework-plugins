@@ -54,7 +54,7 @@ jobs:
         shell: bash
       - name: Install other library-skill libraries (optional — example dry runs)
         # tests/test_library_skill_structure.py dry-runs every example in
-        # skills/rf-{selenium,appium,requests,restinstance}/assets/examples and
+        # plugins/rf-agentskills/skills/rf-{selenium,appium,requests,restinstance}/assets/examples and
         # checks decision-table keywords against libdoc. Fail-soft: a library
         # that cannot be installed (RESTinstance needs Python >= 3.11) makes its
         # cases skip, never pass.
@@ -73,7 +73,7 @@ jobs:
           pip install pyyaml || echo "PyYAML unavailable — the rf-language YAML example test will skip"
         shell: bash
       - name: Run rf-python-library examples and check the example libraries
-        # skills/rf-python-library/assets/examples must really run (not only
+        # plugins/rf-agentskills/skills/rf-python-library/assets/examples must really run (not only
         # dry-run), with the example listener, and the bundled checker must
         # report no error or warning finding for the three example libraries.
         # tests/test_python_library_skill.py and tests/test_check_library.py
@@ -81,8 +81,8 @@ jobs:
         run: |
           export PYTHONDONTWRITEBYTECODE=1
           out="$RUNNER_TEMP/pylib"
-          python -m robot --pythonpath skills/rf-python-library/assets/examples --listener ResultListener --outputdir "$out" --console dotted skills/rf-python-library/assets/examples
-          cd skills/rf-python-library/assets/examples
+          python -m robot --pythonpath plugins/rf-agentskills/skills/rf-python-library/assets/examples --listener ResultListener --outputdir "$out" --console dotted plugins/rf-agentskills/skills/rf-python-library/assets/examples
+          cd plugins/rf-agentskills/skills/rf-python-library/assets/examples
           python ../../scripts/check_library.py ExampleLibrary.py converters.py ResultListener.py --json-out "$out/check_library.json"
           python -c "import json, sys; s = json.load(open(sys.argv[1]))['summary']; print(s); sys.exit(1 if s['error'] or s['warning'] else 0)" "$out/check_library.json"
         shell: bash
@@ -108,12 +108,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install ruff
-      - name: Lint root scripts
-        run: ruff check skills/*/scripts/*.py --select E,F,W --ignore E501
       - name: Lint plugin skill scripts
-        run: ruff check plugins/rf-agentskills/skills/*/scripts/*.py --select E,F,W --ignore E501
+        run: ruff check plugins/*/skills/*/scripts/*.py --select E,F,W --ignore E501
       - name: Lint skill zip builder
-        run: ruff check scripts/build-skill-zips.py --select E,F,W --ignore E501
+        run: ruff check scripts/build-skill-zips.py scripts/export-skills.py --select E,F,W --ignore E501
       - name: Lint repo QA scripts
         run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py --select E,F,W --ignore E501
 
@@ -135,7 +133,7 @@ jobs:
         run: python -m pytest tests/test_marketplace_validation.py -v
       - name: Per-agent variants match the generator
         run: python scripts/build-agent-variants.py --check
-      - name: Validate skills in all channels
+      - name: Validate the skills of every plugin
         run: python scripts/validate-skills.py --channel all
 
   validate-robot-syntax:
@@ -153,7 +151,7 @@ jobs:
           import os, sys
           from robot.api import get_model
           errors, count = [], 0
-          for root, dirs, files in os.walk('skills'):
+          for root, dirs, files in os.walk('plugins'):
               for f in files:
                   if f.endswith('.robot'):
                       path = os.path.join(root, f)
@@ -186,29 +184,14 @@ jobs:
       - name: Resolve every keyword call against libdoc
         # --require-all: a skill whose library failed to import fails the job
         # instead of being skipped silently.
-        run: python scripts/check-skill-keywords.py --require-all
-      - name: Same result on the plugin copies
         run: python scripts/check-skill-keywords.py --require-all --skills-root plugins/rf-agentskills/skills
 
   check-drift:
-    name: Check distribution sync
+    name: Check generated variants and plugin layout
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Sync and prove tracked copies were already in sync
-        run: |
-          bash scripts/sync-skills.sh
-          if ! git diff --exit-code --stat -- plugins/; then
-            echo "::error::tracked plugin copies drifted from skills/ - run scripts/sync-skills.sh and commit"
-            exit 1
-          fi
-          untracked="$(git status --porcelain -- plugins/)"
-          if [ -n "$untracked" ]; then
-            echo "$untracked"
-            echo "::error::sync added or removed plugin files - run scripts/sync-skills.sh and commit"
-            exit 1
-          fi
-      - name: Verify root/plugin skills and per-agent variants in sync
+      - name: Variants, skill names, symlinks and script command form
         run: bash scripts/check-drift.sh
 
   validate-skills:
@@ -221,8 +204,8 @@ jobs:
           python-version: "3.12"
       # Stdlib-only: name == dir, charset/length, description <= 1024,
       # compatibility <= 500, no tags, allowed keys, license, metadata,
-      # metadata.version == the plugin.json version, same skill set in root and plugin.
-      - name: Validate all channels
+      # metadata.version == the plugin.json version.
+      - name: Validate every plugin
         run: python scripts/validate-skills.py --channel all
       # Non-blocking cross-check against the reference implementation, so we
       # notice if our reading of the spec diverges from skills-ref.
@@ -230,7 +213,7 @@ jobs:
         continue-on-error: true
         run: |
           pip install skills-ref
-          for d in skills/rf-*/ plugins/rf-agentskills/skills/rf-*/; do
+          for d in plugins/*/skills/rf-*/; do
             agentskills validate "$d"
           done
 
@@ -242,8 +225,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Sync skills to plugin
-        run: bash scripts/sync-skills.sh
       - name: Validate plugin
         run: |
           python3 -c "
@@ -286,6 +267,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Export standalone skills from the plugin
+        # Writes skills/ on the runner only; the repository has no root copy.
+        run: python3 scripts/export-skills.py rf-agentskills skills
       - name: Package standalone skills (for any agent)
         run: |
           tar -czf robotframework-skills-standalone.tar.gz \

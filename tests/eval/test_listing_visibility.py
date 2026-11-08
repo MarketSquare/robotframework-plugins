@@ -265,8 +265,7 @@ def test_import_line_survives_into_staged_skill_md(tmp_path: Path) -> None:
     loaded = load_candidates([cand])
     assert loaded == {"rf-browser": text}
     build_variant(_REPO, loaded, tmp_path / "v")
-    for md in (tmp_path / "v" / "plugins" / "rf-agentskills" / "skills" / "rf-browser" / "SKILL.md",
-               tmp_path / "v" / "skills" / "rf-browser" / "SKILL.md"):
+    for md in (tmp_path / "v" / "plugins" / "rf-agentskills" / "skills" / "rf-browser" / "SKILL.md",):
         raw = md.read_text(encoding="utf-8")
         assert "`Library    Browser`" in raw.splitlines()[2]
         assert raw.splitlines()[2] == "description: " + json.dumps(text)

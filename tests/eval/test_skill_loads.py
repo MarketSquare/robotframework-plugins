@@ -53,10 +53,10 @@ def test_unknown_skills_are_ignored() -> None:
 
 
 def test_skill_dir_map_reads_real_repo_frontmatter() -> None:
-    mapping = skill_dir_map(_REPO / "skills")
+    mapping = skill_dir_map(_REPO / "plugins" / "rf-agentskills" / "skills")
     assert mapping["rf-browser"] == "rf-browser"
     assert len(mapping) >= 9
-    assert read_skill_name(_REPO / "skills" / "rf-browser" / "SKILL.md") == "rf-browser"
+    assert read_skill_name(_REPO / "plugins" / "rf-agentskills" / "skills" / "rf-browser" / "SKILL.md") == "rf-browser"
 
 
 def test_usage_parsed_from_result_line() -> None:

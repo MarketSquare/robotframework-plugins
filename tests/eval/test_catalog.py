@@ -140,7 +140,8 @@ def test_coverage_cli_passes_on_repo() -> None:
 
 def _mini_repo(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
-    shutil.copytree(_REPO / "skills", root / "skills", ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copytree(_REPO / "plugins" / "rf-agentskills" / "skills", root / "plugins" / "rf-agentskills" / "skills",
+                    ignore=shutil.ignore_patterns("__pycache__"))
     shutil.copytree(_REPO / "eval" / "tasks", root / "eval" / "tasks")
     shutil.copytree(_REPO / "eval" / "triggers", root / "eval" / "triggers")
     shutil.copytree(_REPO / "eval" / "fixtures", root / "eval" / "fixtures")
@@ -149,7 +150,7 @@ def _mini_repo(tmp_path: Path) -> Path:
 
 def test_coverage_fails_when_new_skill_lacks_task_and_trigger_set(tmp_path: Path) -> None:
     root = _mini_repo(tmp_path)
-    new = root / "skills" / "rf-newskill"
+    new = root / "plugins" / "rf-agentskills" / "skills" / "rf-newskill"
     new.mkdir()
     (new / "SKILL.md").write_text("---\nname: rf-newskill\ndescription: x\n---\n# body\n")
     result = runner.invoke(
@@ -164,7 +165,7 @@ def test_coverage_fails_when_new_skill_lacks_task_and_trigger_set(tmp_path: Path
 
 def test_coverage_accepts_new_skill_once_covered(tmp_path: Path) -> None:
     root = _mini_repo(tmp_path)
-    new = root / "skills" / "rf-newskill"
+    new = root / "plugins" / "rf-agentskills" / "skills" / "rf-newskill"
     new.mkdir()
     (new / "SKILL.md").write_text("---\nname: rf-newskill\ndescription: x\n---\n")
     _write(root / "eval" / "tasks" / "narrow", "narrow-newskill-01", _task(id="narrow-newskill-01", skill="rf-newskill"))

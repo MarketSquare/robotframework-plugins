@@ -19,9 +19,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = ROOT / "skills" / "rf-language" / "scripts" / "rf_conventions.py"
+SCRIPT = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-language" / "scripts" / "rf_conventions.py"
 FIXTURES = ROOT / "tests" / "fixtures" / "language"
-EXAMPLES = ROOT / "skills" / "rf-language" / "assets" / "examples"
+EXAMPLES = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-language" / "assets" / "examples"
 SUT_MINIMAL = ROOT / "eval" / "fixtures" / "sut-minimal"
 SUT_RF71 = ROOT / "eval" / "fixtures" / "sut-rf71"
 

@@ -264,10 +264,8 @@ class ClaudeCodeRunner:
         )
 
     def _known_skill_dirs(self) -> dict[str, str]:
-        """rf-agentskills skill name -> dir, from repo skills/ and the plugin."""
-        known = skill_dir_map(self._plugin_root / "skills")
-        known.update(skill_dir_map(self._repo_root / "skills"))
-        return known
+        """rf-agentskills skill name -> dir, from the staged plugin."""
+        return skill_dir_map(self._plugin_root / "skills")
 
     def _warn_if_inside_repo(self, artifacts_dir: Path) -> None:
         """Runs under the repo checkout see it as "our project" (and may edit it)."""

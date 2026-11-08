@@ -2,10 +2,8 @@
 """Validate SKILL.md frontmatter against the agentskills.io specification.
 
 Stdlib-only (PyYAML is used for parsing when it is importable). Checks every
-skill directory of the selected distribution channel(s):
-
-  root    skills/
-  plugin  plugins/rf-agentskills/skills/
+skill directory of the selected plugin(s), ``plugins/<plugin>/skills/``; each
+plugin is a distribution channel of its own.
 
 Rules (spec capability ``skill-metadata-conformance``):
 
@@ -22,7 +20,6 @@ Rules (spec capability ``skill-metadata-conformance``):
   license            ``license: Apache-2.0``
   metadata-*         ``metadata`` is a string->string map with ``author`` and ``version``
   version-mismatch   ``metadata.version`` equals the version in the plugin's ``plugin.json``
-  channel-mismatch   (--channel all) both channels hold the same skill names
 
 Output: one ``path: rule: detail`` line per violation; exit 1 if any.
 """
@@ -34,12 +31,13 @@ import re
 import sys
 from pathlib import Path
 
-CHANNELS = {
-    "root": Path("skills"),
-    "plugin": Path("plugins/rf-agentskills/skills"),
-}
-#: The plugin whose plugin.json version each channel's skills must carry.
-CHANNEL_PLUGIN = {"root": "rf-agentskills", "plugin": "rf-agentskills"}
+def channels(repo_root: Path) -> dict[str, Path]:
+    """``{plugin: plugins/<plugin>/skills}`` for every plugin that ships skills."""
+    plugins = repo_root / "plugins"
+    if not plugins.is_dir():
+        return {}
+    return {d.name: Path("plugins") / d.name / "skills" for d in sorted(plugins.iterdir())
+            if (d / "skills").is_dir()}
 
 
 def plugin_version(repo_root: Path, plugin: str) -> str | None:
@@ -51,6 +49,8 @@ def plugin_version(repo_root: Path, plugin: str) -> str | None:
         return json.loads(path.read_text(encoding="utf-8")).get("version")
     except (OSError, ValueError):
         return None
+
+
 ALLOWED_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
 REQUIRED_METADATA = ("author", "version")
 LICENSE = "Apache-2.0"
@@ -274,45 +274,39 @@ def skill_dirs(channel_dir: Path) -> list[Path]:
     return sorted(p for p in channel_dir.iterdir() if p.is_dir() and not p.name.startswith((".", "_")))
 
 
-def validate(repo_root: Path, channels: list[str], use_yaml: bool = True) -> list[str]:
+def validate(repo_root: Path, plugins: list[str] | None = None, use_yaml: bool = True) -> list[str]:
+    """Violations in the skills of ``plugins`` (default: every plugin)."""
+    known = channels(repo_root)
     lines: list[str] = []
-    names: dict[str, set[str]] = {}
-    for channel in channels:
-        channel_dir = repo_root / CHANNELS[channel]
+    for plugin in plugins if plugins is not None else list(known):
+        rel_dir = known.get(plugin, Path("plugins") / plugin / "skills")
+        channel_dir = repo_root / rel_dir
         if not channel_dir.is_dir():
-            lines.append(f"{CHANNELS[channel].as_posix()}: channel-missing: directory does not exist")
+            lines.append(f"{rel_dir.as_posix()}: channel-missing: directory does not exist")
             continue
-        version = plugin_version(repo_root, CHANNEL_PLUGIN[channel])
-        dirs = skill_dirs(channel_dir)
-        names[channel] = {d.name for d in dirs}
-        for d in dirs:
-            rel = (CHANNELS[channel] / d.name / "SKILL.md").as_posix()
+        version = plugin_version(repo_root, plugin)
+        for d in skill_dirs(channel_dir):
+            rel = (rel_dir / d.name / "SKILL.md").as_posix()
             lines.extend(f"{rel}: {rule}: {detail}" for rule, detail in validate_skill(d, version, use_yaml))
-    if len(names) > 1:
-        union = set().union(*names.values())
-        for channel, present in names.items():
-            for missing in sorted(union - present):
-                lines.append(f"{CHANNELS[channel].as_posix()}/{missing}: channel-mismatch: "
-                             f"skill exists in another channel but not in {channel}")
     return lines
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--channel", choices=[*CHANNELS, "all"], default="all",
-                        help="distribution channel to validate (default: all)")
+    parser.add_argument("--channel", default="all", metavar="PLUGIN",
+                        help="plugin whose skills to validate, or 'all' (default)")
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parent.parent,
                         help="repository root (default: this script's repository)")
     parser.add_argument("--no-yaml", action="store_true", help="use the built-in parser even if PyYAML is installed")
     args = parser.parse_args(argv)
-    channels = list(CHANNELS) if args.channel == "all" else [args.channel]
-    violations = validate(args.repo_root, channels, use_yaml=not args.no_yaml)
+    selected = list(channels(args.repo_root)) if args.channel == "all" else [args.channel]
+    violations = validate(args.repo_root, selected, use_yaml=not args.no_yaml)
     for line in violations:
         print(line)
     if violations:
         print(f"{len(violations)} violation(s)", file=sys.stderr)
         return 1
-    print(f"OK: skills valid in channel(s): {', '.join(channels)}")
+    print(f"OK: skills valid in plugin(s): {', '.join(selected)}")
     return 0
 
 

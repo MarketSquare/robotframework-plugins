@@ -919,7 +919,7 @@ def trigger(
         )
     root = _repo_root()
     plugin_root, variant_id = _variant(variant_root, root)
-    names_root = variant_root if variant_root and (variant_root / "skills").is_dir() else root
+    names_root = variant_root if variant_root and (variant_root / "plugins").is_dir() else root
     sets, problems = load_trigger_sets(triggers_dir, skills=shipped_skills(names_root))
     for p in problems:
         console.print(f"[red]invalid trigger set:[/red] {p}")

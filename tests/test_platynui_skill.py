@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL_DIR = ROOT / "skills" / "rf-platynui"
+SKILL_DIR = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-platynui"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 
 # The PlatynUI.BareMetal keyword names the skill documents (keywords-reference.md).

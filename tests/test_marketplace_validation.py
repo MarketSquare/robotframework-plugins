@@ -61,7 +61,7 @@ def test_skill_md_frontmatter():
     spec = importlib.util.spec_from_file_location("validate_skills", ROOT / "scripts" / "validate-skills.py")
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
-    violations = validator.validate(ROOT, ["root", "plugin"])
+    violations = validator.validate(ROOT)
     assert not violations, "\n".join(violations)
 
 

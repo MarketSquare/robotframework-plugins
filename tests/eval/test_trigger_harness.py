@@ -541,14 +541,12 @@ def _tree_bytes(root: Path) -> dict[str, bytes]:
 def test_builder_replaces_only_listed_descriptions(tmp_path: Path) -> None:
     text = "Use this skill whenever a Robot Framework run left an output.xml behind."
     variant = build_variant(_REPO, {"rf-requests": text}, tmp_path / "v")
-    for rel in ("plugins/rf-agentskills", "skills"):
-        before = _tree_bytes(_REPO / rel)
-        after = _tree_bytes(tmp_path / "v" / rel)
-        assert set(before) == set(after)
-        changed = sorted(k for k in before if before[k] != after[k])
-        assert changed == ["rf-requests/SKILL.md"] if rel == "skills" else \
-            changed == ["skills/rf-requests/SKILL.md"]
-    md = (tmp_path / "v" / "skills" / "rf-requests" / "SKILL.md").read_text().splitlines()
+    before = _tree_bytes(_REPO / "plugins" / "rf-agentskills")
+    after = _tree_bytes(tmp_path / "v" / "plugins" / "rf-agentskills")
+    assert set(before) == set(after)
+    assert sorted(k for k in before if before[k] != after[k]) == ["skills/rf-requests/SKILL.md"]
+    assert not (tmp_path / "v" / "skills").exists()
+    md = (tmp_path / "v" / "plugins" / "rf-agentskills" / "skills" / "rf-requests" / "SKILL.md").read_text().splitlines()
     assert md[2] == "description: " + json.dumps(text)
     assert skill_descriptions(tmp_path / "v" / "plugins" / "rf-agentskills" / "skills")[
         "rf-requests"] == text

@@ -57,9 +57,6 @@ print(f"  {manifest.relative_to(root).as_posix()}")
 # metadata.version in each SKILL.md frontmatter (the indented `version:`
 # line of the metadata map, inside the leading --- block only).
 skill_globs = [f"plugins/{plugin}/skills/*/SKILL.md"]
-# Until the root skills/ copy is retired it is rf-agentskills' source.
-if plugin == "rf-agentskills" and (root / "skills").is_dir():
-    skill_globs.append("skills/*/SKILL.md")
 pattern = re.compile(r"^(metadata:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+version:[ \t]*)[^\n]*$", re.M)
 for glob in skill_globs:
     for skill_md in sorted(root.glob(glob)):

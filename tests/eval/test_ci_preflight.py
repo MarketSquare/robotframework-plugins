@@ -36,7 +36,7 @@ def _map(paths: list[str], changed: set[str] | None = None):  # type: ignore[no-
 @pytest.mark.parametrize(
     ("paths", "skills"),
     [
-        (["skills/rf-selenium/references/locators.md"], {"rf-selenium"}),
+        (["plugins/rf-agentskills/skills/rf-selenium/references/locators.md"], {"rf-selenium"}),
         (["plugins/rf-agentskills/skills/rf-selenium/SKILL.md"], {"rf-selenium"}),
         (["eval/tasks/narrow/narrow-browser-login-01.yaml"], {"rf-browser"}),
         (["eval/fixtures/sut-api/libraries/ApiServer.py"], {"rf-requests", "rf-restinstance"}),
@@ -51,21 +51,21 @@ def test_changed_paths_map_to_skills(paths: list[str], skills: set[str]) -> None
 
 
 def test_harness_change_selects_full_narrow_tier() -> None:
-    result = _map(["src/rf_skill_eval/cli.py", "skills/rf-browser/SKILL.md"])
+    result = _map(["src/rf_skill_eval/cli.py", "plugins/rf-agentskills/skills/rf-browser/SKILL.md"])
     assert result.full_tier is True
     assert result.skills_arg() == ""
     assert result.github_outputs()["full_tier"] == "true"
 
 
 def test_scoped_run_always_includes_canaries() -> None:
-    assert _map(["skills/rf-selenium/SKILL.md"]).skills_arg() == "plugin,rf-selenium"
+    assert _map(["plugins/rf-agentskills/skills/rf-selenium/SKILL.md"]).skills_arg() == "plugin,rf-selenium"
 
 
 def test_description_change_triggers_trigger_eval() -> None:
-    result = _map(["skills/rf-browser/SKILL.md"], changed={"skills/rf-browser/SKILL.md"})
+    result = _map(["plugins/rf-agentskills/skills/rf-browser/SKILL.md"], changed={"plugins/rf-agentskills/skills/rf-browser/SKILL.md"})
     assert result.trigger_skills == {"rf-browser"}
     assert result.github_outputs()["run_triggers"] == "true"
-    body_only = _map(["skills/rf-browser/SKILL.md"])
+    body_only = _map(["plugins/rf-agentskills/skills/rf-browser/SKILL.md"])
     assert body_only.trigger_skills == set()
     assert body_only.github_outputs()["run_triggers"] == "false"
 
@@ -87,7 +87,7 @@ def test_frontmatter_description() -> None:
 
 def test_preflight_cli_with_paths_file(tmp_path: Path) -> None:
     paths = tmp_path / "paths.txt"
-    paths.write_text("skills/rf-selenium/SKILL.md\neval/tasks/narrow/narrow-requests-users-01.yaml\n")
+    paths.write_text("plugins/rf-agentskills/skills/rf-selenium/SKILL.md\neval/tasks/narrow/narrow-requests-users-01.yaml\n")
     out = tmp_path / "gh_output"
     res = runner.invoke(cli.app, ["preflight", "--paths-file", str(paths),
                                   "--tasks-dir", str(_REPO / "eval" / "tasks"),
@@ -170,7 +170,7 @@ def test_deleted_or_renamed_skill_dirs_are_ignored() -> None:
             "skills/robotframework-appium-skill/SKILL.md",
             "plugins/rf-agentskills/skills/appium/SKILL.md",
             "eval/triggers/rf-keyword-builder.yaml",
-            "skills/rf-browser/SKILL.md",
+            "plugins/rf-agentskills/skills/rf-browser/SKILL.md",
         ],
         changed={"skills/robotframework-appium-skill/SKILL.md"},
     )

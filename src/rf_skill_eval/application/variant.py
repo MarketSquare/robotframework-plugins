@@ -1,10 +1,9 @@
 """Description variants for trigger tuning (tune-skill-descriptions, design D5).
 
 A *variant root* is a directory holding ``plugins/rf-agentskills`` (staged by
-``trigger --variant-root``) and ``skills/`` (the name list the validators
-read), copied from the repository with some skills' frontmatter
-``description`` replaced by candidate texts. Nothing in the repository's own
-``skills/`` is edited.
+``trigger --variant-root``), copied from the repository with some skills'
+frontmatter ``description`` replaced by candidate texts. Nothing in the
+repository's own ``plugins/`` is edited.
 
 The *variant id* is a short hash of every skill's description in the staged
 plugin, so it is stable for identical input and equal for two roots that
@@ -138,11 +137,10 @@ class Variant:
 def build_variant(
     repo_root: Path, candidates: Mapping[str, str], out: Path, *, force: bool = False
 ) -> Variant:
-    """Copy ``plugins/rf-agentskills`` and ``skills/`` to ``out`` with ``candidates`` applied."""
+    """Copy ``plugins/rf-agentskills`` to ``out`` with ``candidates`` applied."""
     plugin_src = repo_root / PLUGIN_REL
-    skills_src = repo_root / "skills"
-    if not (plugin_src / "skills").is_dir() or not skills_src.is_dir():
-        raise ValueError(f"{repo_root}: no plugins/rf-agentskills/skills or skills/ to copy")
+    if not (plugin_src / "skills").is_dir():
+        raise ValueError(f"{repo_root}: no plugins/rf-agentskills/skills to copy")
     if out.exists():
         if not force and any(out.iterdir()):
             raise ValueError(f"{out} exists and is not empty (use --force to replace it)")
@@ -150,18 +148,14 @@ def build_variant(
     out.mkdir(parents=True)
     plugin_dst = out / PLUGIN_REL
     shutil.copytree(plugin_src, plugin_dst, ignore=_IGNORE, symlinks=True)
-    shutil.copytree(skills_src, out / "skills", ignore=_IGNORE, symlinks=True)
 
     dirs = _name_dirs(plugin_dst / "skills")
-    root_dirs = _name_dirs(out / "skills")
     unknown = sorted(set(candidates) - set(dirs))
     if unknown:
         shutil.rmtree(out)
         raise ValueError(f"candidates name unknown skill(s): {unknown} (known: {sorted(dirs)})")
     for skill, text in sorted(candidates.items()):
         replace_description(plugin_dst / "skills" / dirs[skill] / "SKILL.md", text)
-        if skill in root_dirs:
-            replace_description(out / "skills" / root_dirs[skill] / "SKILL.md", text)
 
     vid = variant_id_for(plugin_dst)
     (out / VARIANT_FILE).write_text(

@@ -37,7 +37,7 @@ import pytest
 import yaml
 
 REPO = Path(__file__).resolve().parents[1]
-SKILLS_ROOT = REPO / "skills"
+SKILLS_ROOT = REPO / "plugins" / "rf-agentskills" / "skills"
 TRIGGERS = REPO / "eval" / "triggers"
 
 # ── compact contract constants (tune-skill-descriptions D11/D12) ────────────

@@ -49,7 +49,7 @@ def make_repo(tmp_path: Path, skills: dict[str, str], version: str = VERSION) ->
     manifest.parent.mkdir(parents=True)
     manifest.write_text(f'{{"name": "rf-agentskills", "version": "{version}"}}\n', encoding="utf-8")
     for dir_name, text in skills.items():
-        d = tmp_path / "skills" / dir_name
+        d = tmp_path / "plugins" / "rf-agentskills" / "skills" / dir_name
         d.mkdir(parents=True)
         (d / "SKILL.md").write_text(text, encoding="utf-8")
     return tmp_path
@@ -57,7 +57,7 @@ def make_repo(tmp_path: Path, skills: dict[str, str], version: str = VERSION) ->
 
 def rules(tmp_path: Path, dir_name: str, text: str, use_yaml: bool) -> set[str]:
     repo = make_repo(tmp_path, {dir_name: text})
-    lines = vs.validate(repo, ["root"], use_yaml=use_yaml)
+    lines = vs.validate(repo, ["rf-agentskills"], use_yaml=use_yaml)
     return {line.split(": ")[1] for line in lines}
 
 
@@ -113,34 +113,35 @@ def test_missing_frontmatter(tmp_path):
     assert rules(tmp_path, "rf-demo", "# no frontmatter\n", True) == {"frontmatter"}
 
 
-def test_channel_mismatch_is_reported(tmp_path):
+def test_every_plugin_is_validated_against_its_own_version(tmp_path):
     repo = make_repo(tmp_path, {"rf-demo": render(VALID)})
-    plugin = repo / "plugins" / "rf-agentskills" / "skills" / "rf-other"
-    plugin.mkdir(parents=True)
-    (plugin / "SKILL.md").write_text(render({**VALID, "name": "rf-other"}), encoding="utf-8")
-    lines = vs.validate(repo, ["root", "plugin"])
-    assert any("skills/rf-other: channel-mismatch" in line for line in lines), lines
-    assert any("plugins/rf-agentskills/skills/rf-demo: channel-mismatch" in line for line in lines), lines
+    other = repo / "plugins" / "rf-other"
+    (other / ".claude-plugin").mkdir(parents=True)
+    (other / ".claude-plugin" / "plugin.json").write_text('{"name": "rf-other", "version": "1.0.0"}\n')
+    (other / "skills" / "rf-other").mkdir(parents=True)
+    (other / "skills" / "rf-other" / "SKILL.md").write_text(render({**VALID, "name": "rf-other"}), encoding="utf-8")
+    lines = vs.validate(repo)
+    assert lines == [line for line in lines if line.startswith("plugins/rf-other/skills/rf-other/SKILL.md: version-mismatch")]
+    assert len(lines) == 1, lines
 
 
 def test_cli_reports_path_and_rule_and_exits_1(tmp_path):
     repo = make_repo(tmp_path, {"rf-foo": render({**VALID, "name": "rf-bar"})})
-    res = subprocess.run([sys.executable, str(SCRIPT), "--channel", "root", "--repo-root", str(repo)],
+    res = subprocess.run([sys.executable, str(SCRIPT), "--channel", "rf-agentskills", "--repo-root", str(repo)],
                          capture_output=True, text=True)
     assert res.returncode == 1
-    assert "skills/rf-foo/SKILL.md: name-dir-mismatch:" in res.stdout
+    assert "plugins/rf-agentskills/skills/rf-foo/SKILL.md: name-dir-mismatch:" in res.stdout
 
 
 @pytest.mark.parametrize("use_yaml", PARSERS)
 def test_real_tree_all_channels_valid(use_yaml):
-    lines = vs.validate(ROOT, ["root", "plugin"], use_yaml=use_yaml)
+    lines = vs.validate(ROOT, use_yaml=use_yaml)
     assert not lines, "\n".join(lines)
 
 
 @requires_posix_bash
 def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     repo = tmp_path / "repo"
-    shutil.copytree(ROOT / "skills", repo / "skills")
     shutil.copytree(ROOT / "plugins" / "rf-agentskills" / "skills", repo / "plugins" / "rf-agentskills" / "skills")
     (repo / "scripts").mkdir()
     shutil.copy2(ROOT / "scripts" / "bump-version.sh", repo / "scripts" / "bump-version.sh")
@@ -153,7 +154,7 @@ def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     assert res.returncode == 0, res.stdout + res.stderr
     new = json.loads((repo / rel).read_text())["version"]
     assert new != old and f"rf-agentskills--v{new}" in res.stdout
-    assert vs.validate(repo, ["root", "plugin"]) == []
+    assert vs.validate(repo) == []
 
 
 @requires_posix_bash
@@ -170,7 +171,7 @@ def _frontmatter_field(md: Path, field: str) -> str:
     return ""
 
 
-@pytest.mark.parametrize("md", sorted((ROOT / "skills").glob("*/SKILL.md")), ids=lambda p: p.parent.name)
+@pytest.mark.parametrize("md", sorted((ROOT / "plugins" / "rf-agentskills" / "skills").glob("*/SKILL.md")), ids=lambda p: p.parent.name)
 def test_skills_running_robotcode_declare_it(md: Path) -> None:
     """robotcode-prerequisite: a skill that runs robotcode names robotcode[all]>=2.8."""
     if "robotcode " not in md.read_text(encoding="utf-8").split("\n---", 1)[1]:

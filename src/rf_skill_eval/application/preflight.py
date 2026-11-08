@@ -1,7 +1,6 @@
 """CI preflight: map a PR's changed paths to the skills whose evals must run (design D9).
 
-* ``skills/<dir>/**`` and ``plugins/rf-agentskills/skills/<dir>/**`` -> the
-  skill named by that dir;
+* ``plugins/<plugin>/skills/<dir>/**`` -> the skill named by that dir;
 * ``eval/tasks/**/<task>.yaml`` -> that task's ``skill``;
 * ``eval/triggers/<skill>.yaml`` -> that skill (trigger set only);
 * ``eval/fixtures/<fixture>/**`` -> skills of the tasks using the fixture;
@@ -10,7 +9,7 @@
 * anything else under ``plugins/rf-agentskills/`` (hooks, agents, servers) ->
   the bundle canaries (``plugin``), which always run anyway.
 
-A skill's trigger eval runs when the frontmatter ``description`` of its root
+A skill's trigger eval runs when the frontmatter ``description`` of its
 ``SKILL.md`` changed (or its trigger set changed).
 """
 
@@ -23,9 +22,9 @@ from pathlib import PurePosixPath
 
 from ..domain.task import PLUGIN_SKILL
 
+#: ``plugins/<any plugin>/skills/<dir>/...``; ``*`` matches one path part.
 _SKILL_DIR_PREFIXES = (
-    ("skills",),
-    ("plugins", "rf-agentskills", "skills"),
+    ("plugins", "*", "skills"),
 )
 _FULL_TIER_PREFIXES = (("src", "rf_skill_eval"),)
 _FULL_TIER_FILES = {"pyproject.toml", "uv.lock"}
@@ -75,7 +74,8 @@ class PreflightResult:
 
 
 def _starts_with(parts: tuple[str, ...], prefix: tuple[str, ...]) -> bool:
-    return parts[: len(prefix)] == prefix
+    """``parts`` begins with ``prefix``; a ``*`` in ``prefix`` matches any one part."""
+    return len(parts) >= len(prefix) and all(p == "*" or p == q for p, q in zip(prefix, parts))
 
 
 def _skill_dir_hit(
@@ -90,7 +90,7 @@ def _skill_dir_hit(
             skill = dir_to_skill.get(parts[len(prefix)], parts[len(prefix)])
             result.skills.add(skill)
             result.reasons.append(f"{path}: skill {skill}")
-            if prefix == ("skills",) and parts[-1] == "SKILL.md" and description_changed(path):
+            if parts[-1] == "SKILL.md" and description_changed(path):
                 result.trigger_skills.add(skill)
                 result.reasons.append(f"{path}: description changed -> trigger eval")
             return True

@@ -24,10 +24,13 @@ from pathlib import Path
 
 import pytest
 import yaml
+from _standalone import standalone_skills
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL = ROOT / "skills" / "rf-python-library"
-SKILL_MD = SKILL / "SKILL.md"
+SKILL = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-python-library"
+#: The standalone form (plain ``scripts/check_library.py`` commands); the plugin
+#: copy differs only in ``"${CLAUDE_SKILL_DIR}/scripts/..."``.
+SKILL_MD = standalone_skills() / "rf-python-library" / "SKILL.md"
 SCRIPT = SKILL / "scripts" / "check_library.py"
 EXAMPLES = SKILL / "assets" / "examples"
 REFERENCES = SKILL / "references"
@@ -259,7 +262,7 @@ def test_long_references_have_a_toc(name: str) -> None:
 
 def test_companion_skills_resolve() -> None:
     names = set(re.findall(r"`(rf-[a-z-]+)`", _section("Companion Skills")))
-    shipped = {p.name for p in (ROOT / "skills").iterdir() if (p / "SKILL.md").is_file()}
+    shipped = {p.name for p in (ROOT / "plugins" / "rf-agentskills" / "skills").iterdir() if (p / "SKILL.md").is_file()}
     assert {"rf-language", "rf-setup"} <= names
     assert not {"rf-libdoc", "rf-results", "rf-robotcode"} & names
     assert names <= shipped
@@ -459,7 +462,7 @@ def test_hook_names_the_skill() -> None:
 
 
 def test_rf_setup_layout_points_here() -> None:
-    layout = _text(ROOT / "skills" / "rf-setup" / "references" / "project-layout.md")
+    layout = _text(ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-setup" / "references" / "project-layout.md")
     line = next(ln for ln in layout.splitlines() if "libraries/" in ln and "rf-python-library" in ln)
     assert line
 

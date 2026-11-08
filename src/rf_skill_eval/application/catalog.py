@@ -3,14 +3,14 @@
 Validity rules (design D8, spec "Task coverage per shipped skill"):
 
 * a task's ``skill`` is ``plugin`` (bundle canary) or the ``name`` of a skill
-  under ``skills/*/SKILL.md`` — retired skills are rejected;
+  under ``plugins/*/skills/*/SKILL.md`` — retired skills are rejected;
 * the model follows the allow-list / YAML policy (enforced by the model);
 * the fixture exists; ids are unique; the tier matches the tier directory;
 * every task has at least one gating check;
 * a task that allows ``mcp__rf-mcp__*`` tools declares ``mcp_servers: [rf-mcp]``.
 
 Coverage: every shipped skill needs at least one ``narrow`` task and one
-trigger set. New skills are picked up automatically from ``skills/``.
+trigger set. New skills are picked up automatically from ``plugins/*/skills/``.
 """
 
 from __future__ import annotations
@@ -32,17 +32,20 @@ TIERS = ("narrow", "realistic", "adversarial")
 
 
 def find_repo_root(start: Path | None = None) -> Path:
-    """Nearest ancestor containing ``skills/`` and ``eval/`` (else cwd)."""
+    """Nearest ancestor containing ``plugins/`` and ``eval/`` (else cwd)."""
     here = (start or Path.cwd()).resolve()
     for candidate in (here, *here.parents):
-        if (candidate / "skills").is_dir() and (candidate / "eval").is_dir():
+        if (candidate / "plugins").is_dir() and (candidate / "eval").is_dir():
             return candidate
     return here
 
 
 def shipped_skills(repo_root: Path) -> dict[str, str]:
-    """``{skill name: dir name}`` for every ``skills/*/SKILL.md``."""
-    return skill_dir_map(repo_root / "skills")
+    """``{skill name: dir name}`` for every ``plugins/*/skills/*/SKILL.md``."""
+    found: dict[str, str] = {}
+    for skills_dir in sorted((repo_root / "plugins").glob("*/skills")):
+        found.update(skill_dir_map(skills_dir))
+    return found
 
 
 def _read_mapping(path: Path) -> dict[str, Any]:

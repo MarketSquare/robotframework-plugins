@@ -21,7 +21,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 CHANNELS = {
-    "root": ROOT / "skills",
+    "root": ROOT / "plugins" / "rf-agentskills" / "skills",
     "plugin": ROOT / "plugins" / "rf-agentskills" / "skills",
 }
 SCRIPTS = {"rf_conventions.py": "rf-language", "check_library.py": "rf-python-library"}
@@ -160,7 +160,7 @@ def test_conventions_missing_path_exits_4(channel: str, tmp_path: Path) -> None:
 @pytest.mark.parametrize("channel", list(CHANNELS))
 def test_json_out_conventions(channel: str, tmp_path: Path) -> None:
     target = tmp_path / "out" / "conventions.json"
-    project = ROOT / "skills" / "rf-language" / "assets" / "examples"
+    project = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-language" / "assets" / "examples"
     script = _script(channel, "rf_conventions.py")
     res = _run(script, [str(project), "--json-out", str(target)])
     assert res.returncode == 0, res.stderr

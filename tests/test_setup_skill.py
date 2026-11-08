@@ -32,7 +32,7 @@ except ModuleNotFoundError:  # pragma: no cover
 needs_tomllib = pytest.mark.skipif(tomllib is None, reason="tomllib needs Python 3.11+")
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL_DIR = ROOT / "skills" / "rf-setup"
+SKILL_DIR = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-setup"
 SKILL_MD = SKILL_DIR / "SKILL.md"
 REFERENCES = SKILL_DIR / "references"
 EXAMPLES = SKILL_DIR / "assets" / "examples"
@@ -177,7 +177,7 @@ def test_browser_documents_both_install_paths() -> None:
 
 
 def test_every_other_skill_links_to_setup() -> None:
-    for md in sorted((ROOT / "skills").glob("*/SKILL.md")):
+    for md in sorted((ROOT / "plugins" / "rf-agentskills" / "skills").glob("*/SKILL.md")):
         if md.parent.name == "rf-setup":
             continue
         companion = md.read_text(encoding="utf-8").split("## Companion Skills", 1)[-1]

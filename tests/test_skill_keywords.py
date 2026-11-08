@@ -140,7 +140,7 @@ def test_missing_library_is_reported_as_skipped(capsys, monkeypatch):
 )
 def test_real_skill_is_clean(capsys, skill, module):
     pytest.importorskip(module)
-    checker.main(["--skills-root", str(REPO_ROOT / "skills")])
+    checker.main(["--skills-root", str(REPO_ROOT / "plugins" / "rf-agentskills" / "skills")])
     out = capsys.readouterr().out
     findings = [line for line in out.splitlines() if line.startswith(f"{skill} ")]
     stale = [line for line in out.splitlines() if line.startswith("STALE") and f"skill={skill} " in line]

@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
-# Check for drift between root skills/ and the plugin distribution copies.
-# Exit 1 if any drift or orphaned copy is found.
+# Check that every plugin's generated and shipped files are consistent.
+# Exit 1 if anything is stale or out of place.
+#
+# Each plugins/<name>/ is the only source of its content (no root copy):
+#   * generated Codex/OpenCode variants match their source subagents;
+#   * skill directory names equal their SKILL.md `name:`;
+#   * no symbolic links in skill trees or plugin scripts;
+#   * no flat plugins/<name>/scripts/*.py (scripts ship per skill);
+#   * SKILL.md runs bundled scripts through the project environment.
 #
 # REPO_ROOT can be overridden (used by tests to run against a scratch tree).
 set -euo pipefail
@@ -12,45 +19,32 @@ PY="$(command -v python3 || command -v python)"
 if command -v cygpath >/dev/null 2>&1; then PY_ROOT="$(cygpath -m "$REPO_ROOT")"; else PY_ROOT="$REPO_ROOT"; fi
 DRIFT_FOUND=0
 
-# ── Derived from root: every non-symlink skills/*/scripts/*.py ───────────────
-declare -A SCRIPT_MAP=()
-while IFS= read -r src; do
-    rel="${src#"$REPO_ROOT"/}"
-    skill="$(basename "$(dirname "$(dirname "$src")")")"
-    SCRIPT_MAP["$rel"]="plugins/rf-agentskills/skills/$skill/scripts/$(basename "$src")"
-done < <(find "$REPO_ROOT/skills" -mindepth 3 -maxdepth 3 -path '*/scripts/*.py' -type f | sort)
-
-echo "=== Checking script drift: root skills/ vs plugin skills/<skill>/scripts/ ==="
-for root_path in $(printf '%s\n' "${!SCRIPT_MAP[@]}" | sort); do
-    plugin_path="${SCRIPT_MAP[$root_path]}"
-    root_file="$REPO_ROOT/$root_path"
-    plugin_file="$REPO_ROOT/$plugin_path"
-
-    if [ ! -f "$plugin_file" ]; then
-        echo "MISSING: $plugin_path"
+# ── Names: skill directory == SKILL.md name ───────────────────────────────
+echo "=== Checking skill names ==="
+NAMES_OK=1
+for skill_dir in "$REPO_ROOT"/plugins/*/skills/*/; do
+    [ -d "$skill_dir" ] || continue
+    name=$(basename "$skill_dir")
+    rel="${skill_dir#"$REPO_ROOT"/}"
+    rf_name=$(head -5 "$skill_dir/SKILL.md" 2>/dev/null | grep "^name:" | sed 's/^name: *//' || true)
+    if [ "$rf_name" != "$name" ]; then
+        echo "NAME MISMATCH: ${rel}SKILL.md has name: '$rf_name'"
+        NAMES_OK=0
         DRIFT_FOUND=1
-        continue
-    fi
-
-    if ! diff -q "$root_file" "$plugin_file" > /dev/null 2>&1; then
-        echo "DRIFT: $root_path != $plugin_path"
-        diff "$root_file" "$plugin_file" || true
-        DRIFT_FOUND=1
-    else
-        echo "  OK: $root_path"
     fi
 done
+[ $NAMES_OK -eq 1 ] && echo "  OK: names match their directories"
 
 # ── Symlinks: no symbolic link may exist in any skill tree ──────────────────
 echo ""
 echo "=== Checking for symlinks in skill trees ==="
 SYMLINKS=0
-for tree in skills plugins/rf-agentskills/skills plugins/rf-agentskills/scripts; do
-    [ -d "$REPO_ROOT/$tree" ] || continue
+for tree in "$REPO_ROOT"/plugins/*/skills "$REPO_ROOT"/plugins/*/scripts; do
+    [ -d "$tree" ] || continue
     while IFS= read -r link; do
         echo "SYMLINK: ${link#"$REPO_ROOT"/}"
         SYMLINKS=1
-    done < <(find "$REPO_ROOT/$tree" -type l | sort)
+    done < <(find "$tree" -type l | sort)
 done
 if [ $SYMLINKS -eq 1 ]; then
     DRIFT_FOUND=1
@@ -58,76 +52,19 @@ else
     echo "  OK: no symlinks"
 fi
 
-# ── Skill content: plugin copies of every root skill ──────────────
-# One identifier per skill: the channel dir name equals the root dir name.
-# Plugin SKILL.md = root SKILL.md with only the script-path rewrite applied;
-# scripts/, references/ and assets/ are identical.
+# ── Orphans: scripts ship per skill; a flat plugin scripts/*.py is stale ───
 echo ""
-echo "=== Checking skill content: root skills/ vs plugin ==="
-plugin_transform() {
-    sed -E 's#(python|--script) scripts/([a-z_]+\.py)#\1 "${CLAUDE_SKILL_DIR}/scripts/\2"#g' "$1"
-}
-declare -A ROOT_SKILLS=()
-for skill_dir in "$REPO_ROOT"/skills/*/; do
-    [ -d "$skill_dir" ] || continue
-    name=$(basename "$skill_dir")
-    ROOT_SKILLS["$name"]=1
-    rf_name=$(head -5 "$skill_dir/SKILL.md" 2>/dev/null | grep "^name:" | sed 's/^name: *//' || true)
-    if [ "$rf_name" != "$name" ]; then
-        echo "NAME MISMATCH: skills/$name/SKILL.md has name: '$rf_name'"
-        DRIFT_FOUND=1
-    fi
-    for channel in plugins/rf-agentskills/skills; do
-        copy="$REPO_ROOT/$channel/$name"
-        if [ ! -d "$copy" ]; then
-            echo "MISSING: $channel/$name/"
-            DRIFT_FOUND=1
-            continue
-        fi
-        skill_ok=0; plugin_transform "$skill_dir/SKILL.md" | cmp -s - "$copy/SKILL.md" && skill_ok=1
-        if [ $skill_ok -eq 0 ]; then
-            echo "DRIFT: skills/$name/SKILL.md != $channel/$name/SKILL.md"
-            DRIFT_FOUND=1
-        fi
-        for sub in scripts references assets; do
-            if [ -d "$skill_dir/$sub" ] || [ -d "$copy/$sub" ]; then
-                if ! diff -rq -x __pycache__ "$skill_dir/$sub" "$copy/$sub" > /dev/null 2>&1; then
-                    echo "DRIFT: skills/$name/$sub/ != $channel/$name/$sub/"
-                    DRIFT_FOUND=1
-                fi
-            fi
-        done
-    done
-    echo "  checked: $name"
-done
-
-# ── Orphans: distribution copies without a root source ──────────────────────
-echo ""
-echo "=== Checking for orphaned distribution copies ==="
-
+echo "=== Checking for flat plugin scripts ==="
 ORPHANS=0
-for channel in plugins/rf-agentskills/skills; do
-    for copy in "$REPO_ROOT/$channel"/*/; do
-        [ -d "$copy" ] || continue
-        name=$(basename "$copy")
-        if [ -z "${ROOT_SKILLS[$name]:-}" ]; then
-            echo "ORPHAN: $channel/$name/ (no root skills/$name/)"
-            ORPHANS=1
-        fi
-    done
-done
-
-# Scripts ship per skill; any flat plugin scripts/*.py is a stale copy.
-for plugin_script in "$REPO_ROOT"/plugins/rf-agentskills/scripts/*.py; do
+for plugin_script in "$REPO_ROOT"/plugins/*/scripts/*.py; do
     [ -f "$plugin_script" ] || continue
-    echo "ORPHAN: plugins/rf-agentskills/scripts/$(basename "$plugin_script") (scripts ship in skills/<skill>/scripts/)"
+    echo "ORPHAN: ${plugin_script#"$REPO_ROOT"/} (scripts ship in skills/<skill>/scripts/)"
     ORPHANS=1
 done
-
 if [ $ORPHANS -eq 1 ]; then
     DRIFT_FOUND=1
 else
-    echo "  OK: no orphans"
+    echo "  OK: no flat plugin scripts"
 fi
 
 # ── Command form: how SKILL.md files run bundled scripts ───────────────────
@@ -136,26 +73,25 @@ fi
 # PATH instead of the project environment). Allowed prefixes: `uv run python`,
 # `poetry run python`, a venv interpreter path (`.venv/bin/python`).
 echo ""
-echo "=== Checking script command form in SKILL.md (all channels) ==="
+echo "=== Checking script command form in SKILL.md ==="
 FORM_OUT=$(REPO_ROOT="$PY_ROOT" "$PY" - <<'PY'
 import os, re, sys
 from pathlib import Path
 root = Path(os.environ["REPO_ROOT"])
 bare = re.compile(r"(?<![\w/.\\-])python3? +(?:\"?\$\{CLAUDE_SKILL_DIR\}/)?scripts/")
 bad = 0
-for tree in ("skills", "plugins/rf-agentskills/skills"):
-    for md in sorted((root / tree).glob("*/SKILL.md")):
-        rel = md.relative_to(root)
-        for no, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
-            if "${CLAUDE_PLUGIN_ROOT}" in line:
-                print(f"PLUGIN_ROOT IN SKILL.md: {rel}:{no}")
-                bad = 1
-            for m in bare.finditer(line):
-                before = line[: m.start()].rstrip()
-                if before.endswith(" run") or before.endswith("`run") or before == "run":
-                    continue
-                print(f"BARE PYTHON: {rel}:{no}: {line.strip()}")
-                bad = 1
+for md in sorted(root.glob("plugins/*/skills/*/SKILL.md")):
+    rel = md.relative_to(root)
+    for no, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
+        if "${CLAUDE_PLUGIN_ROOT}" in line:
+            print(f"PLUGIN_ROOT IN SKILL.md: {rel}:{no}")
+            bad = 1
+        for m in bare.finditer(line):
+            before = line[: m.start()].rstrip()
+            if before.endswith(" run") or before.endswith("`run") or before == "run":
+                continue
+            print(f"BARE PYTHON: {rel}:{no}: {line.strip()}")
+            bad = 1
 sys.exit(bad)
 PY
 ) && FORM_RC=0 || FORM_RC=$?
@@ -167,7 +103,7 @@ else
 fi
 
 echo ""
-echo "=== Checking per-agent variants (plugins/rf-agentskills/variants/) ==="
+echo "=== Checking per-agent variants ==="
 if "$PY" "$REPO_ROOT/scripts/build-agent-variants.py" --check; then
     :
 else
@@ -176,7 +112,7 @@ fi
 
 echo ""
 if [ $DRIFT_FOUND -eq 1 ]; then
-    echo "DRIFT DETECTED! Run: bash scripts/sync-skills.sh"
+    echo "DRIFT DETECTED! Regenerate variants with: python scripts/build-agent-variants.py"
     exit 1
 else
     echo "All files in sync."

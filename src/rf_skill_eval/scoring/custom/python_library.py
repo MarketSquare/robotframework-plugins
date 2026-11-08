@@ -30,7 +30,7 @@ from .language import _name, _run_robot, _tail, _tool
 
 _REPO = Path(__file__).resolve().parents[4]
 GRADERS_DIR = _REPO / "eval" / "graders" / "python-library"
-CHECKER = _REPO / "skills" / "rf-python-library" / "scripts" / "check_library.py"
+CHECKER = _REPO / "plugins" / "rf-agentskills" / "skills" / "rf-python-library" / "scripts" / "check_library.py"
 
 
 def _outdir(run: Run, label: str) -> Path:

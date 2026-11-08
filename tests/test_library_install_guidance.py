@@ -26,13 +26,13 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SETUP_SKILL_MD = ROOT / "skills" / "rf-setup" / "SKILL.md"
+SETUP_SKILL_MD = ROOT / "plugins" / "rf-agentskills" / "skills" / "rf-setup" / "SKILL.md"
 FIXTURES = ROOT / "tests" / "fixtures" / "install_guidance"
 
 LIBRARY_KEYS = ["browser", "selenium", "appium", "requests", "restinstance", "platynui"]
 
 SKILL_DIRS = {
-    **{("root", k): ROOT / "skills" / f"rf-{k}" for k in LIBRARY_KEYS},
+    **{("root", k): ROOT / "plugins" / "rf-agentskills" / "skills" / f"rf-{k}" for k in LIBRARY_KEYS},
     **{("plugin", k): ROOT / "plugins" / "rf-agentskills" / "skills" / f"rf-{k}" for k in LIBRARY_KEYS},
 }
 PARAMS = [pytest.param(chan, key, id=f"{chan}-{key}") for chan, key in SKILL_DIRS]

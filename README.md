@@ -286,43 +286,47 @@ Agent Skills are modular, self-contained packages that include a `SKILL.md` file
 ## Project Structure
 
 ```
-skills/                        # Canonical source of truth (9 skills)
-├── rf-*/                      # One folder per skill; folder name == SKILL.md name
+.claude-plugin/marketplace.json  # The marketplace every plugin-capable agent reads (generated)
+plugins/<name>/                # One folder per plugin; the only copy of its content
+├── .claude-plugin/plugin.json # The plugin's one version
+├── catalog.yaml               # Programme manifest: tier, status, maintainers, libraries
+├── skills/rf-*/               # One folder per skill; folder name == SKILL.md name
 │   ├── SKILL.md               # Skill definition (loaded by agent)
 │   ├── scripts/               # Python scripts (executed, not loaded)
 │   └── references/            # Deep reference docs (loaded on demand)
-.claude-plugin/marketplace.json  # The marketplace every plugin-capable agent reads
-plugins/rf-agentskills/        # The plugin (Claude format)
-├── skills/rf-*/               # Skill copies incl. their own scripts/ (synced from root)
 ├── scripts/                   # Hook scripts (.mjs) only
-├── agents/                    # 3 agent definitions
+├── agents/                    # Subagent definitions
 ├── hooks/                     # Session/edit hooks
 └── variants/                  # Generated: Codex TOML subagents, OpenCode agents + JS plugin
+schemas/catalog.schema.json    # Schema of catalog.yaml
+installer/                     # The robotframework-plugins Python installer
 tests/                         # pytest test suite
-scripts/                       # Build and sync utilities
+scripts/                       # Build and check utilities
 ```
 
-The root `skills/` directory is the single source of truth. The plugin copies are derived from it using `scripts/sync-skills.sh`, which also regenerates `variants/` with `scripts/build-agent-variants.py`. The `scripts/check-drift.sh` script (also run in CI) verifies that all distribution channels stay in sync, and `scripts/validate-skills.py` (also run in CI) checks every `SKILL.md` against the [agentskills.io](https://agentskills.io) frontmatter rules: the folder name equals `name`, which is `rf-<topic>` in every channel, plus `license`, `compatibility` and `metadata.version` (= `VERSION`; kept in step by `scripts/bump-version.sh`).
+Each plugin's folder is the single source of its content; there is no second copy to sync. `scripts/export-skills.py` writes standalone copies for the release tarballs and Claude Desktop archives, with plain `scripts/x.py` commands instead of the plugin's `"${CLAUDE_SKILL_DIR}/scripts/x.py"`. `scripts/build-catalog.py` (also run in CI) validates every `catalog.yaml` and regenerates the marketplace and the catalogue tables. `scripts/check-drift.sh` (also run in CI) checks the generated variants and the plugin layout, and `scripts/validate-skills.py` (also run in CI) checks every `SKILL.md` against the [agentskills.io](https://agentskills.io) frontmatter rules: the folder name equals `name`, which is `rf-<topic>`, plus `license`, `compatibility` and `metadata.version` (= the plugin's `plugin.json` version; kept in step by `scripts/bump-version.sh <plugin> <part>`).
 
 ## Development
 
-### Syncing Distribution Channels
+### After changing a plugin
 
-After modifying any skill in `skills/`, a subagent or `hooks/hooks.json`, sync the plugin:
+Edit the files under `plugins/<name>/`. After changing a subagent or `hooks/hooks.json`, regenerate the variants; after changing a `catalog.yaml` or a version, regenerate the catalogue:
 
 ```bash
-bash scripts/sync-skills.sh
+python scripts/build-agent-variants.py
+python scripts/build-catalog.py
 ```
 
 ### Checking for Drift
 
-Verify all distribution channels are in sync:
+Verify that the generated files and the plugin layout are consistent:
 
 ```bash
 bash scripts/check-drift.sh
+python scripts/build-catalog.py --check
 ```
 
-This also runs in CI to prevent drift from being committed.
+Both also run in CI.
 
 ### Running Tests
 

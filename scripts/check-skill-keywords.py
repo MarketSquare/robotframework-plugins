@@ -551,8 +551,8 @@ def skill_key(dir_name: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Verify that library skills only use existing, non-deprecated keywords.")
-    parser.add_argument("--skills-root", default=str(REPO_ROOT / "skills"),
-                        help="directory containing the skill dirs (default: <repo>/skills)")
+    parser.add_argument("--skills-root", default=str(REPO_ROOT / "plugins" / "rf-agentskills" / "skills"),
+                        help="directory containing the skill dirs (default: <repo>/plugins/rf-agentskills/skills)")
     parser.add_argument("--allowlist", default=str(DEFAULT_ALLOWLIST),
                         help="TOML allowlist ([[allow]] skill/file/keyword/reason); '' disables it")
     parser.add_argument("--require-all", action="store_true",

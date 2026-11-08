@@ -50,7 +50,7 @@ def test_readme_states_ownership_split() -> None:
 
 
 def _shipped_texts() -> list[Path]:
-    paths = [*READMES, *(ROOT / "skills").rglob("*.md"), *(PLUGIN / "agents").glob("*.md"),
+    paths = [*READMES, *(ROOT / "plugins" / "rf-agentskills" / "skills").rglob("*.md"), *(PLUGIN / "agents").glob("*.md"),
              PLUGIN / "hooks" / "README.md", *(PLUGIN / "scripts").glob("*.mjs")]
     return [p for p in paths if p.is_file()]
 

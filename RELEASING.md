@@ -107,12 +107,12 @@ during the messy pre-1.0 phase.
 
 ## Release checklist (content, `v*`)
 
-1. `bash scripts/bump-version.sh <major|minor|patch>`: bumps `VERSION`,
-   `plugins/rf-agentskills/.claude-plugin/plugin.json`,
-   `.claude-plugin/marketplace.json` and every skill's `metadata.version`.
+1. `bash scripts/bump-version.sh rf-agentskills <major|minor|patch>`: bumps
+   `plugins/rf-agentskills/.claude-plugin/plugin.json` and every skill's
+   `metadata.version`.
 2. Update `plugins/rf-agentskills/CHANGELOG.md`.
-3. Run `bash scripts/sync-skills.sh` (also regenerates the Codex/OpenCode
-   variants) and `bash scripts/check-drift.sh`.
+3. Run `python scripts/build-catalog.py` (marketplace and catalogue tables)
+   and `bash scripts/check-drift.sh`.
 4. Commit, push, tag `vX.Y.Z`, push the tag. The tag is the marketplace
    ref users pin to; never move it.
 5. `release.yml` runs, attaches the artifacts to the GitHub release,

@@ -230,7 +230,7 @@ def test_robotframework_blocks_are_deprecation_clean(name: str, tmp_path: Path) 
 def test_no_comma_select_anywhere() -> None:
     """The comma form `--select 'DEPR*,ERR*'` matches no rule in Robocop 8.2/9.1."""
     paths = [*AGENTS_DIR.glob("*.md"), *(PLUGIN / "hooks").glob("*"), *(PLUGIN / "scripts").glob("*.mjs"),
-             *(ROOT / "skills").rglob("*.md"), *(PLUGIN / "skills").rglob("*.md")]
+             *(ROOT / "plugins" / "rf-agentskills" / "skills").rglob("*.md"), *(PLUGIN / "skills").rglob("*.md")]
     offenders = []
     for path in paths:
         text = path.read_text(encoding="utf-8")
