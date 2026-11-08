@@ -11,10 +11,11 @@
     {
       "name": "rf-agentskills",
       "source": "./plugins/rf-agentskills",
-      "description": "Complete Robot Framework skills suite: library references for web/API/mobile/desktop testing, setup and robotcode CLI guidance, and libdoc/results tools. Includes 4 specialized agents and automated .robot validation.",
+      "description": "Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing.",
       "version": "3.0.0",
       "author": {
-        "name": "manykarim"
+        "name": "manykarim",
+        "email": "manykarim@users.noreply.github.com"
       },
       "homepage": "https://github.com/MarketSquare/robotframework-plugins",
       "repository": "https://github.com/MarketSquare/robotframework-plugins",
@@ -23,25 +24,19 @@
         "robotframework",
         "testing",
         "automation",
+        "web-testing",
+        "api-testing",
+        "mobile-testing",
         "playwright",
         "selenium",
         "appium",
         "requests",
-        "restinstance",
-        "web-testing",
-        "api-testing",
-        "mobile-testing",
-        "test-generation",
-        "libdoc"
+        "restinstance"
       ],
       "category": "testing",
       "tags": [
         "robot-framework",
-        "test-automation",
-        "browser-testing",
-        "api-testing",
-        "mobile-testing",
-        "code-generation"
+        "verified"
       ]
     }
   ]
