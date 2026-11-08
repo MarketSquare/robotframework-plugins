@@ -31,7 +31,7 @@ from typing import Iterable
 from .. import _assets
 from .. import transforms as _x
 from ._base import (
-    PLUGIN_ID,
+    plugin_id,
     AdapterBase,
     ConfigMergeOp,
     InstallOptions,
@@ -120,11 +120,12 @@ class ClaudeCodeAdapter(AdapterBase):
         """
         settings = self.install_root(opts) / "settings.json"
         scope = "project" if opts.scope == "project" and opts.prefix is None else "user"
+        ids = [plugin_id(p) for p in opts.plugins]
         notes = [
             f"{settings} now registers the robotframework-plugins marketplace and "
-            f"enables {PLUGIN_ID}.",
+            f"enables {', '.join(ids)}.",
             "Claude Code: each collaborator installs it once with "
-            f"`claude plugin install {PLUGIN_ID} --scope {scope}` (Claude Code also "
+            + " ".join(f"`claude plugin install {i} --scope {scope}`" for i in ids) + " (Claude Code also "
             "offers it when the marketplace is first trusted).",
         ]
         if scope == "project":
@@ -135,7 +136,8 @@ class ClaudeCodeAdapter(AdapterBase):
         migrated = old_marketplace_note(settings)
         if migrated:
             notes.append(migrated)
-        return InstallPlan(merges=tuple(marketplace_settings_merges(settings, opts.ref)), notes=tuple(notes))
+        return InstallPlan(merges=tuple(marketplace_settings_merges(settings, opts.ref, opts.plugins)),
+                           notes=tuple(notes))
 
     def _collect_targets(
         self,

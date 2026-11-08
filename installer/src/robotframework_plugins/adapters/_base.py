@@ -221,6 +221,11 @@ PLUGIN_NAME = "rf-agentskills"
 PLUGIN_ID = f"{PLUGIN_NAME}@{MARKETPLACE_NAME}"
 
 
+def plugin_id(plugin: str) -> str:
+    """Install id of a bundled plugin in the marketplace: ``<plugin>@robotframework-plugins``."""
+    return f"{plugin}@{MARKETPLACE_NAME}"
+
+
 def support_dir_name(plugin: str) -> str:
     """Folder that holds a plugin's scripts, hooks and skill scripts in file mode."""
     return f"{plugin}-files"
@@ -274,7 +279,9 @@ def old_marketplace_note(settings_path: Path) -> str | None:
     )
 
 
-def marketplace_settings_merges(settings_path: Path, ref: str | None) -> list[ConfigMergeOp]:
+def marketplace_settings_merges(
+    settings_path: Path, ref: str | None, plugins: Iterable[str] = (PLUGIN_NAME,)
+) -> list[ConfigMergeOp]:
     """Merge ``extraKnownMarketplaces`` + ``enabledPlugins`` into a settings JSON.
 
     The shape Claude Code, Copilot CLI and VS Code read from ``.claude/settings.json``
@@ -323,7 +330,8 @@ def marketplace_settings_merges(settings_path: Path, ref: str | None) -> list[Co
         *migrations,
         op("extraKnownMarketplaces", {MARKETPLACE_NAME: {"source": marketplace_source(ref)}},
            f"marketplace {MARKETPLACE_NAME}"),
-        op("enabledPlugins", {PLUGIN_ID: True}, f"enabled plugin {PLUGIN_ID}"),
+        op("enabledPlugins", {plugin_id(p): True for p in plugins},
+           "enabled plugin(s) " + ", ".join(plugin_id(p) for p in plugins)),
     ]
 
 

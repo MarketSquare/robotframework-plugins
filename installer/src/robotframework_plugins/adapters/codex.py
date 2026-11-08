@@ -40,7 +40,7 @@ from .. import _assets
 from .. import transforms as _x
 from ._base import (
     MARKETPLACE_REPO,
-    PLUGIN_ID,
+    plugin_id,
     AdapterBase,
     InstallOptions,
     InstallPlan,
@@ -128,12 +128,14 @@ class CodexAdapter(AdapterBase):
         """Codex reads no committed marketplace: install the subagents (plugins
         cannot ship them) and hand over the per-user plugin commands."""
         root = self.install_root(opts)
-        with _assets.asset_root_path(opts.plugin) as src_root:
-            targets = [
-                InstallTarget(dst=root / "agents" / f.name, payload=f.read_bytes(),
-                              transform_name="codex_agent_variant")
-                for f in sorted((src_root / "variants" / "codex" / "agents").glob("*.toml"))
-            ]
+        targets = []
+        for plugin in opts.plugins:
+            with _assets.asset_root_path(plugin) as src_root:
+                targets += [
+                    InstallTarget(dst=root / "agents" / f.name, payload=f.read_bytes(),
+                                  transform_name="codex_agent_variant", plugin=plugin)
+                    for f in sorted((src_root / "variants" / "codex" / "agents").glob("*.toml"))
+                ]
         commands = "\n".join("    " + " ".join(c) for c in self.plugin_commands(opts))
         return InstallPlan(targets=tuple(targets), notes=(
             "Codex: every user runs once (or pass --yes to run them now):\n" + commands,
@@ -144,7 +146,7 @@ class CodexAdapter(AdapterBase):
         add = ["codex", "plugin", "marketplace", "add", MARKETPLACE_REPO]
         if opts.ref:
             add += ["--ref", opts.ref]
-        return [add, ["codex", "plugin", "add", PLUGIN_ID]]
+        return [add, *(["codex", "plugin", "add", plugin_id(p)] for p in opts.plugins)]
 
     def _collect_targets(
         self,

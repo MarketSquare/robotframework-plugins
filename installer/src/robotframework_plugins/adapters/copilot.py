@@ -82,6 +82,6 @@ class CopilotAdapter(ClaudeCodeAdapter):
         if migrated:
             notes = (*notes, migrated)
         return InstallPlan(
-            merges=(*base.merges, *marketplace_settings_merges(copilot_settings, opts.ref)),
+            merges=(*base.merges, *marketplace_settings_merges(copilot_settings, opts.ref, opts.plugins)),
             notes=notes,
         )

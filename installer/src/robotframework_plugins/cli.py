@@ -59,7 +59,7 @@ err_console = Console(stderr=True)
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="robotframework-plugins",
-        description="Cross-agent installer for Robot Framework agent skills.",
+        description="Cross-agent installer for Robot Framework agent plugins.",
     )
     parser.add_argument(
         "--version", action="version", version=f"robotframework-plugins {__version__}"
@@ -67,7 +67,7 @@ def _build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # install ---------------------------------------------------------------
-    sp = sub.add_parser("install", help="Install rf-agentskills into one or more agents.")
+    sp = sub.add_parser("install", help="Install Robot Framework plugins into one or more agents.")
     grp = sp.add_mutually_exclusive_group(required=False)
     grp.add_argument("--agent", choices=all_names(), help="Single agent (back-compat).")
     grp.add_argument("--all", action="store_true", help="Every detected agent (back-compat).")
@@ -98,6 +98,12 @@ def _build_parser() -> argparse.ArgumentParser:
              "scope); agents without a marketplace fall back to files.",
     )
     sp.add_argument("--ref", help="With --mode plugin: pin the marketplace to this git tag/branch.")
+    sp.add_argument(
+        "--plugins",
+        metavar="NAMES",
+        help="Comma-separated plugins to install (see `robotframework-plugins catalog`). "
+             "Default: every active verified plugin.",
+    )
     sp.add_argument("--yes", "-y", action="store_true",
                     help="Accept the detected default without prompting.")
     sp.add_argument("--no-input", action="store_true",
@@ -124,6 +130,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # version ---------------------------------------------------------------
     sub.add_parser("version", help="Print bundle version.")
+
+    # catalog ---------------------------------------------------------------
+    sp = sub.add_parser("catalog", help="List the plugins bundled in this installer.")
+    sp.add_argument("--json", action="store_true", help="Print the catalogue as JSON.")
 
     return parser
 
@@ -212,6 +222,106 @@ def _is_interactive(args: argparse.Namespace) -> bool:
         return False
 
 
+# ---------------------------------------------------------------------------
+# Plugin selection
+# ---------------------------------------------------------------------------
+
+
+class _PluginError(Exception):
+    pass
+
+
+def _default_plugins(catalog: list[dict]) -> list[str]:
+    """Every active verified plugin, in catalogue order."""
+    return [p["name"] for p in catalog if p.get("status") == "active" and p.get("tier") == "verified"]
+
+
+def _resolve_plugins(args: argparse.Namespace, catalog: list[dict]) -> list[str] | None:
+    """Plugins named by ``--plugins``; ``None`` when the flag is absent.
+
+    Raises :class:`_PluginError` for a name the installer doesn't bundle
+    (unknown, or removed from the catalogue).
+    """
+    raw = getattr(args, "plugins", None)
+    if raw is None:
+        return None
+    names = [n.strip() for n in raw.split(",") if n.strip()]
+    known = {p["name"] for p in catalog}
+    unknown = [n for n in names if n not in known]
+    if unknown or not names:
+        what = ", ".join(unknown) if unknown else "(none given)"
+        raise _PluginError(
+            f"unknown or removed plugin: {what}. Available: {', '.join(sorted(known)) or '(none)'}"
+        )
+    return list(dict.fromkeys(names))
+
+
+def _warn_deprecated(names: list[str], catalog: list[dict]) -> None:
+    by_name_ = {p["name"]: p for p in catalog}
+    for n in names:
+        p = by_name_.get(n, {})
+        if p.get("status") == "deprecated":
+            err_console.print(
+                f"[yellow]warn:[/yellow] {n} is deprecated since {p.get('deprecated_since', '?')}; "
+                f"use {p.get('replacement', 'its replacement')} instead."
+            )
+
+
+def _plugin_label(p: dict) -> str:
+    status = "" if p.get("status") == "active" else f", {p.get('status')}"
+    return f"{p['name']} ({p.get('tier', '?')}{status}): {p.get('summary', '')}"
+
+
+def _select_plugins_interactively(catalog: list[dict], default: list[str]) -> list[str] | None:
+    """Plugin step of the wizard; questionary if available, else stdlib fallback."""
+    try:
+        import questionary  # optional [interactive] extra
+    except ImportError:
+        console.print("Select plugins (comma/space-separated numbers; Enter = marked):")
+        for i, p in enumerate(catalog, 1):
+            mark = "*" if p["name"] in default else " "
+            console.print(f"  [{mark}] {i}. {_plugin_label(p)}")
+        try:
+            raw = input("> ").strip()
+        except EOFError:
+            return default
+        if not raw:
+            return default
+        picks: list[str] = []
+        for tok in raw.replace(",", " ").split():
+            if tok.isdigit() and 1 <= int(tok) <= len(catalog):
+                name = catalog[int(tok) - 1]["name"]
+                if name not in picks:
+                    picks.append(name)
+        return picks
+    return questionary.checkbox(
+        "Select plugins to install:",
+        choices=[questionary.Choice(_plugin_label(p), value=p["name"], checked=p["name"] in default)
+                 for p in catalog],
+    ).ask()
+
+
+def cmd_catalog(args: argparse.Namespace) -> int:
+    catalog = _assets.bundled_catalog()
+    if getattr(args, "json", False):
+        print(json.dumps({"installer": __version__, "plugins": [
+            {k: p.get(k) for k in ("name", "version", "tier", "status", "summary")}
+            | ({"replacement": p["replacement"]} if "replacement" in p else {})
+            for p in catalog
+        ]}, indent=2))
+        return 0
+    table = Table(title=f"robotframework-plugins {__version__} bundles")
+    for col in ("plugin", "version", "tier", "status", "summary"):
+        table.add_column(col)
+    for p in catalog:
+        status = p.get("status", "?")
+        if status == "deprecated":
+            status = f"deprecated, use {p.get('replacement', '?')}"
+        table.add_row(p["name"], str(p.get("version") or "-"), p.get("tier", "?"), status, p.get("summary", ""))
+    console.print(table)
+    return 0
+
+
 def _select_agents_interactively(detected: list[str]) -> list[str] | None:
     """Multi-select wizard; questionary if available, else stdlib fallback.
 
@@ -223,7 +333,7 @@ def _select_agents_interactively(detected: list[str]) -> list[str] | None:
     except ImportError:
         return _select_agents_stdlib(detected, choices)
     answer = questionary.checkbox(
-        "Select agents to install rf-agentskills into:",
+        "Select agents to install Robot Framework plugins into:",
         choices=[
             questionary.Choice(
                 f"{by_name(n)().pretty} ({n})",
@@ -287,7 +397,25 @@ def cmd_install(args: argparse.Namespace) -> int:
         console.print("[dim]nothing selected — nothing to install[/dim]")
         return 0
 
-    opts = _opts_from_args(args)
+    catalog = _assets.bundled_catalog()
+    try:
+        plugins = _resolve_plugins(args, catalog)
+    except _PluginError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        return 2
+    if plugins is None:
+        plugins = _default_plugins(catalog)
+        if _is_interactive(args) and len(catalog) > 1:
+            plugins = _select_plugins_interactively(catalog, plugins)
+            if plugins is None:
+                console.print("[dim]cancelled[/dim]")
+                return 0
+    if not plugins:
+        console.print("[dim]no plugin selected — nothing to install[/dim]")
+        return 0
+    _warn_deprecated(plugins, catalog)
+
+    opts = replace(_opts_from_args(args), plugins=tuple(plugins), plugin=plugins[0])
     if opts.ref and opts.mode != "plugin":
         err_console.print("[red]error:[/red] --ref needs --mode plugin")
         return 2
@@ -1075,6 +1203,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "targets": cmd_targets,
         "doctor": cmd_doctor,
         "version": cmd_version,
+        "catalog": cmd_catalog,
     }
     return handlers[args.cmd](args)
 

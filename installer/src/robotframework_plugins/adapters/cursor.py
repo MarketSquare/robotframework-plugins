@@ -45,7 +45,7 @@ from .. import _assets
 from .. import transforms as _x
 from ._base import (
     MARKETPLACE_REPO,
-    PLUGIN_ID,
+    plugin_id,
     AdapterBase,
     ConfigMergeOp,
     InstallOptions,
@@ -119,7 +119,8 @@ class CursorAdapter(AdapterBase):
         return InstallPlan(notes=(
             f"Cursor: add the marketplace https://github.com/{MARKETPLACE_REPO} "
             "(Customize -> Plugins, or `cursor-agent plugin marketplace add "
-            f"https://github.com/{MARKETPLACE_REPO}`), then install {PLUGIN_ID} and "
+            f"https://github.com/{MARKETPLACE_REPO}`), then install "
+            + ", ".join(plugin_id(p) for p in opts.plugins) + " and "
             "choose project or user scope.",
             "Cursor also imports the plugin when it is installed in Claude Code and "
             "enabled in .claude/settings.json (Settings -> Third-Party Imports).",

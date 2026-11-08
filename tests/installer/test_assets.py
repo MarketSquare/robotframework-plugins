@@ -69,25 +69,6 @@ def test_wheel_contains_bundled_plugins(tmp_path: Path) -> None:
     assert any(n.startswith("robotframework_plugins/_assets/plugins/rf-agentskills/skills/rf-browser/") for n in names)
 
 
-@pytest.fixture
-def two_plugin_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """A bundle with the real rf-agentskills plus a one-skill plugin."""
-    bundle = tmp_path / "bundle"
-    with _assets.asset_root_path() as real:
-        shutil.copytree(real, bundle / "plugins" / "rf-agentskills")
-    skill = bundle / "plugins" / "rf-example" / "skills" / "rf-example"
-    skill.mkdir(parents=True)
-    (skill / "SKILL.md").write_text("---\nname: rf-example\ndescription: Example.\n---\nBody\n")
-    (bundle / "plugins" / "rf-example" / ".claude-plugin").mkdir()
-    (bundle / "plugins" / "rf-example" / ".claude-plugin" / "plugin.json").write_text('{"name": "rf-example", "version": "1.0.0"}')
-    (bundle / "catalog.json").write_text(json.dumps({"plugins": [
-        {"name": "rf-agentskills", "version": "3.0.0", "tier": "verified", "status": "active", "summary": "x", "libraries": []},
-        {"name": "rf-example", "version": "1.0.0", "tier": "community", "status": "active", "summary": "y", "libraries": []},
-    ]}))
-    monkeypatch.setattr(_assets, "bundle_root_traversable", lambda: bundle)
-    return bundle
-
-
 def test_plan_covers_every_plugin_and_records_it(two_plugin_bundle: Path, install_prefix: Path) -> None:
     from dataclasses import replace
 

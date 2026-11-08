@@ -41,3 +41,36 @@ def install_prefix(tmp_path: Path) -> Path:
     p = tmp_path / "install-root"
     p.mkdir()
     return p
+
+
+@pytest.fixture
+def two_plugin_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A bundle with the real rf-agentskills (verified) plus a one-skill community
+    plugin, rf-example, and a deprecated one, rf-old."""
+    import json
+    import shutil
+
+    from robotframework_plugins import _assets
+
+    bundle = tmp_path / "bundle"
+    with _assets.asset_root_path() as real:
+        shutil.copytree(real, bundle / "plugins" / "rf-agentskills")
+    for name in ("rf-example", "rf-old"):
+        skill = bundle / "plugins" / name / "skills" / name
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(f"---\nname: {name}\ndescription: Example.\n---\nBody\n")
+        (bundle / "plugins" / name / ".claude-plugin").mkdir()
+        (bundle / "plugins" / name / ".claude-plugin" / "plugin.json").write_text(
+            json.dumps({"name": name, "version": "1.0.0"}))
+    (bundle / "catalog.json").write_text(json.dumps({"plugins": [
+        {"name": "rf-agentskills", "version": "3.0.0", "tier": "verified", "status": "active",
+         "summary": "The verified plugin.", "libraries": []},
+        {"name": "rf-example", "version": "1.0.0", "tier": "community", "status": "active",
+         "summary": "A community plugin.", "libraries": []},
+        {"name": "rf-old", "version": "1.0.0", "tier": "community", "status": "deprecated",
+         "summary": "An old plugin.", "libraries": [], "replacement": "rf-example",
+         "deprecated_since": "2026-11-08"},
+    ]}))
+    monkeypatch.setattr(_assets, "bundle_root_traversable", lambda: bundle)
+    return bundle
+
