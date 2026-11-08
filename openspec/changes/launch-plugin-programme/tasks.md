@@ -7,7 +7,7 @@
 
 ## 2. Apply the rename map
 
-- [ ] 2.1 Rename the marketplace: `.claude-plugin/marketplace.json` name `robotframework-plugins`, owner Robot Framework Foundation / MarketSquare, plugin `homepage` and `repository` set to the new URL. Verify that `claude plugin validate plugins/rf-agentskills` and the manifest-consistency test pass.
+- [x] 2.1 Rename the marketplace: `.claude-plugin/marketplace.json` name `robotframework-plugins`, owner Robot Framework Foundation / MarketSquare, plugin `homepage` and `repository` set to the new URL. Verify that `claude plugin validate plugins/rf-agentskills` and the manifest-consistency test pass.
 - [ ] 2.2 Rename the installer package to `robotframework-plugins`, the module `rf_agentskills` to `robotframework_plugins`, the CLI to `robotframework-plugins`, the project URLs and the release tag pattern to `robotframework-plugins-v*`. Set the version to the CalVer of the planned release month (for example `2026.12.0`). Verify that `uv build` in `installer/` produces `robotframework_plugins-<that version>` and that `uvx --from ./dist/<wheel> robotframework-plugins version` runs.
 - [ ] 2.3 Update the installer adapters and plugin mode to the new marketplace key and GitHub source, including the Codex commands. Verify with the updated `test_plugin_mode.py` scenarios from `installer-plugin-bootstrap`.
 - [ ] 2.4 Add migration of old `robotframework-agentskills` settings entries, keeping a `--ref` pin. Verify with a new test for the "Old marketplace entry migrated" scenario.

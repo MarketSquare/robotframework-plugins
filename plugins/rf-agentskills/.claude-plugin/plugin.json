@@ -6,8 +6,8 @@
     "name": "manykarim",
     "email": "manykarim@users.noreply.github.com"
   },
-  "homepage": "https://github.com/manykarim/robotframework-agentskills",
-  "repository": "https://github.com/manykarim/robotframework-agentskills",
+  "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+  "repository": "https://github.com/MarketSquare/robotframework-plugins",
   "license": "Apache-2.0",
   "keywords": [
     "robotframework",
