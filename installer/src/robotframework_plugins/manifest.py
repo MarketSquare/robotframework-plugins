@@ -1,6 +1,6 @@
 """Manifest of files written by the installer, used for safe uninstall.
 
-Every successful ``rf-agentskills install`` writes (or updates) a JSON
+Every successful ``robotframework-plugins install`` writes (or updates) a JSON
 record at ``$XDG_DATA_HOME/rf-agentskills/installed.json`` listing
 every destination path, its sha256 at install time, and any
 config-merge that added keys to a pre-existing file.
@@ -114,7 +114,7 @@ class Installation:
     agent: str
     scope: str                       # "user" | "project"
     installed_at: str                # ISO-8601 UTC
-    bundle_version: str              # rf-agentskills version that wrote this
+    bundle_version: str              # robotframework-plugins version that wrote this
     files: list[FileEntry] = field(default_factory=list)
     config_merges: list[ConfigMerge] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)

@@ -74,6 +74,6 @@ echo ""
 if [ "$all" = "1" ]; then
     echo "Reminder: rf-skill-eval is tagged 'Private :: Do Not Upload';"
     echo "          pypi.org will reject \`twine upload dist/rf_skill_eval-*\`."
-    echo "          Upload only rf_agentskills-* to PyPI:"
-    echo "              twine upload dist/rf_agentskills-*"
+    echo "          Upload only robotframework_plugins-* to PyPI:"
+    echo "              twine upload dist/robotframework_plugins-*"
 fi

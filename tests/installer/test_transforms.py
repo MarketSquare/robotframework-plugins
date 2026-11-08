@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from rf_agentskills import transforms as _x
+from robotframework_plugins import transforms as _x
 
 
 # ---- substitute_plugin_root ------------------------------------------------

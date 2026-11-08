@@ -113,7 +113,7 @@ def python_runtime_config_bytes() -> bytes:
     ``check_rf_environment.mjs``) read this JSON from
     ``<plugin_dst>/scripts/python_runtime.json``. The recorded
     ``interpreter`` is whatever ``sys.executable`` was when
-    ``rf-agentskills install`` ran — i.e. the venv / pipx env / system
+    ``robotframework-plugins install`` ran — i.e. the venv / pipx env / system
     Python that actually has ``robotframework`` available.
 
     Without this pinning, a hook running on Windows would probe ``python``

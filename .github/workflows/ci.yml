@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        # tests/installer/ imports rf_agentskills; install it from the
+        # tests/installer/ imports robotframework_plugins; install it from the
         # in-repo package so the test collector can resolve it. The
         # editable install also runs the hatchling build hook that
         # mirrors plugins/rf-agentskills/ into the package's _assets/

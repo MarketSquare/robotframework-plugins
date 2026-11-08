@@ -4,8 +4,8 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
-    "rf-agentskills",
     "rf-skill-eval",
+    "robotframework-plugins",
 ]
 
 [[package]]
@@ -2237,41 +2237,6 @@ wheels = [
 ]
 
 [[package]]
-name = "rf-agentskills"
-version = "0.8.0"
-source = { editable = "installer" }
-dependencies = [
-    { name = "pyyaml" },
-    { name = "rich" },
-    { name = "tomli-w" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "questionary" },
-    { name = "ruff" },
-]
-interactive = [
-    { name = "questionary" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "questionary", marker = "extra == 'dev'", specifier = ">=2.0" },
-    { name = "questionary", marker = "extra == 'interactive'", specifier = ">=2.0" },
-    { name = "rich", specifier = ">=13.7" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
-    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0" },
-    { name = "tomli-w", specifier = ">=1.0" },
-]
-provides-extras = ["interactive", "dev"]
-
-[[package]]
 name = "rf-mcp"
 version = "0.31.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2702,6 +2667,41 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5f/67/b9094d094a03be440eb86196379cb6a24a4dc61efcd4ec78310718785c2f/robotframework_platynui-0.12.0.dev330-py3-none-any.whl", hash = "sha256:07ef586f2b228b20fc43f9a018b664262b76f0429e0fdc23b2e8944ad0066568", size = 108260, upload-time = "2026-05-05T11:28:40.046Z" },
 ]
+
+[[package]]
+name = "robotframework-plugins"
+version = "2026.12.0"
+source = { editable = "installer" }
+dependencies = [
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "tomli-w" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "questionary" },
+    { name = "ruff" },
+]
+interactive = [
+    { name = "questionary" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "questionary", marker = "extra == 'dev'", specifier = ">=2.0" },
+    { name = "questionary", marker = "extra == 'interactive'", specifier = ">=2.0" },
+    { name = "rich", specifier = ">=13.7" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0" },
+    { name = "tomli-w", specifier = ">=1.0" },
+]
+provides-extras = ["interactive", "dev"]
 
 [[package]]
 name = "robotframework-pythonlibcore"

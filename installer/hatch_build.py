@@ -1,9 +1,9 @@
-"""Hatch build hook: mirror plugins/rf-agentskills/ → src/rf_agentskills/_assets/.
+"""Hatch build hook: mirror plugins/rf-agentskills/ → src/robotframework_plugins/_assets/.
 
 The plugin tree is the source of truth (it's what the Claude Code
 marketplace and the rf-skill-eval harness already use). The installer
 needs the *same* tree shipped inside its Python wheel so importlib can
-locate it at runtime via `files("rf_agentskills").joinpath("_assets")`.
+locate it at runtime via `files("robotframework_plugins").joinpath("_assets")`.
 
 Rather than maintaining a duplicate copy in the package source, this
 hook copies the tree at build time. Editable installs (`pip install -e
@@ -27,13 +27,13 @@ from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 # The path layout assumed:
 #   <repo-root>/plugins/rf-agentskills/        ← canonical source
 #   <repo-root>/installer/                     ← this package; hatch_build.py lives here
-#   <repo-root>/installer/src/rf_agentskills/_assets/   ← mirror destination
+#   <repo-root>/installer/src/robotframework_plugins/_assets/   ← mirror destination
 #
 # Hatch sets ``self.root`` to the directory containing pyproject.toml,
 # i.e. ``<repo-root>/installer``. The plugin tree therefore sits one
 # level up.
 PLUGIN_REL = Path("..") / "plugins" / "rf-agentskills"
-ASSETS_REL = Path("src") / "rf_agentskills" / "_assets"
+ASSETS_REL = Path("src") / "robotframework_plugins" / "_assets"
 
 
 class CustomBuildHook(BuildHookInterface):  # type: ignore[misc]

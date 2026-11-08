@@ -6,16 +6,16 @@ from pathlib import Path
 
 import pytest
 
-from rf_agentskills.cli import main
+from robotframework_plugins.cli import main
 
 
 def test_cli_version(capsys) -> None:
-    from rf_agentskills import __version__
+    from robotframework_plugins import __version__
 
     rc = main(["version"])
     assert rc == 0
     out = capsys.readouterr().out
-    # Installer version is the rf_agentskills package version — pulled
+    # Installer version is the robotframework_plugins package version — pulled
     # from __version__ so the assertion follows future bumps.
     assert "rf-agentskills" in out
     assert __version__ in out
@@ -76,7 +76,7 @@ def test_cli_doctor_warns_about_unowned_legacy_skill_dirs(capsys, fake_home: Pat
 
 
 def test_cli_doctor_ignores_owned_legacy_named_dirs(capsys, fake_home: Path, monkeypatch) -> None:
-    from rf_agentskills import cli as _cli
+    from robotframework_plugins import cli as _cli
 
     legacy = _legacy_skill(fake_home / ".claude" / "skills", "browser", "browser")
     monkeypatch.setattr(_cli, "_owned_paths", lambda: [legacy / "SKILL.md"])

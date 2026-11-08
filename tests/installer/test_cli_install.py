@@ -1,4 +1,4 @@
-"""Selection / wizard / scope tests for `rf-agentskills install`.
+"""Selection / wizard / scope tests for `robotframework-plugins install`.
 
 Covers the OpenSpec-style decision tree: explicit `--agents` selectors,
 non-interactive fallback to detected agents, project-scope default vs
@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from rf_agentskills import cli
-from rf_agentskills.adapters import all_names
-from rf_agentskills.cli import main
+from robotframework_plugins import cli
+from robotframework_plugins.adapters import all_names
+from robotframework_plugins.cli import main
 
 
 def _ns(**kw) -> argparse.Namespace:

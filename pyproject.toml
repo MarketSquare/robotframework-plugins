@@ -20,7 +20,7 @@ classifiers = [
     # classifier makes pypi.org reject any accidental upload, so
     # running `twine upload dist/*` against a build that includes this
     # package will fail loudly rather than silently publishing internal
-    # tooling. Only rf-agentskills (in installer/) is the public PyPI
+    # tooling. Only robotframework-plugins (in installer/) is the public PyPI
     # release artifact.
     "Private :: Do Not Upload",
     "Development Status :: 3 - Alpha",
@@ -100,7 +100,7 @@ resolution = "highest"
 # scopes:
 #
 #   PUBLIC (PyPI release):
-#     installer/  →  rf-agentskills  (cross-agent installer)
+#     installer/  →  robotframework-plugins  (cross-agent installer)
 #
 #   INTERNAL (CI eval only, never uploaded to PyPI):
 #     this file  →  rf-skill-eval    (evaluation harness, tagged with
@@ -108,7 +108,7 @@ resolution = "highest"
 #                                     pypi.org refuses the upload)
 #
 # Commands:
-#   uv build --package rf-agentskills  → release artifact only
+#   uv build --package robotframework-plugins  → release artifact only
 #   uv build --all-packages            → both (release + internal)
 #   uv build                           → root package only (internal)
 #   scripts/build-packages.sh          → builds the public release

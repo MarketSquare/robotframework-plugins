@@ -3,7 +3,7 @@
 An adapter is a small class with three responsibilities:
 
 1. ``detect()`` — best-effort check for whether the target agent is
-   installed on this machine. Used by ``rf-agentskills targets`` and to
+   installed on this machine. Used by ``robotframework-plugins targets`` and to
    gate ``install --all``.
 2. ``plan(opts)`` — produce a :class:`InstallPlan` describing every
    file to write and every config-merge to perform. **No I/O** here so
@@ -61,7 +61,7 @@ class InstallTarget:
     ``payload`` is the bytes that go to disk. ``transform_name`` is a
     string label (e.g. ``"skill_md_to_cursor_mdc"``) recorded in the
     manifest for traceability — uninstall doesn't *use* it, but it
-    makes ``rf-agentskills list --verbose`` informative.
+    makes ``robotframework-plugins list --verbose`` informative.
 
     Marking ``executable=True`` makes the dispatcher chmod +x after
     write (no-op on Windows; harmless).
@@ -91,7 +91,7 @@ class ConfigMergeOp:
 
     ``revert`` is the in-process reverse — adapters expose it for
     transactional rollback in case ``apply`` later fails. Out-of-
-    process uninstall (``rf-agentskills uninstall``) reconstructs
+    process uninstall (``robotframework-plugins uninstall``) reconstructs
     deletion from ``kind`` + ``key_path`` + recorded ``added_keys``
     rather than calling this callback (it lives in the install
     process only).

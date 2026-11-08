@@ -104,7 +104,7 @@ class ClaudeCodeAdapter(AdapterBase):
                 "Node.js was not found on PATH; the hooks block was NOT written. "
                 "Install Node.js (e.g. `winget install OpenJS.NodeJS` on Windows, "
                 "`brew install node` on macOS, your distro's package manager on "
-                "Linux), then re-run `rf-agentskills install --agent claude-code` "
+                "Linux), then re-run `robotframework-plugins install --agent claude-code` "
                 "to enable the SessionStart / UserPromptSubmit / PostToolUse / Stop "
                 "hooks. Skills and subagents are installed normally."
             )

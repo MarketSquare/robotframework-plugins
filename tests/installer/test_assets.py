@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from rf_agentskills import _assets
+from robotframework_plugins import _assets
 
 
 def test_asset_root_exists() -> None:

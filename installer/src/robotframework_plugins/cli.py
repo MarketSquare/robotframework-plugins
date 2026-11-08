@@ -58,11 +58,11 @@ err_console = Console(stderr=True)
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="rf-agentskills",
+        prog="robotframework-plugins",
         description="Cross-agent installer for Robot Framework agent skills.",
     )
     parser.add_argument(
-        "--version", action="version", version=f"rf-agentskills {__version__}"
+        "--version", action="version", version=f"robotframework-plugins {__version__}"
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -445,7 +445,7 @@ def cmd_list(_args: argparse.Namespace) -> int:
     if not installs:
         console.print("[dim]no installations recorded[/dim]")
         return 0
-    table = Table(title="rf-agentskills installations")
+    table = Table(title="robotframework-plugins installations")
     table.add_column("agent")
     table.add_column("scope")
     table.add_column("bundle")
@@ -605,7 +605,7 @@ def _legacy_dir_warning(d: Path) -> str:
 
 def cmd_doctor(_args: argparse.Namespace) -> int:
     rc = 0
-    table = Table(title="rf-agentskills doctor")
+    table = Table(title="robotframework-plugins doctor")
     table.add_column("check")
     table.add_column("status")
     table.add_column("details")
@@ -671,7 +671,7 @@ def cmd_version(_args: argparse.Namespace) -> int:
     here so support tickets and triage can be precise without
     requiring alignment.
     """
-    console.print(f"rf-agentskills {__version__}")
+    console.print(f"robotframework-plugins {__version__}")
     bundled = _bundled_content_version()
     if bundled is not None:
         console.print(

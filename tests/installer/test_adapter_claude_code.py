@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from rf_agentskills.adapters.claude_code import ClaudeCodeAdapter
-from rf_agentskills.adapters._base import InstallOptions
+from robotframework_plugins.adapters.claude_code import ClaudeCodeAdapter
+from robotframework_plugins.adapters._base import InstallOptions
 
 
 # ---- plan() ---------------------------------------------------------------
@@ -122,7 +122,7 @@ def test_post_install_returns_user_facing_notes() -> None:
 
 def test_end_to_end_install_and_uninstall(install_prefix: Path, fake_home: Path) -> None:
     """Install then uninstall round-trip leaves the prefix empty."""
-    from rf_agentskills.cli import main
+    from robotframework_plugins.cli import main
 
     rc = main([
         "install",
@@ -150,7 +150,7 @@ def test_end_to_end_install_and_uninstall(install_prefix: Path, fake_home: Path)
 
 
 def test_install_dry_run_writes_nothing(install_prefix: Path, fake_home: Path) -> None:
-    from rf_agentskills.cli import main
+    from robotframework_plugins.cli import main
 
     rc = main([
         "install",
@@ -168,7 +168,7 @@ def test_install_warns_on_conflict_without_force(
     install_prefix: Path, fake_home: Path,
 ) -> None:
     """A pre-existing file at a destination path should not be silently overwritten."""
-    from rf_agentskills.cli import main
+    from robotframework_plugins.cli import main
 
     target = install_prefix / "skills" / "rf-python-library" / "SKILL.md"
     target.parent.mkdir(parents=True)
@@ -186,7 +186,7 @@ def test_install_warns_on_conflict_without_force(
 
 
 def test_install_force_overwrites_conflict(install_prefix: Path, fake_home: Path) -> None:
-    from rf_agentskills.cli import main
+    from robotframework_plugins.cli import main
 
     target = install_prefix / "skills" / "rf-python-library" / "SKILL.md"
     target.parent.mkdir(parents=True)
@@ -223,7 +223,7 @@ def test_plan_succeeds_with_windows_style_substitution_target(
     starts returning backslashes again, this test reproduces the
     crash.
     """
-    from rf_agentskills import transforms as _x
+    from robotframework_plugins import transforms as _x
 
     monkeypatch.setattr(
         _x, "to_native_path_string",
@@ -249,8 +249,8 @@ def test_copilot_plan_with_windows_style_substitution_target(
 ) -> None:
     """Same regression as the Claude Code test; Copilot inherits the
     JSON merge paths from ClaudeCodeAdapter."""
-    from rf_agentskills import transforms as _x
-    from rf_agentskills.adapters.copilot import CopilotAdapter
+    from robotframework_plugins import transforms as _x
+    from robotframework_plugins.adapters.copilot import CopilotAdapter
 
     monkeypatch.setattr(
         _x, "to_native_path_string",
@@ -281,7 +281,7 @@ def test_every_hook_command_resolves_to_an_existing_file(
     test runs on every CI cell (POSIX + Windows).
     """
     import re
-    from rf_agentskills.cli import main
+    from robotframework_plugins.cli import main
 
     rc = main([
         "install", "--agent", "claude-code",
@@ -327,7 +327,7 @@ def test_install_skips_hooks_with_note_when_node_absent(
     """When ``node`` isn't on PATH, the install should still succeed,
     but skip writing the hooks block (which would otherwise reference
     an unrunnable ``node "<…>.mjs"`` command) and surface a clear note."""
-    from rf_agentskills import transforms as _x
+    from robotframework_plugins import transforms as _x
 
     monkeypatch.setattr(_x, "node_available", lambda: False)
 
@@ -351,7 +351,7 @@ def test_install_writes_hooks_normally_when_node_present(
     install_prefix: Path, fake_home: Path, monkeypatch
 ) -> None:
     """Smoke-test the positive branch of the Node probe."""
-    from rf_agentskills import transforms as _x
+    from robotframework_plugins import transforms as _x
 
     monkeypatch.setattr(_x, "node_available", lambda: True)
 
@@ -365,8 +365,8 @@ def test_install_writes_hooks_normally_when_node_present(
 def test_claude_code_keeps_skill_dir_variable(install_prefix: Path, fake_home: Path) -> None:
     """Claude Code substitutes ${CLAUDE_SKILL_DIR} itself: installed SKILL.md keeps it,
     and the script sits in the installed skill's own scripts/ dir."""
-    from rf_agentskills.adapters import by_name
-    from rf_agentskills.cli import main as cli_main
+    from robotframework_plugins.adapters import by_name
+    from robotframework_plugins.cli import main as cli_main
 
     assert by_name("claude-code")().expands_skill_dir is True
     assert cli_main(["install", "--agent", "claude-code", "--prefix", str(install_prefix)]) == 0
@@ -380,7 +380,7 @@ def test_claude_code_keeps_skill_dir_variable(install_prefix: Path, fake_home: P
 def test_project_install_ships_language_skill_in_manifest(fake_home: Path) -> None:
     """add-rf-language-skill 6.3: .claude/skills/rf-language is installed with its
     script and recorded in the project manifest."""
-    from rf_agentskills.cli import main as cli_main
+    from robotframework_plugins.cli import main as cli_main
 
     assert cli_main(["install", "--agent", "claude-code"]) == 0
     md = fake_home / ".claude" / "skills" / "rf-language" / "SKILL.md"
@@ -397,7 +397,7 @@ def test_project_install_ships_language_skill_in_manifest(fake_home: Path) -> No
 def test_project_install_ships_python_library_skill(install_prefix: Path, fake_home: Path) -> None:
     """add-rf-python-library-skill 7.5: the plan lists skills/rf-python-library, and the
     install ships its checker script and records it in the manifest."""
-    from rf_agentskills.cli import main as cli_main
+    from robotframework_plugins.cli import main as cli_main
 
     dst_paths = [t.dst.as_posix() for t in ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix)).targets]
     assert any(p.endswith("/skills/rf-python-library/SKILL.md") for p in dst_paths)

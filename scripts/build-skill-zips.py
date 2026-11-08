@@ -20,7 +20,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "installer" / "src"))
 
-from rf_agentskills.skillzip import skill_zip_bytes  # noqa: E402
+from robotframework_plugins.skillzip import skill_zip_bytes  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -20,7 +20,7 @@ seven coding agents:
 Zero-install one-liner (no prior `pip install` needed):
 
 ```bash
-uvx rf-agentskills install        # or: pipx run rf-agentskills install
+uvx robotframework-plugins install        # or: pipx run robotframework-plugins install
 ```
 
 Bare `install` is **interactive** in a terminal — it shows a multi-select of
@@ -34,10 +34,10 @@ Fully scriptable — no prompt when you pass an explicit selection, `--yes`, or
 when stdin isn't a TTY:
 
 ```bash
-rf-agentskills install --agents claude-code,cursor   # explicit list
-rf-agentskills install --agents all                  # every known agent
-rf-agentskills install --agents detected --yes       # only detected, no prompt
-rf-agentskills install --agent claude-code           # single (back-compat)
+robotframework-plugins install --agents claude-code,cursor   # explicit list
+robotframework-plugins install --agents all                  # every known agent
+robotframework-plugins install --agents detected --yes       # only detected, no prompt
+robotframework-plugins install --agent claude-code           # single (back-compat)
 ```
 
 `--agents none` is a no-op. With nothing detected and no selection in a
@@ -51,15 +51,15 @@ directory needs no arguments. Use `--scope user` for a global install under
 your home directory:
 
 ```bash
-rf-agentskills install --agents all                  # → ./<agent dirs> (project)
-rf-agentskills install --agents all --scope user      # → ~/<agent dirs> (global)
+robotframework-plugins install --agents all                  # → ./<agent dirs> (project)
+robotframework-plugins install --agents all --scope user      # → ~/<agent dirs> (global)
 ```
 
 The uninstall manifest follows scope: project installs record it in
 `<project>/.rf-agentskills/`, user installs in the global data dir — so two
 projects never collide.
 
-Upgrading: re-run `rf-agentskills install` with the same agent and scope.
+Upgrading: re-run `robotframework-plugins install` with the same agent and scope.
 Files the previous install wrote that the new bundle no longer ships (for
 example retired skills) are removed — only when their hash still matches,
 and only for the categories being installed; user-modified files are kept
@@ -81,15 +81,15 @@ To make pre-release intent self-documenting in a project, add `[tool.uv]\nprerel
 ## Subcommands
 
 ```
-rf-agentskills install   [--agents all|none|detected|<csv> | --agent <name> | --all]
+robotframework-plugins install   [--agents all|none|detected|<csv> | --agent <name> | --all]
                          [--scope project|user] [--project DIR] [--prefix DIR]
                          [--what skills,agents,hooks] [--yes] [--no-input]
                          [--dry-run] [--force]
-rf-agentskills uninstall --agent <name> [--scope project|user] [--project DIR]
-rf-agentskills list                # what's installed where, per the manifest
-rf-agentskills targets             # which agents are detected on this machine
-rf-agentskills doctor              # what works, what doesn't, what needs user action
-rf-agentskills version
+robotframework-plugins uninstall --agent <name> [--scope project|user] [--project DIR]
+robotframework-plugins list                # what's installed where, per the manifest
+robotframework-plugins targets             # which agents are detected on this machine
+robotframework-plugins doctor              # what works, what doesn't, what needs user action
+robotframework-plugins version
 ```
 
 See `docs/installer/proposal.md` (in the parent repo) for the full

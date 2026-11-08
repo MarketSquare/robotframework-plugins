@@ -1,6 +1,6 @@
 """Locate and read the bundled plugin tree at runtime.
 
-The bundle lives at ``rf_agentskills/_assets/`` inside the installed
+The bundle lives at ``robotframework_plugins/_assets/`` inside the installed
 wheel. We use ``importlib.resources.files`` (3.9+, stable in 3.12) so
 the same code path works under:
 
@@ -23,7 +23,7 @@ _ASSETS_RESOURCE_NAME = "_assets"
 
 def asset_root_traversable():
     """Return the bundled tree as an importlib Traversable."""
-    return files("rf_agentskills").joinpath(_ASSETS_RESOURCE_NAME)
+    return files("robotframework_plugins").joinpath(_ASSETS_RESOURCE_NAME)
 
 
 @contextmanager

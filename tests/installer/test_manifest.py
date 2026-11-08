@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from rf_agentskills import manifest as _m
+from robotframework_plugins import manifest as _m
 
 
 def test_save_load_roundtrip(tmp_path: Path) -> None:

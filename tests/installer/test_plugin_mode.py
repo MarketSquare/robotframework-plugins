@@ -1,4 +1,4 @@
-"""``rf-agentskills install --mode plugin`` (marketplace-distribution, installer-plugin-bootstrap).
+"""``robotframework-plugins install --mode plugin`` (marketplace-distribution, installer-plugin-bootstrap).
 
 Plugin mode points agents at the robotframework-agentskills marketplace instead
 of copying files: committed ``.claude/settings.json`` entries for Claude Code,
@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 
 import pytest
-from rf_agentskills import transforms as _x
-from rf_agentskills.cli import main
+from robotframework_plugins import transforms as _x
+from robotframework_plugins.cli import main
 
 MARKETPLACE = "robotframework-agentskills"
 PLUGIN_ID = "rf-agentskills@robotframework-agentskills"

@@ -18,11 +18,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from rf_agentskills import _assets
-from rf_agentskills import transforms as _x
-from rf_agentskills.adapters import by_name
-from rf_agentskills.adapters._base import InstallOptions
-from rf_agentskills.cli import main
+from robotframework_plugins import _assets
+from robotframework_plugins import transforms as _x
+from robotframework_plugins.adapters import by_name
+from robotframework_plugins.adapters._base import InstallOptions
+from robotframework_plugins.cli import main
 
 
 # ---- universal round-trip parametrised over every secondary adapter -------
@@ -402,7 +402,7 @@ def test_claude_desktop_skips_with_note_for_unsupported_categories(
 
 
 def test_claude_desktop_config_path_per_os(monkeypatch: pytest.MonkeyPatch) -> None:
-    from rf_agentskills.adapters.claude_desktop import ClaudeDesktopAdapter
+    from robotframework_plugins.adapters.claude_desktop import ClaudeDesktopAdapter
     adapter = ClaudeDesktopAdapter()
 
     # Use ``.as_posix()`` for the substring check so the assertion holds
@@ -419,7 +419,7 @@ def test_claude_desktop_config_path_per_os(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_claude_desktop_config_path_windows(monkeypatch: pytest.MonkeyPatch,
                                             tmp_path: Path) -> None:
-    from rf_agentskills.adapters.claude_desktop import ClaudeDesktopAdapter
+    from robotframework_plugins.adapters.claude_desktop import ClaudeDesktopAdapter
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
     p = ClaudeDesktopAdapter()._config_path()
@@ -470,7 +470,7 @@ def test_plan_succeeds_with_windows_style_substitution_target(
     that plan-build completes and no payload retains an
     unescaped-backslash form of the same path.
     """
-    from rf_agentskills import transforms as _x
+    from robotframework_plugins import transforms as _x
 
     win_path = "C:/Users/x/.config/rf-agentskills-files"
     monkeypatch.setattr(_x, "to_native_path_string", lambda p: win_path)

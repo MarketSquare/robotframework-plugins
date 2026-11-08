@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from rf_agentskills import manifest as _m
-from rf_agentskills import transforms as _x
-from rf_agentskills.cli import main
+from robotframework_plugins import manifest as _m
+from robotframework_plugins import transforms as _x
+from robotframework_plugins.cli import main
 
 
 @pytest.fixture(autouse=True)

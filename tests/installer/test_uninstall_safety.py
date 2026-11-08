@@ -19,8 +19,8 @@ from pathlib import Path
 
 import pytest
 
-from rf_agentskills import transforms as _x
-from rf_agentskills.cli import main
+from robotframework_plugins import transforms as _x
+from robotframework_plugins.cli import main
 
 
 FOREIGN_SETTINGS = {
@@ -105,7 +105,7 @@ def test_uninstall_removes_only_our_hooks(fake_home: Path) -> None:
 def _fake_legacy_mcp_install(home: Path, mcp: Path) -> Path:
     """Re-create what installers before content 2.0.0 left: rf-tools in .mcp.json,
     the staged server file and their manifest records."""
-    from rf_agentskills import manifest as _m
+    from robotframework_plugins import manifest as _m
 
     servers = json.loads(mcp.read_text(encoding="utf-8"))
     servers["mcpServers"]["rf-tools"] = {"command": "python3", "args": ["x/rf-tools-server.py"]}
@@ -208,8 +208,8 @@ def test_user_modified_installed_file_is_skipped(fake_home: Path) -> None:
 def test_retire_legacy_mcp_cleans_every_config_shape(tmp_path: Path) -> None:
     import yaml
 
-    from rf_agentskills import manifest as _m
-    from rf_agentskills.cli import _retire_legacy_mcp
+    from robotframework_plugins import manifest as _m
+    from robotframework_plugins.cli import _retire_legacy_mcp
 
     toml = tmp_path / "config.toml"
     _x.merge_toml_table(toml, ["mcp_servers", "rf-tools"], {"command": "python3"})
