@@ -11,7 +11,7 @@ entries:
   fingerprint: 5943071c8ec4dd62
   severity: HIGH
   reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: skillspector
   rule: MP3
@@ -20,7 +20,7 @@ entries:
   severity: HIGH
   reason: 'False positive: the Stop hook adds and deletes keys in its own per-session pending-errors state, not
     in agent memory.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -29,7 +29,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -38,7 +38,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -47,7 +47,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -56,7 +56,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -65,7 +65,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -74,7 +74,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -83,7 +83,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -92,7 +92,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -101,7 +101,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: skillspector
   rule: MP3
@@ -110,7 +110,7 @@ entries:
   severity: HIGH
   reason: 'False positive: the Stop hook adds and deletes keys in its own per-session pending-errors state, not
     in agent memory.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -119,7 +119,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -128,7 +128,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: DATA_EXFIL_ENV_DUMP
@@ -137,7 +137,7 @@ entries:
   severity: HIGH
   reason: 'False positive: the hook passes its own environment to its own child process (node validate_robot.mjs)
     with TOOL_INPUT cleared; nothing leaves the machine.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -146,7 +146,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -155,7 +155,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: skillspector
   rule: E2
@@ -164,7 +164,7 @@ entries:
   severity: HIGH
   reason: 'False positive: check_library.py copies os.environ to start its own worker subprocess with two extra
     variables; nothing is sent anywhere.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: PIPELINE_TAINT_FLOW
@@ -173,7 +173,7 @@ entries:
   severity: HIGH
   reason: 'Documentation decision (design D8): rf-setup tells the user how to install uv with Astral''s official
     install script; it is an instruction for a person, not code the plugin runs.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: PIPELINE_TAINT_FLOW
@@ -182,7 +182,7 @@ entries:
   severity: HIGH
   reason: 'Documentation decision (design D8): rf-setup tells the user how to install uv with Astral''s official
     install script; it is an instruction for a person, not code the plugin runs.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: skillspector
   rule: RA1
@@ -190,7 +190,7 @@ entries:
   fingerprint: 5943071c8ec4dd62
   severity: HIGH
   reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: skillspector
   rule: RA1
@@ -198,7 +198,7 @@ entries:
   fingerprint: 5943071c8ec4dd62
   severity: HIGH
   reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -207,7 +207,7 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
 - scanner: cisco
   rule: COMMAND_INJECTION_JS_CHILD_PROCESS
@@ -216,5 +216,5 @@ entries:
   severity: CRITICAL
   reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
     through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'

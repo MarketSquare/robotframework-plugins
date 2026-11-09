@@ -12,5 +12,5 @@ entries:
   severity: HIGH
   reason: 'False positive: documentation example, not a tool call: a RESTinstance example test that sends DELETE
     /users/2 to the example API.'
-  reviewed_by: ''
+  reviewed_by: manykarim
   expires: '2027-11-08'
