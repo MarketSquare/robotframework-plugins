@@ -35,8 +35,8 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 ## 6. Evals
 
 - [x] 6.1 Add trigger staging for partial installs (`rf-core` plus one technology plugin) and the cross-technology measure. Verify the "Web only" scenario on Haiku 5.5 and Sonnet 5.5.
-- [ ] 6.2 Add one partial-install task per technology plugin and the coverage check. Verify the "Browser task with core only" and "Every technology plugin covered" scenarios.
-- [ ] 6.3 Re-run the trigger and narrow evals for all nine skills with all plugins staged, on Haiku 5.5 and Sonnet 5.5, with at least 3 replicates. Verify that no skill falls below its 3.0.0 baseline beyond the gate's tolerance; in particular, check `rf-setup` and the library skills after the install move.
+- [x] 6.2 Add one partial-install task per technology plugin and the coverage check. Verify the "Browser task with core only" and "Every technology plugin covered" scenarios.
+- [x] 6.3 Re-run the trigger and narrow evals for all nine skills with all plugins staged, on Haiku 5.5 and Sonnet 5.5, with at least 3 replicates. Verify that no skill falls below its 3.0.0 baseline beyond the gate's tolerance; in particular, check `rf-setup` and the library skills after the install move.
 
 ## 7. Launch plan and docs
 
