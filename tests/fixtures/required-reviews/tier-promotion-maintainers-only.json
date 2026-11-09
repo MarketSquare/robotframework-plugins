@@ -1,0 +1,47 @@
+{
+ "author": "contrib",
+ "files": [
+  {
+   "filename": "plugins/rf-db/catalog.yaml",
+   "status": "modified",
+   "patch": "@@ -3 +3 @@\n-tier: community\n+tier: verified"
+  }
+ ],
+ "reviews": [
+  {
+   "user": "maint-c",
+   "state": "APPROVED",
+   "submitted_at": "2026-11-09T10:00:00Z"
+  }
+ ],
+ "base_catalogs": {
+  "rf-db": {
+   "name": "rf-db",
+   "tier": "community",
+   "maintainers": [
+    {
+     "github": "maint-c"
+    }
+   ]
+  }
+ },
+ "head_catalogs": {
+  "rf-db": {
+   "name": "rf-db",
+   "tier": "verified",
+   "maintainers": [
+    {
+     "github": "maint-c"
+    }
+   ]
+  }
+ },
+ "teams": {
+  "foundation": [
+   "found-1"
+  ],
+  "security": [
+   "sec-1"
+  ]
+ }
+}

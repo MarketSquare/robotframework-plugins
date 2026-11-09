@@ -46,8 +46,8 @@ Prerequisite: `split-rf-agentskills` is applied. Groups 4–10 work on its plugi
 ## 6. Trust tiers and review
 
 - [ ] 6.1 Create the Foundation reviewers team and the security reviewers team in MarketSquare (names to be confirmed), and add `.github/CODEOWNERS` mapping `plugins/<name>/` to maintainers and the security-relevant paths and `security/baselines/` to the security team. Verify that GitHub shows the owners on a test PR.
-- [ ] 6.2 Add `.github/workflows/required-reviews.yml` (plugin owners, Foundation reviewers for verified plugins, security reviewers for security-relevant paths) and the CODEOWNERS-to-`catalog.yaml` agreement check. Verify with tests on recorded PR payloads for "Hook change needs the security team", "Tier promotion needs a Foundation reviewer" and "CODEOWNERS drift".
-- [ ] 6.3 Add the tier evidence check: a verified plugin must have at least two maintainers, trigger sets, eval tasks and baselines. Verify with the "Verified without evals is refused" fixture.
+- [x] 6.2 Add `.github/workflows/required-reviews.yml` (plugin owners, Foundation reviewers for verified plugins, security reviewers for security-relevant paths) and the CODEOWNERS-to-`catalog.yaml` agreement check. Verify with tests on recorded PR payloads for "Hook change needs the security team", "Tier promotion needs a Foundation reviewer" and "CODEOWNERS drift".
+- [x] 6.3 Add the tier evidence check: a verified plugin must have at least two maintainers, trigger sets, eval tasks and baselines. Verify with the "Verified without evals is refused" fixture.
 - [ ] 6.4 Add the PR template with the review checklist, and enable branch protection on `main`: required checks are the security gate, required reviews, tests, catalogue and docs voice. Verify that a test PR shows the checklist and cannot merge while a required check fails.
 
 ## 7. Lifecycle

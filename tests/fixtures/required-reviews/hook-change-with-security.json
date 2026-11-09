@@ -1,0 +1,63 @@
+{
+ "author": "contrib",
+ "files": [
+  {
+   "filename": "plugins/rf-core/hooks/hooks.json",
+   "status": "modified",
+   "patch": "@@ -1 +1 @@\n-x\n+y"
+  }
+ ],
+ "reviews": [
+  {
+   "user": "maint-a",
+   "state": "APPROVED",
+   "submitted_at": "2026-11-09T10:00:00Z"
+  },
+  {
+   "user": "found-1",
+   "state": "APPROVED",
+   "submitted_at": "2026-11-09T10:05:00Z"
+  },
+  {
+   "user": "sec-1",
+   "state": "APPROVED",
+   "submitted_at": "2026-11-09T11:00:00Z"
+  }
+ ],
+ "base_catalogs": {
+  "rf-core": {
+   "name": "rf-core",
+   "tier": "verified",
+   "maintainers": [
+    {
+     "github": "maint-a"
+    },
+    {
+     "github": "maint-b"
+    }
+   ]
+  }
+ },
+ "head_catalogs": {
+  "rf-core": {
+   "name": "rf-core",
+   "tier": "verified",
+   "maintainers": [
+    {
+     "github": "maint-a"
+    },
+    {
+     "github": "maint-b"
+    }
+   ]
+  }
+ },
+ "teams": {
+  "foundation": [
+   "found-1"
+  ],
+  "security": [
+   "sec-1"
+  ]
+ }
+}

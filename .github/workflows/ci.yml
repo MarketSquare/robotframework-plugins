@@ -175,6 +175,10 @@ jobs:
           else
             python scripts/build-catalog.py --check
           fi
+      - name: Ownership and tier evidence
+        # CODEOWNERS matches catalog.yaml maintainers; verified plugins have
+        # their evidence or a dated grace entry (.github/governance.yaml).
+        run: python scripts/check-governance.py
       - name: Validate manifests and SKILL.md frontmatter
         # Includes the marketplace/plugin manifest consistency checks.
         run: python -m pytest tests/test_marketplace_validation.py -v

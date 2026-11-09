@@ -1,20 +1,51 @@
 # Ownership by path (launch-plugin-programme D16): a plugin is the unit of
-# installation; a skill folder is the unit of ownership. The Foundation and
-# security reviewer teams are added by launch task 6.1.
-# Later lines win, so each skill folder follows its plugin's line.
+# installation; a skill folder is the unit of ownership. Later lines win, so
+# each skill folder follows its plugin's line.
+#
+# People on a /plugins/<name>/ line must match that plugin's catalog.yaml
+# maintainers (scripts/check-governance.py). The Foundation reviewers own every
+# verified plugin; the security reviewers own security-relevant paths. GitHub
+# asks each listed owner for review; the required-reviews workflow enforces an
+# approval from every group (design D9).
 
-/plugins/rf-agentskills/ @manykarim
-/plugins/rf-api/ @manykarim
-/plugins/rf-api/skills/rf-requests/ @manykarim
-/plugins/rf-api/skills/rf-restinstance/ @manykarim
-/plugins/rf-core/ @manykarim
-/plugins/rf-core/skills/rf-language/ @manykarim
-/plugins/rf-core/skills/rf-python-library/ @manykarim
-/plugins/rf-core/skills/rf-setup/ @manykarim
-/plugins/rf-desktop/ @manykarim
-/plugins/rf-desktop/skills/rf-platynui/ @manykarim
-/plugins/rf-mobile/ @manykarim
-/plugins/rf-mobile/skills/rf-appium/ @manykarim
-/plugins/rf-web/ @manykarim
-/plugins/rf-web/skills/rf-browser/ @manykarim
-/plugins/rf-web/skills/rf-selenium/ @manykarim
+/plugins/rf-agentskills/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-agentskills/.claude-plugin/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-api/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-api/skills/rf-requests/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-api/skills/rf-restinstance/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-api/.claude-plugin/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-core/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-core/skills/rf-language/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-core/skills/rf-python-library/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-core/skills/rf-setup/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-core/hooks/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-core/scripts/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-core/agents/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-core/variants/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-core/.claude-plugin/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-core/skills/rf-language/scripts/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-core/skills/rf-python-library/scripts/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-desktop/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-desktop/skills/rf-platynui/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-desktop/.claude-plugin/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-mobile/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-mobile/skills/rf-appium/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-mobile/.claude-plugin/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/plugins/rf-web/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-web/skills/rf-browser/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-web/skills/rf-selenium/ @manykarim @MarketSquare/robotframework-plugins-reviewers
+/plugins/rf-web/.claude-plugin/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+
+# Generated copies and shared security-relevant files.
+/bundles/ @manykarim @MarketSquare/robotframework-plugins-reviewers @MarketSquare/robotframework-plugins-security
+/.claude-plugin/ @manykarim @MarketSquare/robotframework-plugins-security
+/security/ @MarketSquare/robotframework-plugins-security
+/scripts/check_content_rules.py @manykarim @MarketSquare/robotframework-plugins-security
+/scripts/compare-findings.py @manykarim @MarketSquare/robotframework-plugins-security
+/scripts/install-scanners.sh @manykarim @MarketSquare/robotframework-plugins-security
+/scripts/security-scan.sh @manykarim @MarketSquare/robotframework-plugins-security
+/scripts/required-reviews.py @manykarim @MarketSquare/robotframework-plugins-security
+/scripts/check-governance.py @manykarim @MarketSquare/robotframework-plugins-security
+/.github/workflows/ @manykarim @MarketSquare/robotframework-plugins-security
+/.github/CODEOWNERS @manykarim @MarketSquare/robotframework-plugins-security
+/.github/governance.yaml @manykarim @MarketSquare/robotframework-plugins-security
