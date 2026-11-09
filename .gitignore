@@ -53,3 +53,4 @@ Thumbs.db
 # the duplicate. Developers run `pip install -e installer/` after clone
 # to populate it.
 installer/src/robotframework_plugins/_assets/
+.scanners/
