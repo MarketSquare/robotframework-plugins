@@ -1083,6 +1083,19 @@ def _removed_skills(removed: Sequence[str], written: Sequence[_m.FileEntry]) -> 
     return sorted({s for s in map(skill_of, removed) if s and s not in kept})
 
 
+def _dropped_plugins(stale: Sequence[_m.FileEntry], written: Sequence[_m.FileEntry]) -> list[str]:
+    """Plugins of the previous install that this run installs nothing of, each
+    marked when the catalogue no longer has it (plugin-lifecycle, "Upgrade
+    cleans up a removed plugin")."""
+    try:
+        known = {p["name"] for p in _assets.bundled_catalog()}
+    except (OSError, ValueError):  # pragma: no cover - defensive
+        known = set()
+    kept = {e.plugin for e in written if e.plugin}
+    names = sorted({e.plugin for e in stale if e.plugin and e.plugin not in kept})
+    return [n if n in known else f"{n} (no longer in the catalogue)" for n in names]
+
+
 def _install_root(adapter: Adapter, opts: InstallOptions) -> Path | None:
     getter = getattr(adapter, "install_root", None)
     if getter is None:
@@ -1242,6 +1255,9 @@ def _execute_plan(
     gone = _removed_skills(stale_removed, files_written)
     if gone:
         table.add_row("removed", "skills " + ", ".join(gone))
+    dropped = _dropped_plugins(stale, files_written)
+    if dropped:
+        table.add_row("removed", "plugins " + ", ".join(dropped))
     for path in retired_configs:
         table.add_row("retired", f"{RETIRED_MCP_SERVER} MCP server removed from {path}")
     console.print(table)
