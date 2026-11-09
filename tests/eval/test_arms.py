@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from rf_skill_eval.application.staging import staged_tree
 from rf_skill_eval.domain.profile import Profile
 from rf_skill_eval.domain.task import Task
 from rf_skill_eval.infrastructure.runner.claude_code_runner import (
@@ -23,7 +24,8 @@ from rf_skill_eval.infrastructure.runner.claude_code_runner import (
 )
 
 _REPO = Path(__file__).resolve().parents[2]
-_PLUGIN = _REPO / "plugins" / "rf-agentskills"
+#: Every content plugin merged: what the runner stages by default (a full install).
+_PLUGIN = staged_tree(_REPO / "plugins")
 
 _FAKE_CLAUDE = """#!{python}
 import json, os, sys

@@ -46,15 +46,19 @@ REPO = Path(__file__).resolve().parents[2]
 
 def test_bundle_has_catalog_and_plugin_dir() -> None:
     with _assets.asset_root_path() as root:
-        assert root.as_posix().endswith("_assets/plugins/rf-agentskills")
+        assert root.as_posix().endswith("_assets/plugins/rf-core")
     names = {p["name"]: p for p in _assets.bundled_catalog()}
-    assert names["rf-agentskills"]["tier"] == "verified"
-    assert names["rf-agentskills"]["version"]
+    assert names["rf-core"]["tier"] == "verified"
+    assert names["rf-core"]["version"]
+    assert names["rf-agentskills"]["bundle"] is True
+    assert _assets.content_plugins() == ("rf-core", "rf-api", "rf-desktop", "rf-mobile", "rf-web")
 
 
 def test_bundle_leaves_out_plugin_tests_and_evals() -> None:
     with _assets.asset_root_path() as root:
         assert not (root / "tests").exists() and not (root / "evals").exists()
+        # Only the plugin's own folders: a skill's example tests/ ship.
+        assert (root / "skills" / "rf-language" / "assets" / "examples" / "tests").is_dir()
 
 
 @pytest.mark.slow
@@ -66,7 +70,7 @@ def test_wheel_contains_bundled_plugins(tmp_path: Path) -> None:
     names = zipfile.ZipFile(wheel).namelist()
     assert "robotframework_plugins/_assets/catalog.json" in names
     assert "robotframework_plugins/_assets/plugins/rf-agentskills/.claude-plugin/plugin.json" in names
-    assert any(n.startswith("robotframework_plugins/_assets/plugins/rf-agentskills/skills/rf-browser/") for n in names)
+    assert any(n.startswith("robotframework_plugins/_assets/plugins/rf-web/skills/rf-browser/") for n in names)
 
 
 def test_plan_covers_every_plugin_and_records_it(two_plugin_bundle: Path, install_prefix: Path) -> None:
@@ -76,16 +80,16 @@ def test_plan_covers_every_plugin_and_records_it(two_plugin_bundle: Path, instal
     from robotframework_plugins.adapters._base import InstallOptions
     from robotframework_plugins.adapters.claude_code import ClaudeCodeAdapter
 
-    opts = replace(InstallOptions(prefix=install_prefix), plugins=("rf-agentskills", "rf-example"))
+    opts = replace(InstallOptions(prefix=install_prefix), plugins=("rf-web", "rf-example"))
     plan = cli._plan_plugins(ClaudeCodeAdapter(), opts)
     by_plugin: dict[str, set[str]] = {}
     for t in plan.targets:
         by_plugin.setdefault(t.plugin, set()).add(t.dst.relative_to(install_prefix).as_posix())
     assert "skills/rf-example/SKILL.md" in by_plugin["rf-example"]
-    assert "skills/rf-browser/SKILL.md" in by_plugin["rf-agentskills"]
+    assert "skills/rf-browser/SKILL.md" in by_plugin["rf-web"]
     # Each plugin's support files live in its own folder.
-    assert all(not p.startswith("rf-agentskills-files/") for p in by_plugin["rf-example"])
-    assert all(not p.startswith("rf-example-files/") for p in by_plugin["rf-agentskills"])
+    assert all(not p.startswith("rf-web-files/") for p in by_plugin["rf-example"])
+    assert all(not p.startswith("rf-example-files/") for p in by_plugin["rf-web"])
 
 
 def test_manifest_records_the_plugin_of_each_file(fake_home: Path, tmp_path: Path) -> None:
@@ -96,4 +100,4 @@ def test_manifest_records_the_plugin_of_each_file(fake_home: Path, tmp_path: Pat
     (path,) = list(tmp_path.rglob("installed.json"))
     data = json.loads(path.read_text())
     files = [f for ins in data["installations"] for f in ins["files"]]
-    assert files and {f["plugin"] for f in files} == {"rf-agentskills"}
+    assert files and {f["plugin"] for f in files} == {"rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop"}

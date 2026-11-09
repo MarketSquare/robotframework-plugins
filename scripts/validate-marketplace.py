@@ -113,20 +113,25 @@ def main() -> None:
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(base)
 
-    plugin_root = os.path.join("plugins", "rf-agentskills")
-    skills_dir = os.path.join(plugin_root, "skills")
-    scripts_dir = os.path.join(plugin_root, "scripts")
-
     all_errors: list[str] = []
     checks = [
         ("Marketplace JSON", lambda: validate_marketplace_json(
             os.path.join(".claude-plugin", "marketplace.json"))),
-        ("Plugin JSON", lambda: validate_plugin_json(
-            os.path.join(plugin_root, ".claude-plugin", "plugin.json"))),
-        ("SKILL.md files", lambda: validate_skill_md_files(skills_dir)),
-        ("Python scripts", lambda: validate_python_scripts(scripts_dir)),
-        (".robot files", lambda: validate_robot_files(skills_dir)),
     ]
+    for plugin in sorted(os.listdir("plugins")):
+        plugin_root = os.path.join("plugins", plugin)
+        skills_dir = os.path.join(plugin_root, "skills")
+        checks.append((f"Plugin JSON ({plugin})", lambda r=plugin_root: validate_plugin_json(
+            os.path.join(r, ".claude-plugin", "plugin.json"))))
+        if not os.path.isdir(skills_dir):
+            continue  # a bundle or a plugin with only subagents and hooks
+        checks += [
+            (f"SKILL.md files ({plugin})", lambda d=skills_dir: validate_skill_md_files(d)),
+            (f"Python scripts ({plugin})", lambda d=skills_dir: [
+                e for s in sorted(os.listdir(d)) if os.path.isdir(os.path.join(d, s, "scripts"))
+                for e in validate_python_scripts(os.path.join(d, s, "scripts"))]),
+            (f".robot files ({plugin})", lambda d=skills_dir: validate_robot_files(d)),
+        ]
 
     for name, check_fn in checks:
         print(f"Checking {name}...")

@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from rf_skill_eval.application.catalog import load_task_file
+from rf_skill_eval.application.catalog import load_task_file, plugin_evals_dir
 from rf_skill_eval.domain.run import Run
 from rf_skill_eval.domain.scorecard import Scorecard
 from rf_skill_eval.domain.task import Task
@@ -26,7 +26,7 @@ from rf_skill_eval.scoring.rubric import RubricGrader
 
 _REPO = Path(__file__).resolve().parents[2]
 _FIXTURES = _REPO / "eval" / "fixtures"
-_TASKS = _REPO / "plugins" / "rf-agentskills" / "evals" / "tasks"
+_TASKS = plugin_evals_dir(_REPO, "all") / "tasks"
 _GOLDEN = Path(__file__).parent / "golden"
 
 pytestmark = pytest.mark.integration

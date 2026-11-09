@@ -1,7 +1,7 @@
 """Ensure every checked-in task YAML parses into a valid Task model.
 
 This is the integration contract between the YAML schema authored in
-``plugins/rf-agentskills/evals/tasks/`` and the Python domain model. If an author adds a field
+``plugins/rf-core/evals/tasks/`` and the Python domain model. If an author adds a field
 the model does not understand, or removes one it requires, the build
 breaks here rather than at evaluation time.
 """
@@ -13,16 +13,15 @@ import pathlib
 import pytest
 import yaml
 
+from rf_skill_eval.application.catalog import shipped_skills
 from rf_skill_eval.domain.task import Task
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-_TASKS_DIR = _REPO_ROOT / "plugins" / "rf-agentskills" / "evals" / "tasks"
+_TASK_GLOB = "plugins/*/evals/tasks/**/*.yaml"
 
 
 def _task_yaml_paths() -> list[pathlib.Path]:
-    if not _TASKS_DIR.is_dir():
-        return []
-    return sorted(_TASKS_DIR.rglob("*.yaml"))
+    return sorted(_REPO_ROOT.glob(_TASK_GLOB))
 
 
 @pytest.mark.parametrize(
@@ -46,10 +45,10 @@ def test_task_yaml_parses(yaml_path: pathlib.Path) -> None:
 
 def test_task_yaml_directory_is_populated() -> None:
     # Guard against the parametrize silently collecting zero cases.
-    assert _task_yaml_paths(), "expected at least one task YAML under plugins/rf-agentskills/evals/tasks/"
+    assert _task_yaml_paths(), "expected at least one task YAML under plugins/*/evals/tasks/"
 
 
-_PLUGIN_SKILLS_DIR = _REPO_ROOT / "plugins" / "rf-agentskills" / "skills"
+_SHIPPED = shipped_skills(_REPO_ROOT)
 
 
 @pytest.mark.parametrize(
@@ -63,9 +62,10 @@ def test_task_skill_is_shipped(yaml_path: pathlib.Path) -> None:
     skill = payload["skill"]
     if skill == "plugin":
         return
-    assert (_PLUGIN_SKILLS_DIR / skill).is_dir(), (
-        f"{yaml_path}: skill '{skill}' is not a directory in plugins/rf-agentskills/skills/"
-    )
+    assert skill in _SHIPPED, f"{yaml_path}: skill '{skill}' is not a skill of any plugin under plugins/"
+    # A task lives in the plugin that ships its skill.
+    plugin = yaml_path.relative_to(_REPO_ROOT).parts[1]
+    assert (_REPO_ROOT / "plugins" / plugin / "skills" / _SHIPPED[skill]).is_dir(), (yaml_path, plugin)
 
 
 def test_smoke_script_runs_a_shipped_task() -> None:
@@ -77,4 +77,4 @@ def test_smoke_script_runs_a_shipped_task() -> None:
     task_path = _REPO_ROOT / match.group(1)
     assert task_path.is_file(), f"smoke task {task_path} does not exist"
     skill = yaml.safe_load(task_path.read_text(encoding="utf-8"))["skill"]
-    assert (_PLUGIN_SKILLS_DIR / skill).is_dir()
+    assert skill in _SHIPPED

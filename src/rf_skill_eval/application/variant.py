@@ -1,7 +1,8 @@
 """Description variants for trigger tuning (tune-skill-descriptions, design D5).
 
 A *variant root* is a directory holding ``plugins/rf-agentskills`` (staged by
-``trigger --variant-root``), copied from the repository with some skills'
+``trigger --variant-root``): every content plugin of the repository merged
+into one tree (a full install, see :mod:`.staging`), with some skills'
 frontmatter ``description`` replaced by candidate texts. Nothing in the
 repository's own ``plugins/`` is edited.
 
@@ -23,11 +24,12 @@ from typing import Any
 
 import yaml
 
+from .staging import content_plugins, merge_plugins
+
 PLUGIN_REL = Path("plugins") / "rf-agentskills"
 VARIANT_FILE = "variant.json"
 MAX_DESCRIPTION = 1024
 _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
-_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".venv", "node_modules")
 
 
 def _frontmatter(skill_md: Path) -> dict[str, Any]:
@@ -137,17 +139,17 @@ class Variant:
 def build_variant(
     repo_root: Path, candidates: Mapping[str, str], out: Path, *, force: bool = False
 ) -> Variant:
-    """Copy ``plugins/rf-agentskills`` to ``out`` with ``candidates`` applied."""
-    plugin_src = repo_root / PLUGIN_REL
-    if not (plugin_src / "skills").is_dir():
-        raise ValueError(f"{repo_root}: no plugins/rf-agentskills/skills to copy")
+    """Merge the repository's content plugins into ``out/plugins/rf-agentskills``
+    with ``candidates`` applied."""
+    if not content_plugins(repo_root / "plugins"):
+        raise ValueError(f"{repo_root}: no plugin with skills under plugins/ to copy")
     if out.exists():
         if not force and any(out.iterdir()):
             raise ValueError(f"{out} exists and is not empty (use --force to replace it)")
         shutil.rmtree(out)
     out.mkdir(parents=True)
     plugin_dst = out / PLUGIN_REL
-    shutil.copytree(plugin_src, plugin_dst, ignore=_IGNORE, symlinks=True)
+    merge_plugins(repo_root / "plugins", plugin_dst)
 
     dirs = _name_dirs(plugin_dst / "skills")
     unknown = sorted(set(candidates) - set(dirs))

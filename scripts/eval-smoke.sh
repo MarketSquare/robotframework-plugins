@@ -11,7 +11,7 @@ _info() { printf '\033[36m[eval-smoke]\033[0m %s\n' "$*" >&2; }
 _err()  { printf '\033[31m[eval-smoke]\033[0m %s\n' "$*" >&2; }
 
 # A narrow library-skill task (rf-requests) with a local fixture API.
-TASK="plugins/rf-agentskills/evals/tasks/narrow/narrow-requests-users-01.yaml"
+TASK="plugins/rf-api/evals/tasks/narrow/narrow-requests-users-01.yaml"
 if [[ ! -f "${TASK}" ]]; then
   _err "Smoke task not found: ${TASK}"
   exit 1
@@ -22,7 +22,7 @@ _info "Running smoke task: ${TASK}"
 _info "Output: ${RUN_DIR}"
 
 # `run` grades the run inline; the cap keeps a misbehaving session cheap.
-uv run rf-skill-eval run \
+uv run rf-skill-eval --plugin rf-api run \
   --task "${TASK}" \
   --arm treatment \
   --model claude-haiku-5-5 \

@@ -11,7 +11,7 @@
   - `rf-mobile`: `rf-appium`;
   - `rf-desktop`: `rf-platynui`.
   Further technologies (database, Java, Windows-only tools) get a plugin when a maintainer group for them exists; they are not created empty.
-- **BREAKING:** `rf-agentskills` becomes a bundle with no content of its own that installs all five plugins, at version 4.0.0. Skill names are unchanged, but their plugin prefix changes, for example from `rf-agentskills:rf-browser` to `rf-web:rf-browser`.
+- **BREAKING:** `rf-agentskills` 4.0.0 becomes a bundle: a copy of all five plugins, generated for each release, with no content of its own to maintain. Existing installs keep every skill under the same `rf-agentskills:` prefix. The separate plugins carry their own prefixes, for example `rf-web:rf-browser`. (Spike and upgrade check: Claude Code doesn't install the dependencies an update adds, and Copilot CLI and Codex don't install dependencies at all; see design D5.)
 - **Library installs move to the library's own skill.** Each library skill owns its `uv add` command and post-install steps (for example `rfbrowser install`, Appium drivers). `rf-setup` keeps Python environments, uv, pip, Poetry, robotcode, Robocop and troubleshooting, plus a table of which plugin covers which library.
 - **Library-to-library migration tables** (SeleniumLibrary to Browser, RequestsLibrary to RESTinstance) move from `rf-migration-guide` into the target library's skill as references.
 - **Core never sends the agent to a skill that may not be installed.** The context-injection hook routes generically. Subagents and core skills that name a technology skill also name its plugin, and say to suggest installing it when it's missing. The `SessionStart` report names the plugin for each library it finds in the project environment.
@@ -37,6 +37,6 @@
 ## Impact
 
 - **Repository:** `plugins/rf-agentskills/` is split into five plugin directories plus the bundle. Each has its own `plugin.json`, `catalog.yaml`, CHANGELOG, tests, evals, variants, baseline and CODEOWNERS entry.
-- **Users:** skill prefixes change. Project settings that enable `rf-agentskills@robotframework-plugins` keep everything through the bundle. Installer file-mode installs keep the same skill folders. Hook scripts move from the `rf-agentskills-files` folder to `rf-core-files`, and the upgrade cleans up the old location.
+- **Users:** users of the bundle keep their skills and prefixes. Users who move to the separate plugins see new prefixes. Project settings that enable `rf-agentskills@robotframework-plugins` keep everything through the bundle. Installer file-mode installs keep the same skill folders. Hook scripts move from the `rf-agentskills-files` folder to `rf-core-files`, and the upgrade cleans up the old location.
 - **Sequencing:** applied inside `launch-plugin-programme`, after its task groups 1–3 and before its group 4. That change's first release (task 10.2) becomes the release of these plugins, so `rf-agentskills--v3.1.0` is never published.
 - **Versions:** `rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop` start at 1.0.0; the `rf-agentskills` bundle is 4.0.0.

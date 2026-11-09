@@ -53,7 +53,7 @@ dependencies = [
 # Canonical dev deps live under `[dependency-groups.dev]` below.
 #
 # `validation` powers the optional static/semantic validation hooks
-# (see plugins/rf-agentskills/hooks/README.md). These are NOT hard
+# (see plugins/rf-core/hooks/README.md). These are NOT hard
 # runtime dependencies: the hooks degrade to a silent no-op when the
 # tools are absent. Users who want the validation feedback loop install
 # the extra; everyone else is unaffected.

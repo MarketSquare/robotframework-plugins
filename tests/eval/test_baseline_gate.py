@@ -17,6 +17,7 @@ from rf_skill_eval.application.baseline import (
     fixture_tree_hash,
     task_hash,
 )
+from rf_skill_eval.application.catalog import plugin_evals_dir
 from rf_skill_eval.application.gate import gate_listing, gate_tasks, gate_triggers
 from rf_skill_eval.application.trigger_eval import TriggerEvalResult
 from rf_skill_eval.domain.results import aggregate_replicates
@@ -318,7 +319,7 @@ def test_cli_baseline_update_gate_and_report(tmp_path: Path, monkeypatch: pytest
 
 
 def test_committed_baseline_dir_exists_with_readme() -> None:
-    root = Path(__file__).resolve().parents[2] / "plugins" / "rf-agentskills" / "evals" / "baselines"
+    root = plugin_evals_dir(Path(__file__).resolve().parents[2], "all") / "baselines"
     assert (root / "README.md").is_file()
 
 

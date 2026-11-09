@@ -100,3 +100,10 @@ tier: narrow
         encoding="utf-8",
     )
     yield path
+
+
+@pytest.fixture(autouse=True)
+def _eval_every_plugin(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The content is split across plugins; CLI tests read all of it unless a
+    test passes ``--plugin`` (or sets ``RF_EVAL_PLUGIN``) itself."""
+    monkeypatch.setenv("RF_EVAL_PLUGIN", "all")

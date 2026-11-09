@@ -19,7 +19,7 @@ Layout produced:
                                             resolves them relative to itself)
 
 User scope: ``~/.config/opencode/``. Project scope: ``<project>/.opencode/``.
-Variants come from ``plugins/rf-agentskills/variants/opencode/``
+Variants come from ``plugins/rf-core/variants/opencode/``
 (``scripts/build-agent-variants.py``).
 """
 

@@ -15,7 +15,10 @@ from robotframework_plugins import transforms as _x
 from robotframework_plugins.cli import main
 
 MARKETPLACE = "robotframework-plugins"
-PLUGIN_ID = "rf-agentskills@robotframework-plugins"
+PLUGIN_ID = "rf-agentskills@robotframework-plugins"  # the bundle
+#: A fresh install in a project that declares no library enables every content plugin.
+CONTENT = ("rf-core", "rf-api", "rf-desktop", "rf-mobile", "rf-web")
+FRESH = {f"{p}@robotframework-plugins": True for p in CONTENT}
 
 
 @pytest.fixture(autouse=True)
@@ -38,7 +41,7 @@ def test_plugin_mode_writes_marketplace_settings_and_no_files(tmp_path: Path, fa
     data = _settings(project / ".claude" / "settings.json")
     assert data["extraKnownMarketplaces"][MARKETPLACE]["source"] == {
         "source": "github", "repo": "MarketSquare/robotframework-plugins"}
-    assert data["enabledPlugins"] == {PLUGIN_ID: True}
+    assert data["enabledPlugins"] == FRESH
     assert not (project / ".claude" / "skills").exists()
     assert not (project / ".claude" / "agents").exists()
 
@@ -59,7 +62,7 @@ def test_existing_settings_survive_and_uninstall_removes_only_our_entries(
     assert _install(project, "--agent", "claude-code", "--mode", "plugin") == 0
     data = _settings(settings)
     assert data["model"] == "opus" and data["hooks"] == foreign["hooks"]
-    assert data["enabledPlugins"] == {"other@mkt": True, PLUGIN_ID: True}
+    assert data["enabledPlugins"] == {"other@mkt": True, **FRESH}
     assert set(data["extraKnownMarketplaces"]) == {"mkt", MARKETPLACE}
     assert main(["uninstall", "--agent", "claude-code", "--scope", "project", "--project", str(project)]) == 0
     assert _settings(settings) == foreign
@@ -83,7 +86,7 @@ def test_copilot_also_writes_its_own_settings(tmp_path: Path, fake_home: Path) -
     assert _install(project, "--agent", "copilot", "--mode", "plugin") == 0
     for path in (project / ".claude" / "settings.json", project / ".github" / "copilot" / "settings.json"):
         data = _settings(path)
-        assert data["enabledPlugins"] == {PLUGIN_ID: True}, path
+        assert data["enabledPlugins"] == FRESH, path
         assert MARKETPLACE in data["extraKnownMarketplaces"], path
 
 
@@ -96,7 +99,7 @@ def test_switching_from_files_to_plugin_removes_copies_and_old_hooks(tmp_path: P
     assert _install(project, "--agent", "claude-code", "--mode", "plugin") == 0
     assert not (project / ".claude" / "skills" / "rf-python-library" / "SKILL.md").exists()
     data = _settings(project / ".claude" / "settings.json")
-    assert not data.get("hooks") and data["enabledPlugins"] == {PLUGIN_ID: True}
+    assert not data.get("hooks") and data["enabledPlugins"] == FRESH
 
 
 def test_codex_plugin_mode_installs_agents_and_prints_commands(
@@ -112,7 +115,7 @@ def test_codex_plugin_mode_installs_agents_and_prints_commands(
     assert len(agents) == 3 and "rf-debug-expert.toml" in agents
     out = " ".join(capsys.readouterr().out.split())
     assert "codex plugin marketplace add MarketSquare/robotframework-plugins --ref v2.1.0" in out
-    assert f"codex plugin add {PLUGIN_ID}" in out and "/hooks" in out
+    assert all(f"codex plugin add {p}@robotframework-plugins" in out for p in CONTENT) and "/hooks" in out
     assert calls == []
     assert not (project / ".codex" / "skills").exists()
 
@@ -134,7 +137,7 @@ def test_codex_plugin_mode_runs_commands_with_yes(
     assert _install(project, "--agent", "codex", "--mode", "plugin", "--yes") == 0
     assert calls == [
         ["codex", "plugin", "marketplace", "add", "MarketSquare/robotframework-plugins"],
-        ["codex", "plugin", "add", PLUGIN_ID],
+        *(["codex", "plugin", "add", f"{p}@robotframework-plugins"] for p in CONTENT),
     ]
 
 

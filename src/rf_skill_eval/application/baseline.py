@@ -1,6 +1,6 @@
 """Stored baseline files (design D2, spec "Regression gate against a stored baseline").
 
-``plugins/rf-agentskills/evals/baselines/<tier>.json`` — one entry per task×arm::
+``plugins/rf-core/evals/baselines/<tier>.json`` — one entry per task×arm::
 
     {"kind": "tier-baseline", "schema_version": 1, "tier": "narrow",
      "harness_version": "…", "claude_code_version": "…",
@@ -9,7 +9,7 @@
                  "incomplete", "mean_input_tokens", "mean_output_tokens",
                  "mean_turns", "mean_duration_s", "mean_cost_usd", "gating"}}}
 
-``plugins/rf-agentskills/evals/baselines/triggers.json`` — per skill × split confusion counts.
+``plugins/rf-core/evals/baselines/triggers.json`` — per skill × split confusion counts.
 
 Files are written with sorted keys and no wall-clock timestamps, so the same
 inputs always produce byte-identical output (reviewable diffs). They are

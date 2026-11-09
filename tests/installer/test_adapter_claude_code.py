@@ -28,8 +28,8 @@ def test_plan_writes_skills_agents_and_plugin_files(install_prefix: Path) -> Non
     assert any("/skills/rf-python-library/SKILL.md" in p for p in dst_paths)
     assert any("/agents/rf-test-architect.md" in p for p in dst_paths)
     # Co-located hook scripts (and the skill scripts the Stop hook runs)
-    assert any("/rf-agentskills-files/scripts/" in p for p in dst_paths)
-    assert any("/rf-agentskills-files/skills/rf-language/scripts/rf_conventions.py" in p
+    assert any("/rf-core-files/scripts/" in p for p in dst_paths)
+    assert any("/rf-core-files/skills/rf-language/scripts/rf_conventions.py" in p
                for p in dst_paths)
     # The rf-tools MCP server is gone
     assert not any("/servers/" in p or p.endswith(".mcp.json") for p in dst_paths)
@@ -39,7 +39,7 @@ def test_plan_substitutes_plugin_root_token(install_prefix: Path) -> None:
     plan = ClaudeCodeAdapter().plan(InstallOptions(prefix=install_prefix))
     # ``to_native_path_string`` renders Windows paths with forward
     # slashes, so we compare against the posix form regardless of OS.
-    plugin_root_abs = (install_prefix / "rf-agentskills-files").resolve().as_posix()
+    plugin_root_abs = (install_prefix / "rf-core-files").resolve().as_posix()
     found_substituted_payload = False
     for t in plan.targets:
         if "${CLAUDE_PLUGIN_ROOT}" in t.payload.decode("utf-8", errors="replace"):

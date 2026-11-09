@@ -551,18 +551,21 @@ def skill_key(dir_name: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Verify that library skills only use existing, non-deprecated keywords.")
-    parser.add_argument("--skills-root", default=str(REPO_ROOT / "plugins" / "rf-agentskills" / "skills"),
-                        help="directory containing the skill dirs (default: <repo>/plugins/rf-agentskills/skills)")
+    parser.add_argument("--skills-root", action="append",
+                        help="directory containing skill dirs; repeatable "
+                             "(default: every <repo>/plugins/*/skills)")
     parser.add_argument("--allowlist", default=str(DEFAULT_ALLOWLIST),
                         help="TOML allowlist ([[allow]] skill/file/keyword/reason); '' disables it")
     parser.add_argument("--require-all", action="store_true",
                         help="fail when a skill is skipped because its library is not installed")
     args = parser.parse_args(argv)
 
-    root = Path(args.skills_root)
-    if not root.is_dir():
-        print(f"ERROR: skills root not found: {root}", file=sys.stderr)
-        return 2
+    roots = ([Path(r) for r in args.skills_root] if args.skills_root
+             else sorted(p for p in (REPO_ROOT / "plugins").glob("*/skills") if p.is_dir()))
+    for root in roots:
+        if not root.is_dir():
+            print(f"ERROR: skills root not found: {root}", file=sys.stderr)
+            return 2
     allow = load_allowlist(Path(args.allowlist) if args.allowlist else None)
 
     std: dict[str, object] = {}
@@ -574,7 +577,7 @@ def main(argv: list[str] | None = None) -> int:
     failed = False
     summaries: list[str] = []
     checked_skills: set[str] = set()
-    for skill_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+    for skill_dir in sorted((p for root in roots for p in root.iterdir() if p.is_dir()), key=lambda p: p.name):
         key = skill_key(skill_dir.name)
         if key not in SKILL_LIBRARIES:
             continue

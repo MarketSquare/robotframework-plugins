@@ -37,7 +37,7 @@ jobs:
       - name: Export standalone skills from the plugin
         # Writes skills/ on the runner only (the release tarballs, ZIPs and the
         # skill count below read it); the repository has no root copy.
-        run: python scripts/export-skills.py rf-agentskills skills
+        run: python scripts/export-skills.py all skills
 
       - name: Check drift
         run: bash scripts/check-drift.sh
@@ -46,8 +46,12 @@ jobs:
       - name: Package Claude plugin
         run: |
           cd plugins
+          # Leave out each plugin's own tests/ and evals/, not the example
+          # tests/ folders inside skills.
+          excludes=()
+          for d in */; do excludes+=(--exclude="${d}tests" --exclude="${d}evals"); done
           tar -czf ../rf-agentskills-claude-plugin-${{ steps.version.outputs.version }}.tar.gz \
-            --exclude=rf-agentskills/tests --exclude=rf-agentskills/evals rf-agentskills/
+            "${excludes[@]}" */
 
       # ── Build standalone skills (any agent) ──
       - name: Package standalone skills
@@ -85,7 +89,7 @@ jobs:
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
           SKILL_COUNT=$(find skills -mindepth 2 -maxdepth 2 -name SKILL.md -path 'skills/rf-*/SKILL.md' | wc -l | tr -d ' ')
-          AGENT_COUNT=$(ls plugins/rf-agentskills/agents/*.md | wc -l | tr -d ' ')
+          AGENT_COUNT=$(ls plugins/rf-core/agents/*.md | wc -l | tr -d ' ')
           cat > CHANGELOG_BODY.md << 'HEADER'
           ## Robot Framework Agent Skills v${{ steps.version.outputs.version }}
 
@@ -139,7 +143,7 @@ jobs:
 
           echo "### Agents (${AGENT_COUNT})" >> CHANGELOG_BODY.md
           echo "" >> CHANGELOG_BODY.md
-          for agent in plugins/rf-agentskills/agents/*.md; do
+          for agent in plugins/rf-core/agents/*.md; do
             name=$(basename "$agent" .md)
             desc=$(head -5 "$agent" | grep "^description:" | sed 's/^description: //' | cut -c1-80)
             echo "- **${name}**: ${desc}" >> CHANGELOG_BODY.md

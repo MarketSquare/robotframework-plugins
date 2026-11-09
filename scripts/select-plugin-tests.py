@@ -7,6 +7,9 @@ The shared tests in ``tests/`` always run. A plugin's own tests
 * a file under ``plugins/<name>/`` changed, or
 * a file that one of the plugin's symlinks points to changed (a shared file
   lives in one plugin and the others link to it), or
+* a plugin it depends on, or one that depends on it, was selected by the two
+  rules above (``rf-core``'s tests check the routes to technology skills, and a
+  technology plugin's tests may read ``rf-core``), or
 * a file outside ``plugins/`` changed (shared scripts, the installer, the
   workflows): those can affect every plugin, so every plugin runs, or
 * no list of changed paths is given (push to main, release): every plugin runs.
@@ -49,6 +52,25 @@ def _links_into(root: Path, plugin: str) -> set[str]:
     return targets
 
 
+def dependencies(root: Path) -> dict[str, set[str]]:
+    """``{plugin: names of the plugins in its plugin.json dependencies}``."""
+    deps: dict[str, set[str]] = {}
+    for pj in sorted((root / "plugins").glob("*/.claude-plugin/plugin.json")):
+        data = json.loads(pj.read_text(encoding="utf-8"))
+        deps[pj.parent.parent.name] = {d if isinstance(d, str) else d["name"]
+                                       for d in data.get("dependencies", [])}
+    return deps
+
+
+def _with_neighbours(root: Path, selected: set[str]) -> set[str]:
+    deps = dependencies(root)
+    out = set(selected)
+    for name in selected:
+        out |= deps.get(name, set())
+        out |= {other for other, theirs in deps.items() if name in theirs}
+    return out
+
+
 def select(root: Path, changed: list[str] | None) -> list[str]:
     plugins = plugins_with_tests(root)
     if changed is None:
@@ -67,7 +89,7 @@ def select(root: Path, changed: list[str] | None) -> list[str]:
         for plugin, targets in links.items():
             if any(path == t or path.startswith(t + "/") for t in targets):
                 selected.add(plugin)
-    return sorted(selected)
+    return sorted(_with_neighbours(root, selected) & set(plugins))
 
 
 def _changed_paths(root: Path, base: str | None, paths_file: Path | None) -> list[str] | None:

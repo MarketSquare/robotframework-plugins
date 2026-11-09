@@ -1,0 +1,25 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+name: rf-web
+summary: Browser Library and SeleniumLibrary skills for web tests.
+tier: verified
+status: active
+maintainers:
+  - github: manykarim
+    name: Many Kasiriha
+libraries:
+  - name: Browser
+    package: robotframework-browser
+    versions: ">=20,<21"
+  - name: SeleniumLibrary
+    package: robotframework-seleniumlibrary
+    versions: ">=6.9,<7"
+robotframework: ">=7.0"
+agents:
+  - claude-code
+  - copilot-cli
+  - vscode-copilot
+  - codex
+  - cursor
+  - opencode
+  - goose
+  - claude-desktop

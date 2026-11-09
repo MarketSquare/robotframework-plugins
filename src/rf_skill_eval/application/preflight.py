@@ -10,7 +10,7 @@
   ``tests/`` and ``evals/`` -> the bundle canaries (``plugin``), which always
   run anyway.
 
-``<plugin>`` is the plugin being evaluated; skills of other plugins are dropped.
+``<plugin>`` is the plugin being evaluated (``*``: any); skills of other plugins are dropped.
 
 A skill's trigger eval runs when the frontmatter ``description`` of its
 ``SKILL.md`` changed (or its trigger set changed).
@@ -134,7 +134,7 @@ def map_changed_paths(
     task_skill: Callable[[str], str | None],
     fixture_skills: Mapping[str, set[str]],
     description_changed: Callable[[str], bool] = lambda _p: False,
-    plugin: str = "rf-agentskills",
+    plugin: str = "*",
 ) -> PreflightResult:
     """Pure mapping from changed paths to eval selection (testable without git)."""
     result = PreflightResult()

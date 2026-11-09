@@ -3,15 +3,15 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 ## 1. Spike: dependencies and symlinks
 
 - [ ] 1.1 Build a scratch marketplace with a plugin `dep-a` (one skill, one hook), a plugin `dep-b` that depends on `dep-a`, and a bundle that depends on both and also symlinks one skill from `dep-a`. Install the bundle in isolated homes on Claude Code, Copilot CLI and Codex at their current versions. Record, per agent, whether the dependencies install, whether the skills and the hook load, and whether the symlinked skill loads. Verify by attaching the per-agent results table to this change's design (D5).
-- [ ] 1.2 Clone the scratch marketplace on Windows with `core.symlinks=false` (GitHub Actions `windows-latest`) and install it in Claude Code there. Verify by recording whether the symlinked skill arrives as content, as a text file holding a path, or not at all.
-- [ ] 1.3 Choose the D5 row that matches the results and record the decision in design.md. Verify that the bundle mechanism and the shared-file mechanism are each named once, with the spike evidence.
+- [x] 1.2 *(Skipped with the maintainer's agreement: Codex drops symlinks on every platform, so none ship and the Windows checkout can't change the decision; see design D5.)* Clone the scratch marketplace on Windows with `core.symlinks=false` (GitHub Actions `windows-latest`) and install it in Claude Code there. Verify by recording whether the symlinked skill arrives as content, as a text file holding a path, or not at all.
+- [x] 1.3 Choose the D5 row that matches the results and record the decision in design.md. Verify that the bundle mechanism and the shared-file mechanism are each named once, with the spike evidence.
 
 ## 2. Create the plugins
 
-- [ ] 2.1 Create `plugins/rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop`, moving skills, subagents, hooks, scripts, variants, tests and evals with `git mv` from `plugins/rf-agentskills/` as the `plugin-split` table assigns them. Verify that `git log --follow plugins/rf-web/skills/rf-browser/SKILL.md` reaches the original commits, and the "Every skill has one home" scenario.
-- [ ] 2.2 Write each plugin's `plugin.json` (version 1.0.0; technology plugins depend on `rf-core` `^1.0`), `catalog.yaml` (libraries with PyPI `package` names), README and CHANGELOG, and add CODEOWNERS paths per skill folder. Verify that `claude plugin validate .` passes and the "Installing web brings core" scenario passes in an isolated Claude Code home.
+- [x] 2.1 Create `plugins/rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop`, moving skills, subagents, hooks, scripts, variants, tests and evals with `git mv` from `plugins/rf-agentskills/` as the `plugin-split` table assigns them. Verify that `git log --follow plugins/rf-web/skills/rf-browser/SKILL.md` reaches the original commits, and the "Every skill has one home" scenario.
+- [x] 2.2 Write each plugin's `plugin.json` (version 1.0.0; technology plugins depend on `rf-core` `^1.0`), `catalog.yaml` (libraries with PyPI `package` names), README and CHANGELOG, and add CODEOWNERS paths per skill folder. Verify that `claude plugin validate .` passes and the "Installing web brings core" scenario passes in an isolated Claude Code home.
 - [ ] 2.3 Turn `plugins/rf-agentskills/` into the 4.0.0 bundle using the mechanism chosen in 1.3, with a changelog entry on the prefix change. Verify the "Existing project settings keep working" and "Bundle on Copilot CLI and Codex" scenarios in isolated homes.
-- [ ] 2.4 Add the catalogue check that refuses a plugin without content. Verify the "Empty plugin refused" fixture.
+- [x] 2.4 Add the catalogue check that refuses a plugin without content. Verify the "Empty plugin refused" fixture.
 
 ## 3. Move library-specific content out of core
 
@@ -28,7 +28,7 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 
 ## 5. Installer
 
-- [ ] 5.1 Add project detection: read `pyproject.toml` (PEP 621, Poetry, dependency groups) and `requirements*.txt`, and match against `catalog.yaml` packages. Apply the fresh-install and upgrade defaults, `--plugins all`, wizard preselection, and the printed reason. Verify the "Browser project" and "Nothing detected" scenarios.
+- [x] 5.1 Add project detection: read `pyproject.toml` (PEP 621, Poetry, dependency groups) and `requirements*.txt`, and match against `catalog.yaml` packages. Apply the fresh-install and upgrade defaults, `--plugins all`, wizard preselection, and the printed reason. Verify the "Browser project" and "Nothing detected" scenarios.
 - [ ] 5.2 Change the file-mode layout to `<root>/<plugin>-files/`, record files per plugin, and on upgrade move `rf-agentskills-files/`, rewrite hook commands and keep user-modified files. Verify the "Claude Code file-mode upgrade" and "Narrowing is explicit" scenarios for Claude Code, Codex, Cursor and OpenCode.
 - [ ] 5.3 Check plugin mode with the split: `enabledPlugins` gets one entry per selected plugin, and migrated old settings enable the bundle. Verify the launch change's "Old marketplace entry migrated" scenario still passes, plus a new test with `--plugins rf-core,rf-web`.
 

@@ -11,8 +11,8 @@ import pytest
 from _shell import BASH, requires_posix_bash
 
 ROOT = Path(__file__).resolve().parent.parent
-PLUGIN_SCRIPTS = ROOT / "plugins" / "rf-agentskills" / "scripts"
-PLUGIN_SKILLS = ROOT / "plugins" / "rf-agentskills" / "skills"
+PLUGIN_SCRIPTS = ROOT / "plugins" / "rf-core" / "scripts"
+PLUGIN_SKILLS = ROOT / "plugins" / "rf-core" / "skills"
 
 _spec = importlib.util.spec_from_file_location("export_skills", ROOT / "scripts" / "export-skills.py")
 export = importlib.util.module_from_spec(_spec)
@@ -33,11 +33,17 @@ def test_no_flat_plugin_python_scripts():
 
 
 def test_skill_dirs_use_rf_names():
-    names = {p.name for p in PLUGIN_SKILLS.iterdir() if p.is_dir()}
+    names = {p.name for p in ROOT.glob("plugins/*/skills/*") if p.is_dir()}
     assert names and all(name.startswith("rf-") for name in names), names
 
 
 # --- standalone export ------------------------------------------------------
+
+def test_export_all_takes_every_plugin(tmp_path: Path):
+    names = export.export_plugins(ROOT, "all", tmp_path / "out")
+    assert sorted(names) == sorted(p.parent.name for p in ROOT.glob("plugins/*/skills/*/SKILL.md"))
+    assert (tmp_path / "out" / "rf-browser" / "SKILL.md").is_file()
+
 
 def test_export_writes_the_standalone_command_form(tmp_path: Path):
     names = export.export_skills(PLUGIN_SKILLS, tmp_path / "out")
@@ -82,24 +88,24 @@ def test_drift_check_clean_tree_passes(scratch_repo: Path):
 
 @requires_posix_bash
 def test_drift_check_names_flat_plugin_script(scratch_repo: Path):
-    (scratch_repo / "plugins/rf-agentskills/scripts/retired_helper.py").write_text("orphan\n")
+    (scratch_repo / "plugins/rf-core/scripts/retired_helper.py").write_text("orphan\n")
     res = _drift(scratch_repo)
     assert res.returncode == 1, res.stdout
-    assert "ORPHAN: plugins/rf-agentskills/scripts/retired_helper.py" in res.stdout
+    assert "ORPHAN: plugins/rf-core/scripts/retired_helper.py" in res.stdout
 
 
 @requires_posix_bash
 @pytest.mark.parametrize(
     "tree",
     [
-        "plugins/rf-agentskills/skills/rf-python-library",
-        "plugins/rf-agentskills/skills/rf-python-library/scripts",
-        "plugins/rf-agentskills/scripts",
+        "plugins/rf-core/skills/rf-python-library",
+        "plugins/rf-core/skills/rf-python-library/scripts",
+        "plugins/rf-core/scripts",
     ],
 )
 def test_drift_check_rejects_symlinks(scratch_repo: Path, tree: str):
     link = scratch_repo / tree / "linked.md"
-    link.symlink_to(scratch_repo / "plugins/rf-agentskills/skills/rf-python-library/SKILL.md")
+    link.symlink_to(scratch_repo / "plugins/rf-core/skills/rf-python-library/SKILL.md")
     res = _drift(scratch_repo)
     assert res.returncode == 1, res.stdout
     assert f"SYMLINK: {tree}/linked.md" in res.stdout
@@ -107,11 +113,11 @@ def test_drift_check_rejects_symlinks(scratch_repo: Path, tree: str):
 
 @requires_posix_bash
 def test_drift_check_rejects_name_dir_mismatch(scratch_repo: Path):
-    md = scratch_repo / "plugins/rf-agentskills/skills/rf-language/SKILL.md"
+    md = scratch_repo / "plugins/rf-core/skills/rf-language/SKILL.md"
     md.write_text(md.read_text().replace("name: rf-language", "name: language", 1))
     res = _drift(scratch_repo)
     assert res.returncode == 1
-    assert "NAME MISMATCH: plugins/rf-agentskills/skills/rf-language/SKILL.md" in res.stdout
+    assert "NAME MISMATCH: plugins/rf-core/skills/rf-language/SKILL.md" in res.stdout
 
 
 @requires_posix_bash
@@ -126,7 +132,7 @@ def test_drift_check_covers_every_plugin(scratch_repo: Path):
 
 @requires_posix_bash
 def test_drift_check_catches_stale_variant(scratch_repo: Path):
-    variant = next((scratch_repo / "plugins/rf-agentskills/variants/codex/agents").glob("*.toml"))
+    variant = next((scratch_repo / "plugins/rf-core/variants/codex/agents").glob("*.toml"))
     variant.write_text(variant.read_text() + "\n# hand edit\n")
     res = _drift(scratch_repo)
     assert res.returncode == 1, res.stdout
@@ -141,16 +147,16 @@ def _append_line(repo: Path, rel: str, line: str) -> None:
 @pytest.mark.parametrize(
     ("rel", "line", "expected"),
     [
-        ("plugins/rf-agentskills/skills/rf-language/SKILL.md", "python scripts/rf_conventions.py --output output.xml",
-         "BARE PYTHON: plugins/rf-agentskills/skills/rf-language/SKILL.md"),
-        ("plugins/rf-agentskills/skills/rf-python-library/SKILL.md",
+        ("plugins/rf-core/skills/rf-language/SKILL.md", "python scripts/rf_conventions.py --output output.xml",
+         "BARE PYTHON: plugins/rf-core/skills/rf-language/SKILL.md"),
+        ("plugins/rf-core/skills/rf-python-library/SKILL.md",
          'python "${CLAUDE_SKILL_DIR}/scripts/check_library.py" --library X',
-         "BARE PYTHON: plugins/rf-agentskills/skills/rf-python-library/SKILL.md"),
-        ("plugins/rf-agentskills/skills/rf-language/SKILL.md",
+         "BARE PYTHON: plugins/rf-core/skills/rf-python-library/SKILL.md"),
+        ("plugins/rf-core/skills/rf-language/SKILL.md",
          'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rf_conventions.py" --output output.xml',
-         "PLUGIN_ROOT IN SKILL.md: plugins/rf-agentskills/skills/rf-language/SKILL.md"),
-        ("plugins/rf-agentskills/skills/rf-setup/SKILL.md", "See ${CLAUDE_PLUGIN_ROOT}/scripts.",
-         "PLUGIN_ROOT IN SKILL.md: plugins/rf-agentskills/skills/rf-setup/SKILL.md"),
+         "PLUGIN_ROOT IN SKILL.md: plugins/rf-core/skills/rf-language/SKILL.md"),
+        ("plugins/rf-core/skills/rf-setup/SKILL.md", "See ${CLAUDE_PLUGIN_ROOT}/scripts.",
+         "PLUGIN_ROOT IN SKILL.md: plugins/rf-core/skills/rf-setup/SKILL.md"),
     ],
 )
 def test_drift_check_rejects_wrong_command_form(scratch_repo: Path, rel: str, line: str, expected: str):
@@ -167,6 +173,6 @@ def test_drift_check_accepts_project_env_command_forms(scratch_repo: Path):
         '`.venv/bin/python "${CLAUDE_SKILL_DIR}/scripts/rf_conventions.py" …` or '
         '`poetry run python "${CLAUDE_SKILL_DIR}/scripts/rf_conventions.py" …`',
     ):
-        _append_line(scratch_repo, "plugins/rf-agentskills/skills/rf-language/SKILL.md", line)
+        _append_line(scratch_repo, "plugins/rf-core/skills/rf-language/SKILL.md", line)
     res = _drift(scratch_repo)
     assert res.returncode == 0, res.stdout

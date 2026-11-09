@@ -45,10 +45,9 @@ from .application.batch import (
     plan_batch,
 )
 from .application.catalog import (
-    coverage as coverage_check,
-)
-from .application.catalog import (
+    ALL_PLUGINS,
     default_eval_plugin,
+    eval_plugins,
     find_repo_root,
     load_task_file,
     load_trigger_sets,
@@ -56,6 +55,9 @@ from .application.catalog import (
     shipped_skills,
     task_problems,
     validate_tasks,
+)
+from .application.catalog import (
+    coverage as coverage_check,
 )
 from .application.evaluation_service import EvaluationService
 from .application.gate import (
@@ -68,6 +70,7 @@ from .application.gate import (
 )
 from .application.ports import SkillRunner
 from .application.preflight import frontmatter_description, map_changed_paths
+from .application.staging import staged_tree
 from .application.trigger_eval import (
     MAX_TRIGGER_CONCURRENCY,
     OUTCOMES_FILE,
@@ -119,7 +122,8 @@ def _select_plugin(
         "--plugin",
         envvar="RF_EVAL_PLUGIN",
         help="Plugin whose evals (plugins/<name>/evals/: tasks, triggers, baselines) "
-        "the command reads and writes. Default: the only plugin with evals.",
+        "the command reads and writes, or 'all' for every plugin's evals at once "
+        "(read-only). Default: the only plugin with evals.",
     ),
 ) -> None:
     _PLUGIN["name"] = plugin
@@ -373,7 +377,9 @@ def run(
 
 @app.command("run-batch")
 def run_batch(
-    tasks_dir: Path = typer.Option(..., "--tasks-dir", exists=True),
+    tasks_dir: Path | None = typer.Option(
+        None, "--tasks-dir", exists=True, help="Default: the --plugin's evals/tasks"
+    ),
     arms: str | None = typer.Option(
         None, "--arms", help="Comma list: treatment,baseline (default: treatment)"
     ),
@@ -401,6 +407,7 @@ def run_batch(
     configure_logging()
     root = _repo_root()
     baseline_dir = baseline_dir or _evals("baselines", root=root)
+    tasks_dir = tasks_dir or _evals("tasks", root=root)
     validation = validate_tasks(
         tasks_dir, skills=shipped_skills(root, _plugin(root)), fixtures_root=root / "eval" / "fixtures"
     )
@@ -901,7 +908,7 @@ def _effective_listing_budget(flag: int | None) -> int | None:
 def _variant(variant_root: Path | None, root: Path) -> tuple[Path, str]:
     """Plugin root to stage and its variant id (design D5)."""
     if variant_root is None:
-        plugin = root / PLUGIN_REL
+        plugin = staged_tree(root / "plugins")
         return plugin, variant_id_for(plugin)
     plugin = variant_root / PLUGIN_REL
     if not (plugin / "skills").is_dir():
@@ -940,7 +947,7 @@ def trigger(
     variant_root: Path | None = typer.Option(
         None,
         "--variant-root",
-        help="Stage <dir>/plugins/rf-agentskills instead of the shipped plugin "
+        help="Stage <dir>/plugins/rf-agentskills instead of the shipped plugins, merged "
         "(build with scripts/build-description-variant.py)",
     ),
     listing_budget: int | None = typer.Option(
@@ -1049,6 +1056,8 @@ def baseline_update(
 
     root = _repo_root()
     tasks_dir = tasks_dir or _evals("tasks", root=root)
+    if output_dir is None and _plugin(root) == ALL_PLUGINS:
+        raise typer.BadParameter("--plugin all is read-only: pass --output-dir, or one --plugin")
     output_dir = output_dir or _evals("baselines", root=root)
     written: list[Path] = []
     cc_version = claude_code_version or _detect_claude_code_version()
@@ -1185,6 +1194,19 @@ def _description_changed(root: Path, base: str | None, path: str) -> bool:
     return old != new
 
 
+def _preflight_index(root: Path, plugin: str, tasks_dir: Path | None) -> dict[str, tuple[Path, Task]]:
+    """Tasks whose paths a diff can name: for ``all``, the real files of every
+    plugin, not the merged copy."""
+    if tasks_dir is not None:
+        return _task_index(tasks_dir)
+    if plugin != ALL_PLUGINS:
+        return _task_index(_evals("tasks", root=root))
+    index: dict[str, tuple[Path, Task]] = {}
+    for name in eval_plugins(root):
+        index.update(_task_index(plugin_evals_dir(root, name) / "tasks"))
+    return index
+
+
 @app.command()
 def preflight(
     base: str | None = typer.Option(None, "--base", help="Git ref to diff against (PR base)"),
@@ -1203,8 +1225,13 @@ def preflight(
     paths = _changed_paths(base, paths_file)
     root = _repo_root()
     plugin = _plugin(root)
-    index = _task_index(tasks_dir or _evals("tasks", root=root))
-    by_path = {str(p.resolve().relative_to(root)): t.skill for p, t in index.values()}
+    index = _preflight_index(root, plugin, tasks_dir)
+    by_path = {}
+    for task_path, task in index.values():
+        try:
+            by_path[task_path.resolve().relative_to(root).as_posix()] = task.skill
+        except ValueError:
+            continue  # a --tasks-dir outside the repository: no changed path names it
     fixture_skills: dict[str, set[str]] = {}
     for _p, t in index.values():
         if t.fixture:
@@ -1215,7 +1242,7 @@ def preflight(
         task_skill=lambda p: by_path.get(p),
         fixture_skills=fixture_skills,
         description_changed=lambda path: _description_changed(root, base, path),
-        plugin=plugin,
+        plugin="*" if plugin == ALL_PLUGINS else plugin,
     )
     for reason in result.reasons:
         console.print(f"- {reason}")

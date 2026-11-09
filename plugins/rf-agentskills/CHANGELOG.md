@@ -1,9 +1,17 @@
 # Changelog
 
-This is the **content channel** version: the `rf-agentskills` plugin, its
-marketplace entry and the skills tarballs. The `rf-agentskills` Python
+This is the version of the `rf-agentskills` plugin: since 4.0.0 a bundle of
+the five Robot Framework plugins, before that the plugin with all the content. The `rf-agentskills` Python
 installer is versioned independently; see `RELEASING.md` at the repo root
 for the policy. (Until 2.0.0 this file lived in `vscode-extension/`.)
+
+## 4.0.0 (unreleased)
+
+The split: the content now lives in five plugins, `rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop` (each 1.0.0), and `rf-agentskills` ships a copy of all five, generated for each release. Existing installs keep the same nine skills, three subagents and hooks, under the same `rf-agentskills:` prefix.
+
+- **Install only what you test.** Install `rf-core` plus the technology plugins you need instead of this bundle. Their skills carry their own prefix, for example `rf-web:rf-browser` instead of `rf-agentskills:rf-browser`.
+- **Not both.** With the bundle and a technology plugin installed, each of its skills appears twice.
+- **Why a copy and not plugin dependencies:** Claude Code doesn't install the dependencies that an update adds, so a 3.0.0 install would have lost every skill on update. Copilot CLI and Codex don't install plugin dependencies at all.
 
 ## 3.0.0 (2026-11-07)
 

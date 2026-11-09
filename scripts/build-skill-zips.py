@@ -30,7 +30,7 @@ from robotframework_plugins.skillzip import skill_zip_bytes  # noqa: E402
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--plugin", default="rf-agentskills", help="plugin whose skills to archive")
+    parser.add_argument("--plugin", default="all", help="plugin whose skills to archive, or 'all'")
     parser.add_argument("--skills", type=Path, help="standalone skills root (default: export --plugin)")
     parser.add_argument("--out", type=Path, required=True, help="output directory")
     args = parser.parse_args(argv)
@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
         skills = args.skills
         if skills is None:
             skills = Path(tmp) / "skills"
-            _export().export_skills(REPO / "plugins" / args.plugin / "skills", skills)
+            _export().export_plugins(REPO, args.plugin, skills)
         count = 0
         for skill_dir in sorted(p for p in skills.iterdir() if (p / "SKILL.md").is_file()):
             (args.out / f"{skill_dir.name}.zip").write_bytes(skill_zip_bytes(skill_dir))

@@ -27,6 +27,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from ...application.staging import staged_tree
 from ...domain.profile import Profile
 from ...domain.run import Run
 from ...domain.task import Task
@@ -58,11 +59,18 @@ class ClaudeCodeRunner:
         self._fixtures_root = fixtures_root
         self._repo_root = (repo_root or Path.cwd()).resolve()
         self._warned_inside_repo = False
-        self._plugin_root = (
-            plugin_root.resolve()
-            if plugin_root is not None
-            else (self._repo_root / "plugins" / "rf-agentskills").resolve()
-        )
+        # Default: every content plugin merged (a full install, as the
+        # rf-agentskills bundle gives); built lazily, see ``_plugin_root``.
+        self._plugin_root_arg = plugin_root.resolve() if plugin_root is not None else None
+        self._merged_root: Path | None = None
+
+    @property
+    def _plugin_root(self) -> Path:
+        if self._plugin_root_arg is not None:
+            return self._plugin_root_arg
+        if self._merged_root is None:
+            self._merged_root = staged_tree(self._repo_root / "plugins").resolve()
+        return self._merged_root
 
     # --- port --------------------------------------------------------------
 
@@ -264,7 +272,7 @@ class ClaudeCodeRunner:
         )
 
     def _known_skill_dirs(self) -> dict[str, str]:
-        """rf-agentskills skill name -> dir, from the staged plugin."""
+        """Skill name -> dir, from the staged plugin tree."""
         return skill_dir_map(self._plugin_root / "skills")
 
     def _warn_if_inside_repo(self, artifacts_dir: Path) -> None:
@@ -324,7 +332,7 @@ class ClaudeCodeRunner:
         return workspace
 
     def _stage_plugin(self, config_dir: Path, plugin_root: Path | None = None) -> Path | None:
-        """Copy the rf-agentskills plugin into the run's config dir.
+        """Copy the plugin tree (default: every content plugin, merged) into the run's config dir.
 
         ``${CLAUDE_PLUGIN_ROOT}`` is rewritten to the absolute path of the
         staged copy in the JSON configs (hooks, MCP) only — those are merged

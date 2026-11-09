@@ -1,0 +1,20 @@
+# Ownership by path (launch-plugin-programme D16): a plugin is the unit of
+# installation; a skill folder is the unit of ownership. The Foundation and
+# security reviewer teams are added by launch task 6.1.
+# Later lines win, so each skill folder follows its plugin's line.
+
+/plugins/rf-agentskills/ @manykarim
+/plugins/rf-api/ @manykarim
+/plugins/rf-api/skills/rf-requests/ @manykarim
+/plugins/rf-api/skills/rf-restinstance/ @manykarim
+/plugins/rf-core/ @manykarim
+/plugins/rf-core/skills/rf-language/ @manykarim
+/plugins/rf-core/skills/rf-python-library/ @manykarim
+/plugins/rf-core/skills/rf-setup/ @manykarim
+/plugins/rf-desktop/ @manykarim
+/plugins/rf-desktop/skills/rf-platynui/ @manykarim
+/plugins/rf-mobile/ @manykarim
+/plugins/rf-mobile/skills/rf-appium/ @manykarim
+/plugins/rf-web/ @manykarim
+/plugins/rf-web/skills/rf-browser/ @manykarim
+/plugins/rf-web/skills/rf-selenium/ @manykarim

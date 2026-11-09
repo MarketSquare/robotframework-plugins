@@ -13,7 +13,7 @@ Per gating task (tier != adversarial) in the treatment arm:
   the tolerance (default one replicate's worth, i.e. > 1/N) fails;
 * mean input tokens up by more than the budget (default 30%) -> **fail**.
 
-Trigger check against ``plugins/rf-agentskills/evals/baselines/triggers.json``: when the baseline has
+Trigger check against ``plugins/rf-core/evals/baselines/triggers.json``: when the baseline has
 run-level counts, skill loads on should-trigger queries (recall) and non-loads
 on should-not-trigger queries (precision) are each compared with a one-sided
 Fisher exact test (p < ``FISHER_ALPHA``); older baselines fall back to
@@ -286,7 +286,7 @@ def gate_listing(
                     f"listing:{skill}",
                     f"description not shown in {missing}/{len(listings)} skill listing(s): "
                     "the listing room is too small for all descriptions "
-                    "(re-measure it, see plugins/rf-agentskills/tests/test_skill_descriptions.py)",
+                    "(re-measure it, see plugins/rf-core/tests/test_skill_descriptions.py)",
                 )
             )
     return report

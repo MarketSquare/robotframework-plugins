@@ -1,0 +1,25 @@
+{
+  "name": "rf-agentskills",
+  "version": "4.0.0",
+  "description": "All Robot Framework plugins in one install: rf-core, rf-web, rf-api, rf-mobile and rf-desktop.",
+  "author": {
+    "name": "manykarim",
+    "email": "manykarim@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+  "repository": "https://github.com/MarketSquare/robotframework-plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "robotframework",
+    "testing",
+    "automation",
+    "web-testing",
+    "api-testing",
+    "mobile-testing",
+    "playwright",
+    "selenium",
+    "appium",
+    "requests",
+    "restinstance"
+  ]
+}

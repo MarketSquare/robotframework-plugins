@@ -38,6 +38,7 @@ from ._base import (
     InstallPlan,
     InstallTarget,
     marketplace_settings_merges,
+    upgrade_plugins,
     old_marketplace_note,
     skill_script_files,
     support_dir_name,
@@ -120,7 +121,8 @@ class ClaudeCodeAdapter(AdapterBase):
         """
         settings = self.install_root(opts) / "settings.json"
         scope = "project" if opts.scope == "project" and opts.prefix is None else "user"
-        ids = [plugin_id(p) for p in opts.plugins]
+        plugins = upgrade_plugins(settings, opts)
+        ids = [plugin_id(p) for p in plugins]
         notes = [
             f"{settings} now registers the robotframework-plugins marketplace and "
             f"enables {', '.join(ids)}.",
@@ -136,7 +138,7 @@ class ClaudeCodeAdapter(AdapterBase):
         migrated = old_marketplace_note(settings)
         if migrated:
             notes.append(migrated)
-        return InstallPlan(merges=tuple(marketplace_settings_merges(settings, opts.ref, opts.plugins)),
+        return InstallPlan(merges=tuple(marketplace_settings_merges(settings, opts.ref, plugins)),
                            notes=tuple(notes))
 
     def _collect_targets(

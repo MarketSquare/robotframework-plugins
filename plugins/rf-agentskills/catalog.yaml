@@ -1,30 +1,18 @@
 # Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
 name: rf-agentskills
-summary: Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing.
+summary: All Robot Framework plugins in one install (rf-core, rf-web, rf-api, rf-mobile, rf-desktop), as one plugin.
 tier: verified
 status: active
 maintainers:
   - github: manykarim
     name: Many Kasiriha
-libraries:
-  - name: Browser
-    package: robotframework-browser
-    versions: ">=20,<21"
-  - name: SeleniumLibrary
-    package: robotframework-seleniumlibrary
-    versions: ">=6.9,<7"
-  - name: AppiumLibrary
-    package: robotframework-appiumlibrary
-    versions: ">=3,<4"
-  - name: RequestsLibrary
-    package: robotframework-requests
-    versions: ">=0.9.7"
-  - name: RESTinstance
-    package: RESTinstance
-    versions: ">=1.8,<2"
-  - name: PlatynUI
-    package: robotframework-PlatynUI
-    versions: ">=0.12.0.dev0"
+libraries: []
+bundle:
+  - rf-core
+  - rf-web
+  - rf-api
+  - rf-mobile
+  - rf-desktop
 robotframework: ">=7.0"
 agents:
   - claude-code

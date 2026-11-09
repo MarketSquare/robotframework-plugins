@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import shutil
 import sys
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -148,8 +149,13 @@ class GooseAdapter(AdapterBase):
             #    subagent descriptions plus a skill index into the hints
             #    file. This ALSO helps users discover the skills installed
             #    in step 1 by giving them a single high-level summary.
-            if {"skills", "agents"} & opts.what:
-                hints_text = self._compose_goosehints(src_root)
+            # One hints file for the whole install: the first plugin's plan
+            # writes it and lists every selected plugin's agents and skills.
+            owner = _assets.DEFAULT_PLUGIN if _assets.DEFAULT_PLUGIN in opts.plugins else opts.plugins[0]
+            if {"skills", "agents"} & opts.what and opts.plugin == owner:
+                with ExitStack() as stack:
+                    roots = [Path(stack.enter_context(_assets.asset_root_path(n))) for n in opts.plugins]
+                    hints_text = self._compose_goosehints(*roots)
                 targets.append(InstallTarget(
                     dst=self._goosehints_path(opts),
                     payload=hints_text.encode("utf-8"),
@@ -200,7 +206,7 @@ class GooseAdapter(AdapterBase):
     # internals
     # ------------------------------------------------------------------
 
-    def _compose_goosehints(self, src_root: Path) -> str:
+    def _compose_goosehints(self, *src_roots: Path) -> str:
         """Build a short persona-style hint text from agents + skills.
 
         Format:
@@ -215,23 +221,20 @@ class GooseAdapter(AdapterBase):
             "# rf-agentskills available",
             "When working with Robot Framework:",
         ]
-        agents_dir = src_root / "agents"
-        if agents_dir.is_dir():
-            for agent_md in sorted(agents_dir.glob("*.md")):
-                doc = _x.parse_frontmatter(agent_md.read_text(encoding="utf-8"))
-                agent_name = str(doc.frontmatter.get("name") or agent_md.stem)
-                description = str(doc.frontmatter.get("description") or "").strip()
-                if description:
-                    lines.append(f"- {agent_name}: {description}")
-                else:
-                    lines.append(f"- {agent_name}")
+        for agent_md in sorted(md for root in src_roots for md in (root / "agents").glob("*.md")):
+            doc = _x.parse_frontmatter(agent_md.read_text(encoding="utf-8"))
+            agent_name = str(doc.frontmatter.get("name") or agent_md.stem)
+            description = str(doc.frontmatter.get("description") or "").strip()
+            if description:
+                lines.append(f"- {agent_name}: {description}")
+            else:
+                lines.append(f"- {agent_name}")
 
-        skills_dir = src_root / "skills"
-        if skills_dir.is_dir():
-            skill_names = sorted(
-                p.name for p in skills_dir.iterdir() if p.is_dir()
-            )
-            if skill_names:
-                lines.append(f"- Skills: {', '.join(skill_names)}")
+        skill_names = sorted(
+            p.name for root in src_roots if (root / "skills").is_dir()
+            for p in (root / "skills").iterdir() if p.is_dir()
+        )
+        if skill_names:
+            lines.append(f"- Skills: {', '.join(skill_names)}")
 
         return "\n".join(lines) + "\n"

@@ -91,6 +91,45 @@ The spike (task 1) installs a test marketplace with a bundle and a dependency on
 - **When copies are used,** the bundle loads the same skill names as the plugins it depends on. On Claude Code, which resolves `dependencies`, the bundle then ships no copies and relies on dependencies. If the spike shows that one marketplace can't serve both behaviours, the fallback is a documented note: Codex and Copilot users install the five plugins, and the installer does it for them.
 - **Why `dependencies` first:** it is the documented mechanism, versions resolve by tag, and nothing is duplicated.
 
+**Spike results (task 1.1, 2026-11-08).**
+- **Setup:** a scratch marketplace with `dep-a` (one skill, one hook), `dep-b` (one skill, depends on `dep-a` `^1.0`) and `bundle` (depends on both). The bundle also had three symlinks into `dep-a`: a skill folder, a file inside one of its own skills, and its `hooks/` folder.
+- **How it was installed:** the marketplace was served over smart HTTP from `127.0.0.1` with `<plugin>--v<version>` tags, so every agent cloned and copied it. A local-path marketplace is loaded in place and would not show what the copy does. Each agent got a fresh isolated home (`HOME`, `COPILOT_HOME`, `CODEX_HOME`).
+
+| | Claude Code 2.1.318 | Copilot CLI 1.0.91 | Codex 0.162.1 |
+|---|---|---|---|
+| Installs `dependencies` | yes ("+ 2 dependencies: dep-a, dep-b") | no: only `bundle` | no: only `bundle`; `dep-a`, `dep-b` "not installed" |
+| Skills load | yes: `bundle:spike-alpha-link`, `dep-a:spike-alpha`, `dep-b:spike-beta` in a live session (Haiku 5.5) | installed ("Installed 2 skills"); no live session: the CLI is not logged in on this machine | installed in the cache; no live session yet |
+| Hook runs | yes: `SessionStart` and `UserPromptSubmit` both wrote their marker | not checked (no live session) | not checked (no live session) |
+| Symlinked skill folder | copied as content, loads; named after the link's folder, not its frontmatter `name` | copied as content | **dropped** from the cache |
+| Symlinked file in a skill | copied as content | copied as content | **dropped** |
+| Symlinked `hooks/` folder | copied as content | copied as content | **dropped** |
+| Marketplace file read | `.claude-plugin/marketplace.json` | `.github/plugin/marketplace.json` when present, else `.claude-plugin/` | `.agents/plugins/marketplace.json` when present, else `.claude-plugin/` |
+
+- **One marketplace can serve both behaviours.** Each agent reads its own marketplace file. With `.agents/plugins/marketplace.json` and `.github/plugin/marketplace.json` pointing the `bundle` entry at a folder of real copies, Copilot and Codex both installed the copies (both skills and the hooks). Claude Code still read `.claude-plugin/marketplace.json` and installed the dependency-only bundle with its two dependencies.
+- **Windows checkout (task 1.2) not run.** Codex drops symlinks on every platform, so no plugin can ship one. With no symlinks in the plugin trees, how Windows checks them out can't change the decision. Running it would also have needed a push to a GitHub repository; the maintainer agreed to skip it.
+
+**Upgrade check (task 2.3, 2026-11-08, Claude Code 2.1.318).** I served a scratch marketplace whose history has the pre-split commit tagged `rf-agentskills--v3.0.0` and the split on top, with `<plugin>--v1.0.0` tags and `rf-agentskills--v4.0.0`.
+- **Fresh installs work.** Installing `rf-web` brings `rf-core`. A live session lists the three core skills, `rf-browser`, `rf-selenium` and the three subagents. Installing the 4.0.0 bundle in a clean home installs all five dependencies.
+- **Upgrading from 3.0.0 does not.** `claude plugin update rf-agentskills@robotframework-plugins` moves to 4.0.0 but installs none of the new dependencies. The bundle then fails to load (`Dependency "rf-core@robotframework-plugins" is not installed`), and a session sees no Robot Framework skill at all.
+- **The documented repair is slow.** `/reload-plugins` and re-running `claude plugin install` each add one missing dependency per run, so a user needs five runs.
+- **Auto-update is unverified.** The docs say marketplace auto-update installs added dependencies. Two headless sessions with `autoUpdate: true` didn't update at all, so that path is not checked here.
+- **The copy bundle passes (rechecked after the decision below).** I repeated the same history with `rf-agentskills` 4.0.0 as a generated copy.
+  - On Claude Code, `claude plugin update` moves 3.0.0 to 4.0.0, and the next session lists the nine skills and three subagents as `rf-agentskills:<name>`. The `SessionStart`, `UserPromptSubmit` and `Stop` hooks run.
+  - Copilot CLI ("Installed 9 skills") and Codex install the same copy with its subagents, hooks and hook scripts. Live sessions there wait for a login (task 2.3 stays open).
+
+**Decision (tasks 1.3 and 2.3).** The result is row 3, because Codex drops symlinks, not because Windows does. The upgrade check rules out a dependency bundle on Claude Code too, so `rf-agentskills` works the same way on every agent:
+- **Bundle mechanism: a generated copy, no `dependencies`.**
+  - `plugins/rf-agentskills/` holds only the bundle's `catalog.yaml` (with a `bundle:` list of the five plugins), `plugin.json`, README and CHANGELOG.
+  - `scripts/build-catalog.py` writes `bundles/rf-agentskills/`: the five plugins' skills, subagents, hooks and hook scripts, plus those four files. The one marketplace entry points there. `--check` fails on a stale or stray file in the copy.
+  - Updating from 3.0.0 is then an ordinary content update. Bundle users keep the `rf-agentskills:` prefix. The prefix changes only for someone who moves to the separate plugins.
+  - One Claude-format marketplace again serves every agent, so no per-agent marketplace files are needed.
+- **Technology plugins keep `dependencies` on `rf-core`.** Those are fresh installs, which Claude Code resolves, and installing them is a choice the user makes. On Copilot CLI and Codex the README and the installer add `rf-core` too.
+- **Shared-file mechanism (launch D15):** generated copies, checked by the drift check. `check-drift.sh` keeps refusing every symlink in plugin trees.
+- **The cost:**
+  - The repository carries a generated copy of about 1.2 MB.
+  - A user who installs the bundle and a technology plugin sees each of its skills twice; the READMEs say to pick one.
+  - The installer's file mode installs the five plugins' files when `rf-agentskills` is selected, so it never writes the copy.
+
 ### D6 Installer selection follows the project, then the previous install
 - **Fresh install:** `rf-core` plus the verified plugins whose library packages the project declares (`pyproject.toml` PEP 621, Poetry and dependency groups; `requirements*.txt`). If none are detected, every verified plugin is installed, as today.
 - **Upgrade:** the plugins that cover what is already installed, so nothing disappears silently. Narrowing needs `--plugins`.

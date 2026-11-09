@@ -1,0 +1,19 @@
+{
+  "name": "rf-core",
+  "version": "1.0.0",
+  "description": "Robot Framework syntax, environment setup, Python keyword libraries, test design, debugging and migration subagents, and the validation hooks. Needed by every other Robot Framework plugin.",
+  "author": {
+    "name": "manykarim",
+    "email": "manykarim@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+  "repository": "https://github.com/MarketSquare/robotframework-plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "robotframework",
+    "testing",
+    "automation",
+    "robocop",
+    "robotcode"
+  ]
+}

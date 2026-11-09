@@ -1,9 +1,12 @@
 name: Skill Evaluation
 
 # Tiered skill evaluation (strengthen-skill-eval-harness, ADR-005):
-#   PR       -> narrow tier, treatment arm only, N=3, Haiku, scoped to the changed
-#               skills + `plugin` canaries, gated against plugins/rf-agentskills/evals/baselines/narrow.json;
-#               validation-split trigger evals when a SKILL.md description changed.
+#   PR       -> per plugin with changes: narrow tier, treatment arm only, N=3, Haiku,
+#               scoped to the changed skills + `plugin` canaries, gated against
+#               plugins/<plugin>/evals/baselines/narrow.json; validation-split
+#               trigger evals when a SKILL.md description changed.
+# Every plugin with an evals/ folder is a matrix leg; each leg stages all
+# content plugins (a full install) and uses only its own tasks and baselines.
 #   weekly   -> all tiers in both arms, N=3, all trigger sets, candidate baseline.
 #   manual   -> same as weekly with model / runs / allow_opus inputs.
 # Every harness invocation carries an explicit --max-cost-usd cap.
@@ -11,9 +14,9 @@ name: Skill Evaluation
 on:
   pull_request:
     paths:
-      - 'plugins/rf-agentskills/**'
-      # The plugin's own pytest suite is CI's job, not a reason for agent runs.
-      - '!plugins/rf-agentskills/tests/**'
+      - 'plugins/**'
+      # The plugins' own pytest suites are CI's job, not a reason for agent runs.
+      - '!plugins/*/tests/**'
       - 'eval/**'
       - 'src/rf_skill_eval/**'
       - 'pyproject.toml'
@@ -101,10 +104,9 @@ jobs:
     outputs:
       has_credentials: ${{ steps.creds.outputs.has_credentials }}
       run_evals: ${{ steps.select.outputs.run_evals }}
-      full_tier: ${{ steps.select.outputs.full_tier }}
-      skills: ${{ steps.select.outputs.skills }}
-      run_triggers: ${{ steps.select.outputs.run_triggers }}
-      trigger_skills: ${{ steps.select.outputs.trigger_skills }}
+      # JSON list of {plugin, skills, full_tier, run_triggers, trigger_skills},
+      # one per plugin whose evals must run.
+      matrix: ${{ steps.select.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -124,8 +126,11 @@ jobs:
 
       - name: Validate tasks, trigger sets and coverage (no API calls)
         run: |
-          uv run rf-skill-eval validate-tasks plugins/rf-agentskills/evals/tasks
-          uv run rf-skill-eval coverage
+          for evals in plugins/*/evals; do
+            plugin=$(basename "$(dirname "$evals")")
+            uv run rf-skill-eval --plugin "$plugin" validate-tasks
+            uv run rf-skill-eval --plugin "$plugin" coverage
+          done
 
       - name: Detect credentials
         id: creds
@@ -139,22 +144,34 @@ jobs:
             echo "has_credentials=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Map changed paths to skills
+      - name: Map changed paths to skills, per plugin
         id: select
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            uv run rf-skill-eval preflight \
-              --base "origin/${{ github.base_ref }}" \
-              --github-output "$GITHUB_OUTPUT"
-          else
-            {
-              echo "run_evals=true"
-              echo "full_tier=true"
-              echo "skills="
-              echo "run_triggers=true"
-              echo "trigger_skills="
-            } >> "$GITHUB_OUTPUT"
-          fi
+          legs="${RUNNER_TEMP}/legs"
+          mkdir -p "$legs"
+          for evals in plugins/*/evals; do
+            plugin=$(basename "$(dirname "$evals")")
+            out="$legs/$plugin.env"
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              uv run rf-skill-eval --plugin "$plugin" preflight \
+                --base "origin/${{ github.base_ref }}" \
+                --github-output "$out"
+            else
+              printf 'run_evals=true\nfull_tier=true\nskills=\nrun_triggers=true\ntrigger_skills=\n' > "$out"
+            fi
+          done
+          python3 - "$legs" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          from pathlib import Path
+          legs = []
+          for f in sorted(Path(sys.argv[1]).glob("*.env")):
+              values = dict(line.split("=", 1) for line in f.read_text().splitlines() if "=" in line)
+              if values.get("run_evals") == "true":
+                  legs.append({"plugin": f.stem, **{k: values.get(k, "") for k in
+                               ("skills", "full_tier", "run_triggers", "trigger_skills")}})
+          print(f"run_evals={'true' if legs else 'false'}")
+          print(f"matrix={json.dumps(legs)}")
+          PY
 
   harness-tests:
     name: Harness unit tests (no API calls)
@@ -207,9 +224,16 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   pr-eval:
-    name: PR eval (narrow, treatment, N=3)
+    name: PR eval ${{ matrix.plugin }} (narrow, treatment, N=3)
     needs: preflight
     if: ${{ github.event_name == 'pull_request' && needs.preflight.outputs.run_evals == 'true' && needs.preflight.outputs.has_credentials == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.preflight.outputs.matrix) }}
+    env:
+      RF_EVAL_PLUGIN: ${{ matrix.plugin }}
+      EVALS: plugins/${{ matrix.plugin }}/evals
     runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     # A harness-wide PR selects the full narrow tier (66 sequential sessions)
     # plus trigger evals for every changed description; 90 min was not enough.
@@ -250,20 +274,20 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: uv run rf-skill-eval doctor --tasks-dir plugins/rf-agentskills/evals/tasks/narrow --strict
+        run: uv run rf-skill-eval doctor --tasks-dir ${EVALS}/tasks/narrow --strict
 
       - name: Run narrow tier (treatment arm)
         id: batch
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          SKILLS: ${{ needs.preflight.outputs.skills }}
+          SKILLS: ${{ matrix.skills }}
         run: |
           set +e
           SKILL_ARGS=()
           if [ -n "${SKILLS}" ]; then SKILL_ARGS=(--skills "${SKILLS}"); fi
           uv run rf-skill-eval run-batch \
-            --tasks-dir plugins/rf-agentskills/evals/tasks/narrow \
+            --tasks-dir ${EVALS}/tasks/narrow \
             --tier narrow \
             "${SKILL_ARGS[@]}" \
             --arms treatment \
@@ -280,8 +304,8 @@ jobs:
           set +e
           uv run rf-skill-eval gate \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/pr \
-            --baseline plugins/rf-agentskills/evals/baselines/narrow.json \
-            --tasks-dir plugins/rf-agentskills/evals/tasks \
+            --baseline ${EVALS}/baselines/narrow.json \
+            --tasks-dir ${EVALS}/tasks \
             --token-budget 0.75 \
             --max-cost-usd "${PR_NARROW_CAP_USD}" \
             --report-output gate.txt
@@ -289,11 +313,11 @@ jobs:
 
       - name: Trigger evals (validation split, changed descriptions)
         id: triggers
-        if: ${{ always() && needs.preflight.outputs.run_triggers == 'true' }}
+        if: ${{ always() && matrix.run_triggers == 'true' }}
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          TRIGGER_SKILLS: ${{ needs.preflight.outputs.trigger_skills }}
+          TRIGGER_SKILLS: ${{ matrix.trigger_skills }}
         run: |
           set +e
           uv run rf-skill-eval trigger \
@@ -306,7 +330,7 @@ jobs:
           code=$?
           uv run rf-skill-eval gate \
             --trigger-results "${RUNNER_TEMP}"/eval-runs/triggers/trigger-results.json \
-            --trigger-baseline plugins/rf-agentskills/evals/baselines/triggers.json \
+            --trigger-baseline ${EVALS}/baselines/triggers.json \
             --report-output trigger-gate.txt
           gate=$?
           if [ "$code" -ne 0 ]; then echo "exit_code=$code" >> "$GITHUB_OUTPUT"; else echo "exit_code=$gate" >> "$GITHUB_OUTPUT"; fi
@@ -316,8 +340,8 @@ jobs:
         run: |
           uv run rf-skill-eval report \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/pr \
-            --tasks-dir plugins/rf-agentskills/evals/tasks \
-            --baseline plugins/rf-agentskills/evals/baselines/narrow.json \
+            --tasks-dir ${EVALS}/tasks \
+            --baseline ${EVALS}/baselines/narrow.json \
             --format md \
             --output eval-report.md || echo "_no report (no runs recorded)_" > eval-report.md
           {
@@ -343,7 +367,7 @@ jobs:
         # transcripts, verdicts and configs are what matter for debugging.
         uses: actions/upload-artifact@v4
         with:
-          name: skill-eval-pr-${{ github.run_id }}
+          name: skill-eval-pr-${{ matrix.plugin }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/eval-runs/pr
             ${{ runner.temp }}/eval-runs/triggers
@@ -365,14 +389,14 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const marker = '<!-- rf-skill-eval-report -->';
+            const marker = '<!-- rf-skill-eval-report ${{ matrix.plugin }} -->';
             let body;
             try {
               body = fs.readFileSync('pr-comment.md', 'utf8');
             } catch (err) {
               body = 'Evaluation report missing (run may have failed before report generation).';
             }
-            const fullBody = `${marker}\n\n## Skill Evaluation (narrow, treatment, N=3)\n\n${body}`.slice(0, 65000);
+            const fullBody = `${marker}\n\n## Skill Evaluation: ${{ matrix.plugin }} (narrow, treatment, N=3)\n\n${body}`.slice(0, 65000);
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
             const { data: comments } = await github.rest.issues.listComments({
@@ -398,12 +422,21 @@ jobs:
           fi
 
   full-eval:
-    name: Full eval (all tiers, both arms)
+    name: Full eval ${{ matrix.plugin }} (all tiers, both arms)
     needs: preflight
     if: ${{ github.event_name != 'pull_request' && needs.preflight.outputs.has_credentials == 'true' }}
+    strategy:
+      fail-fast: false
+      # One leg at a time: the weekly caps are per invocation, and parallel
+      # legs would multiply the spend and the rate-limit pressure.
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJSON(needs.preflight.outputs.matrix) }}
     runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     timeout-minutes: 360
     env:
+      RF_EVAL_PLUGIN: ${{ matrix.plugin }}
+      EVALS: plugins/${{ matrix.plugin }}/evals
       TIERS: ${{ github.event_name == 'workflow_dispatch' && inputs.tiers || 'narrow,realistic,adversarial' }}
       ARMS: ${{ github.event_name == 'workflow_dispatch' && inputs.arms || 'treatment,baseline' }}
       RUNS: ${{ github.event_name == 'workflow_dispatch' && inputs.runs || '3' }}
@@ -450,7 +483,7 @@ jobs:
       - name: Doctor
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: uv run rf-skill-eval doctor --tasks-dir plugins/rf-agentskills/evals/tasks --strict
+        run: uv run rf-skill-eval doctor --tasks-dir ${EVALS}/tasks --strict
 
       - name: Run tiers
         id: batch
@@ -470,8 +503,10 @@ jobs:
               *) echo "unknown tier $tier"; exit 2 ;;
             esac
             if [ -n "${MANUAL_CAP}" ]; then cap="${MANUAL_CAP}"; fi
+            # Not every plugin has every tier (rf-desktop has narrow tasks only).
+            if [ ! -d "${EVALS}/tasks/${tier}" ]; then echo "no ${tier} tasks in ${EVALS}"; continue; fi
             uv run rf-skill-eval run-batch \
-              --tasks-dir "plugins/rf-agentskills/evals/tasks/${tier}" \
+              --tasks-dir "${EVALS}/tasks/${tier}" \
               --tier "${tier}" \
               --arms "${ARMS}" \
               --runs "${RUNS}" \
@@ -507,18 +542,18 @@ jobs:
         run: |
           uv run rf-skill-eval baseline update \
             --from "${RUNNER_TEMP}"/eval-runs/full \
-            --tasks-dir plugins/rf-agentskills/evals/tasks \
+            --tasks-dir ${EVALS}/tasks \
             --output-dir candidate-baseline || true
           uv run rf-skill-eval report \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/full \
-            --tasks-dir plugins/rf-agentskills/evals/tasks \
+            --tasks-dir ${EVALS}/tasks \
             --format md \
             --output eval-report.md || echo "_no report_" > eval-report.md
           set +e
           uv run rf-skill-eval gate \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/full \
-            --baseline plugins/rf-agentskills/evals/baselines/narrow.json \
-            --tasks-dir plugins/rf-agentskills/evals/tasks \
+            --baseline ${EVALS}/baselines/narrow.json \
+            --tasks-dir ${EVALS}/tasks \
             --report-output gate.txt
           echo "GATE_EXIT=$?" >> "$GITHUB_ENV"
           {
@@ -534,7 +569,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: skill-eval-full-${{ github.run_id }}
+          name: skill-eval-full-${{ matrix.plugin }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/eval-runs/full
             eval-report.md
@@ -549,7 +584,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: candidate-baseline-${{ github.run_id }}
+          name: candidate-baseline-${{ matrix.plugin }}-${{ github.run_id }}
           path: candidate-baseline/
           if-no-files-found: ignore
           retention-days: 90
@@ -560,7 +595,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue create \
-            --title "Skill eval weekly regression (run ${{ github.run_id }})" \
+            --title "Skill eval weekly regression: ${{ matrix.plugin }} (run ${{ github.run_id }})" \
             --label "eval-regression" \
             --body "The weekly evaluation failed the gate against the committed baseline.
 

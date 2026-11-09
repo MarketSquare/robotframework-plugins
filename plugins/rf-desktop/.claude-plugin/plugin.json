@@ -1,0 +1,24 @@
+{
+  "name": "rf-desktop",
+  "version": "1.0.0",
+  "description": "PlatynUI skill for Robot Framework desktop UI tests.",
+  "author": {
+    "name": "manykarim",
+    "email": "manykarim@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+  "repository": "https://github.com/MarketSquare/robotframework-plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "robotframework",
+    "testing",
+    "desktop-testing",
+    "platynui"
+  ],
+  "dependencies": [
+    {
+      "name": "rf-core",
+      "version": "^1.0"
+    }
+  ]
+}

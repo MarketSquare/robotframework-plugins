@@ -45,16 +45,18 @@ def install_prefix(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def two_plugin_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """A bundle with the real rf-agentskills (verified) plus a one-skill community
-    plugin, rf-example, and a deprecated one, rf-old."""
+    """The real bundled plugins (rf-core, the technology plugins and the
+    rf-agentskills bundle, all verified) plus a one-skill community plugin,
+    rf-example, and a deprecated one, rf-old."""
     import json
     import shutil
 
     from robotframework_plugins import _assets
 
     bundle = tmp_path / "bundle"
-    with _assets.asset_root_path() as real:
-        shutil.copytree(real, bundle / "plugins" / "rf-agentskills")
+    real = _assets.bundle_root_traversable()
+    with _assets.as_file(real) as real_dir:
+        shutil.copytree(Path(real_dir) / "plugins", bundle / "plugins")
     for name in ("rf-example", "rf-old"):
         skill = bundle / "plugins" / name / "skills" / name
         skill.mkdir(parents=True)
@@ -63,8 +65,7 @@ def two_plugin_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         (bundle / "plugins" / name / ".claude-plugin" / "plugin.json").write_text(
             json.dumps({"name": name, "version": "1.0.0"}))
     (bundle / "catalog.json").write_text(json.dumps({"plugins": [
-        {"name": "rf-agentskills", "version": "3.0.0", "tier": "verified", "status": "active",
-         "summary": "The verified plugin.", "libraries": []},
+        *_assets.bundled_catalog(),
         {"name": "rf-example", "version": "1.0.0", "tier": "community", "status": "active",
          "summary": "A community plugin.", "libraries": []},
         {"name": "rf-old", "version": "1.0.0", "tier": "community", "status": "deprecated",
@@ -73,4 +74,3 @@ def two_plugin_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     ]}))
     monkeypatch.setattr(_assets, "bundle_root_traversable", lambda: bundle)
     return bundle
-

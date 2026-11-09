@@ -1,0 +1,43 @@
+{
+  "claude_code_version": "2.1.316 (Claude Code)",
+  "entries": {
+    "adv-restinstance-expectation-leak|baseline": {
+      "arm": "baseline",
+      "gating": false,
+      "incomplete": 0,
+      "mean_cost_usd": 0.065628,
+      "mean_duration_s": 23.95,
+      "mean_input_tokens": 118330.7,
+      "mean_output_tokens": 1311.5,
+      "mean_turns": 5.33,
+      "model": "claude-sonnet-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 6,
+      "skill": "rf-restinstance",
+      "task_hash": "aecee21f71999774880b80b2509398574df8bf8917c053dcc3858b04ad0b0971",
+      "task_id": "adv-restinstance-expectation-leak"
+    },
+    "adv-restinstance-expectation-leak|treatment": {
+      "arm": "treatment",
+      "gating": false,
+      "incomplete": 0,
+      "mean_cost_usd": 0.070906,
+      "mean_duration_s": 17.21,
+      "mean_input_tokens": 80673.2,
+      "mean_output_tokens": 1005.2,
+      "mean_turns": 5.33,
+      "model": "claude-sonnet-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 6,
+      "skill": "rf-restinstance",
+      "task_hash": "aecee21f71999774880b80b2509398574df8bf8917c053dcc3858b04ad0b0971",
+      "task_id": "adv-restinstance-expectation-leak"
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "adversarial"
+}

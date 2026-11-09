@@ -4,7 +4,12 @@
 
 | Plugin | Version | Tier | Status | What it covers | Libraries | Maintainers |
 |---|---|---|---|---|---|---|
-| `rf-agentskills` | 3.0.0 | verified | active | Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing. | Browser, SeleniumLibrary, AppiumLibrary, RequestsLibrary, RESTinstance, PlatynUI | [@manykarim](https://github.com/manykarim) |
+| `rf-agentskills` | 4.0.0 | verified | active | All Robot Framework plugins in one install (rf-core, rf-web, rf-api, rf-mobile, rf-desktop), as one plugin. | Robot Framework | [@manykarim](https://github.com/manykarim) |
+| `rf-api` | 1.0.0 | verified | active | RequestsLibrary and RESTinstance skills for API tests. | RequestsLibrary, RESTinstance | [@manykarim](https://github.com/manykarim) |
+| `rf-core` | 1.0.0 | verified | active | Robot Framework syntax, environment setup, Python keyword libraries, test design and debugging subagents, and the validation hooks. | Robot Framework | [@manykarim](https://github.com/manykarim) |
+| `rf-desktop` | 1.0.0 | verified | active | PlatynUI skill for desktop UI tests. | PlatynUI | [@manykarim](https://github.com/manykarim) |
+| `rf-mobile` | 1.0.0 | verified | active | AppiumLibrary skill for Android and iOS tests. | AppiumLibrary | [@manykarim](https://github.com/manykarim) |
+| `rf-web` | 1.0.0 | verified | active | Browser Library and SeleniumLibrary skills for web tests. | Browser, SeleniumLibrary | [@manykarim](https://github.com/manykarim) |
 
 ## Installer
 
@@ -12,23 +17,91 @@
 
 | robotframework-plugins 2026.12.0 bundles | Version | Tier |
 |---|---|---|
-| `rf-agentskills` | 3.0.0 | verified |
+| `rf-agentskills` | 4.0.0 | verified |
+| `rf-api` | 1.0.0 | verified |
+| `rf-core` | 1.0.0 | verified |
+| `rf-desktop` | 1.0.0 | verified |
+| `rf-mobile` | 1.0.0 | verified |
+| `rf-web` | 1.0.0 | verified |
 
 ## rf-agentskills
 
-Robot Framework skills, subagents and validation hooks for web, API, mobile and desktop testing.
+All Robot Framework plugins in one install (rf-core, rf-web, rf-api, rf-mobile, rf-desktop), as one plugin.
 
 - **Tier:** verified
 - **Status:** active
-- **Version:** 3.0.0
+- **Version:** 4.0.0
+- **Robot Framework:** `>=7.0`
+- **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
+- **Maintainers:** [@manykarim](https://github.com/manykarim)
+- **Install (Claude Code):** `/plugin install rf-agentskills@robotframework-plugins`
+
+## rf-api
+
+RequestsLibrary and RESTinstance skills for API tests.
+
+- **Tier:** verified
+- **Status:** active
+- **Version:** 1.0.0
+- **Robot Framework:** `>=7.0`
+- **Libraries:**
+  - RequestsLibrary (`robotframework-requests` `>=0.9.7`)
+  - RESTinstance (`RESTinstance` `>=1.8,<2`)
+- **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
+- **Maintainers:** [@manykarim](https://github.com/manykarim)
+- **Install (Claude Code):** `/plugin install rf-api@robotframework-plugins`
+
+## rf-core
+
+Robot Framework syntax, environment setup, Python keyword libraries, test design and debugging subagents, and the validation hooks.
+
+- **Tier:** verified
+- **Status:** active
+- **Version:** 1.0.0
+- **Robot Framework:** `>=7.0`
+- **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
+- **Maintainers:** [@manykarim](https://github.com/manykarim)
+- **Install (Claude Code):** `/plugin install rf-core@robotframework-plugins`
+
+## rf-desktop
+
+PlatynUI skill for desktop UI tests.
+
+- **Tier:** verified
+- **Status:** active
+- **Version:** 1.0.0
+- **Robot Framework:** `>=7.0`
+- **Libraries:**
+  - PlatynUI (`robotframework-PlatynUI` `>=0.12.0.dev0`)
+- **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
+- **Maintainers:** [@manykarim](https://github.com/manykarim)
+- **Install (Claude Code):** `/plugin install rf-desktop@robotframework-plugins`
+
+## rf-mobile
+
+AppiumLibrary skill for Android and iOS tests.
+
+- **Tier:** verified
+- **Status:** active
+- **Version:** 1.0.0
+- **Robot Framework:** `>=7.0`
+- **Libraries:**
+  - AppiumLibrary (`robotframework-appiumlibrary` `>=3,<4`)
+- **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
+- **Maintainers:** [@manykarim](https://github.com/manykarim)
+- **Install (Claude Code):** `/plugin install rf-mobile@robotframework-plugins`
+
+## rf-web
+
+Browser Library and SeleniumLibrary skills for web tests.
+
+- **Tier:** verified
+- **Status:** active
+- **Version:** 1.0.0
 - **Robot Framework:** `>=7.0`
 - **Libraries:**
   - Browser (`robotframework-browser` `>=20,<21`)
   - SeleniumLibrary (`robotframework-seleniumlibrary` `>=6.9,<7`)
-  - AppiumLibrary (`robotframework-appiumlibrary` `>=3,<4`)
-  - RequestsLibrary (`robotframework-requests` `>=0.9.7`)
-  - RESTinstance (`RESTinstance` `>=1.8,<2`)
-  - PlatynUI (`robotframework-PlatynUI` `>=0.12.0.dev0`)
 - **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
 - **Maintainers:** [@manykarim](https://github.com/manykarim)
-- **Install (Claude Code):** `/plugin install rf-agentskills@robotframework-plugins`
+- **Install (Claude Code):** `/plugin install rf-web@robotframework-plugins`

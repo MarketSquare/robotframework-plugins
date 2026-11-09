@@ -41,11 +41,25 @@ PLUGINS_REL = Path("..") / "plugins"
 ASSETS_REL = Path("src") / "robotframework_plugins" / "_assets"
 #: Statuses the installer bundles; ``removed`` plugins stay out.
 BUNDLED_STATUSES = ("active", "deprecated")
-IGNORE = shutil.ignore_patterns(
+_IGNORE_ANYWHERE = shutil.ignore_patterns(
     "__pycache__", "*.pyc", ".pytest_cache", ".mypy_cache", ".ruff_cache", "*.egg-info",
-    # Plugin tests and evals are for this repository's CI, not for users.
-    "tests", "evals",
 )
+#: Plugin tests and evals are for this repository's CI, not for users. Only a
+#: plugin's own top-level folders: skills ship example ``tests/`` folders too.
+_PLUGIN_ONLY = {"tests", "evals"}
+
+
+def plugin_ignore(plugin_root: Path):
+    """``copytree`` ignore for one plugin tree."""
+    root = plugin_root.resolve()
+
+    def ignore(directory: str, names: list[str]) -> set[str]:
+        ignored = set(_IGNORE_ANYWHERE(directory, names))
+        if Path(directory).resolve() == root:
+            ignored |= _PLUGIN_ONLY & set(names)
+        return ignored
+
+    return ignore
 
 
 def catalog_entries(plugins_dir: Path) -> list[dict[str, Any]]:
@@ -59,6 +73,7 @@ def catalog_entries(plugins_dir: Path) -> list[dict[str, Any]]:
         if m.get("status") not in BUNDLED_STATUSES:
             continue
         pj = json.loads((d / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        deps = [x if isinstance(x, str) else x["name"] for x in pj.get("dependencies", [])]
         entry = {
             "name": d.name,
             "version": pj.get("version"),
@@ -66,6 +81,11 @@ def catalog_entries(plugins_dir: Path) -> list[dict[str, Any]]:
             "status": m["status"],
             "summary": m["summary"],
             "libraries": m.get("libraries", []),
+            "dependencies": deps,
+            # A bundle ships a copy of other plugins (catalog.yaml ``bundle``) and
+            # no content of its own; file mode installs those plugins instead.
+            "bundle": bool(m.get("bundle")) and not _has_content(d),
+            "bundled": list(m.get("bundle", [])),
         }
         for key in ("replacement", "deprecated_since"):
             if key in m:
@@ -114,7 +134,8 @@ class CustomBuildHook(BuildHookInterface):  # type: ignore[misc]
             shutil.rmtree(assets_dst, ignore_errors=True)
         assets_dst.mkdir(parents=True)
         for entry in entries:
-            shutil.copytree(plugins_src / entry["name"], assets_dst / "plugins" / entry["name"], ignore=IGNORE)
+            src = plugins_src / entry["name"]
+            shutil.copytree(src, assets_dst / "plugins" / entry["name"], ignore=plugin_ignore(src))
         (assets_dst / "catalog.json").write_text(
             json.dumps({"plugins": entries}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
@@ -122,6 +143,13 @@ class CustomBuildHook(BuildHookInterface):  # type: ignore[misc]
             f"robotframework-plugins: bundled {', '.join(e['name'] for e in entries)} → {assets_dst} "
             f"({_count_files(assets_dst)} files)"
         )
+
+
+def _has_content(plugin_dir: Path) -> bool:
+    """Ships a skill, a subagent or a hook."""
+    return (any((s / "SKILL.md").is_file() for s in (plugin_dir / "skills").glob("*"))
+            or any((plugin_dir / "agents").glob("*.md"))
+            or (plugin_dir / "hooks" / "hooks.json").is_file())
 
 
 def _count_files(root: Path) -> int:

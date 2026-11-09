@@ -36,7 +36,7 @@ from typing import Sequence
 from rich.console import Console
 from rich.table import Table
 
-from . import __version__, _assets, manifest as _m
+from . import __version__, _assets, detect as _detect, manifest as _m
 from .adapters import ALL_ADAPTERS, all_names, by_name
 from .adapters._base import (
     Adapter,
@@ -101,8 +101,11 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument(
         "--plugins",
         metavar="NAMES",
-        help="Comma-separated plugins to install (see `robotframework-plugins catalog`). "
-             "Default: every active verified plugin.",
+        help="Comma-separated plugins to install (see `robotframework-plugins catalog`), or "
+             "'all' for every active verified plugin. Default: on an upgrade, the plugins that "
+             "cover what is installed; otherwise rf-core plus the plugins for the libraries the "
+             "project declares (pyproject.toml, requirements*.txt), or every verified plugin "
+             "when it declares none.",
     )
     sp.add_argument("--yes", "-y", action="store_true",
                     help="Accept the detected default without prompting.")
@@ -232,8 +235,10 @@ class _PluginError(Exception):
 
 
 def _default_plugins(catalog: list[dict]) -> list[str]:
-    """Every active verified plugin, in catalogue order."""
-    return [p["name"] for p in catalog if p.get("status") == "active" and p.get("tier") == "verified"]
+    """Every active verified plugin with content, in catalogue order (a bundle
+    adds nothing its dependencies don't)."""
+    return [p["name"] for p in catalog
+            if p.get("status") == "active" and p.get("tier") == "verified" and not _assets.is_bundle(p)]
 
 
 def _resolve_plugins(args: argparse.Namespace, catalog: list[dict]) -> list[str] | None:
@@ -245,6 +250,8 @@ def _resolve_plugins(args: argparse.Namespace, catalog: list[dict]) -> list[str]
     raw = getattr(args, "plugins", None)
     if raw is None:
         return None
+    if raw.strip().lower() == "all":
+        return _default_plugins(catalog)
     names = [n.strip() for n in raw.split(",") if n.strip()]
     known = {p["name"] for p in catalog}
     unknown = [n for n in names if n not in known]
@@ -254,6 +261,81 @@ def _resolve_plugins(args: argparse.Namespace, catalog: list[dict]) -> list[str]
             f"unknown or removed plugin: {what}. Available: {', '.join(sorted(known)) or '(none)'}"
         )
     return list(dict.fromkeys(names))
+
+
+def _skill_owners(catalog: list[dict]) -> dict[str, str]:
+    """``{skill folder: plugin}`` over the bundled content plugins."""
+    owners: dict[str, str] = {}
+    for p in catalog:
+        if _assets.is_bundle(p):
+            continue
+        try:
+            with _assets.asset_root_path(p["name"]) as root:
+                for md in (root / "skills").glob("*/SKILL.md"):
+                    owners.setdefault(md.parent.name, p["name"])
+        except (FileNotFoundError, OSError):
+            continue
+    return owners
+
+
+def _upgrade_selection(manifest_path: Path, agents: list[str], scope: str, catalog: list[dict]) -> list[str]:
+    """Plugins that cover an earlier file-mode install of ``agents``.
+
+    A record written by robotframework-plugins names each file's plugin. An
+    older record (rf-agentskills 0.8.0 or earlier) does not: its skills are
+    mapped to the plugin that ships them now, and ``rf-core`` covers the
+    subagents and hooks."""
+    try:
+        manifest = _m.Manifest.load(manifest_path)
+    except (OSError, ValueError):
+        return []
+    known = {p["name"]: p for p in catalog}
+    owners = _skill_owners(catalog)
+    chosen: list[str] = []
+
+    def add(name: str) -> None:
+        for n in _assets.expand_bundles([name], catalog):
+            if n in known and n not in chosen:
+                chosen.append(n)
+
+    for agent in agents:
+        inst = manifest.for_agent(agent, scope)
+        if inst is None:
+            continue
+        for entry in inst.files:
+            if entry.plugin and not _assets.is_bundle(known.get(entry.plugin, {})):
+                add(entry.plugin)
+                continue
+            parts = Path(entry.path).parts
+            if _m.entry_category(entry) == "skills" and "skills" in parts:
+                skill = parts[parts.index("skills") + 1] if parts.index("skills") + 1 < len(parts) else ""
+                if skill in owners:
+                    add(owners[skill])
+                    continue
+            add(_assets.DEFAULT_PLUGIN)
+    return [p["name"] for p in catalog if p["name"] in chosen]
+
+
+def _default_selection(args: argparse.Namespace, catalog: list[dict], selection: list[str]) -> list[str]:
+    """``--plugins`` absent: an upgrade keeps what the install covers; a fresh
+    install takes rf-core plus what the project declares (spec plugin-split)."""
+    opts = _opts_from_args(args)
+    previous = _upgrade_selection(_manifest_path(opts), selection, opts.scope, catalog)
+    if previous:
+        console.print(f"[dim]plugins:[/dim] {', '.join(previous)} (upgrade: they cover what is installed; "
+                      "narrow with --plugins)")
+        return previous
+    project = opts.project_dir if opts.project_dir is not None else Path.cwd()
+    found = _detect.detect(project, catalog)
+    if found.detected:
+        why = "; ".join(f"{name}: {', '.join(f'{pkg} ({src})' for pkg, src in pkgs)}"
+                        for name, pkgs in found.reasons.items())
+        console.print(f"[dim]plugins:[/dim] {', '.join(found.plugins)} (rf-core, plus the project's "
+                      f"libraries: {why})")
+    else:
+        console.print(f"[dim]plugins:[/dim] {', '.join(found.plugins)} (no library detected in {project}; "
+                      "installing every verified plugin)")
+    return found.plugins
 
 
 def _warn_deprecated(names: list[str], catalog: list[dict]) -> None:
@@ -306,6 +388,8 @@ def cmd_catalog(args: argparse.Namespace) -> int:
     if getattr(args, "json", False):
         print(json.dumps({"installer": __version__, "plugins": [
             {k: p.get(k) for k in ("name", "version", "tier", "status", "summary")}
+            | {"bundle": bool(p.get("bundle")), "bundled": list(p.get("bundled", [])),
+               "dependencies": list(p.get("dependencies", []))}
             | ({"replacement": p["replacement"]} if "replacement" in p else {})
             for p in catalog
         ]}, indent=2))
@@ -403,8 +487,9 @@ def cmd_install(args: argparse.Namespace) -> int:
     except _PluginError as exc:
         err_console.print(f"[red]error:[/red] {exc}")
         return 2
+    explicit = plugins is not None
     if plugins is None:
-        plugins = _default_plugins(catalog)
+        plugins = _default_selection(args, catalog, selection)
         if _is_interactive(args) and len(catalog) > 1:
             plugins = _select_plugins_interactively(catalog, plugins)
             if plugins is None:
@@ -415,7 +500,9 @@ def cmd_install(args: argparse.Namespace) -> int:
         return 0
     _warn_deprecated(plugins, catalog)
 
-    opts = replace(_opts_from_args(args), plugins=tuple(plugins), plugin=plugins[0])
+    opts = replace(_opts_from_args(args), plugins=tuple(plugins), plugin=plugins[0], plugins_explicit=explicit)
+    # File mode copies content per plugin: a bundle there means the plugins it bundles.
+    file_plugins = tuple(_assets.expand_bundles(plugins, catalog))
     if opts.ref and opts.mode != "plugin":
         err_console.print("[red]error:[/red] --ref needs --mode plugin")
         return 2
@@ -437,7 +524,7 @@ def cmd_install(args: argparse.Namespace) -> int:
                     f"[dim]{adapter.name}:[/dim] no plugin marketplace for {adapter.pretty} — "
                     "installing files instead."
                 )
-                agent_opts = replace(opts, mode="files")
+            agent_opts = replace(opts, mode="files", plugins=file_plugins, plugin=file_plugins[0])
             plan = _plan_plugins(adapter, agent_opts)
         if opts.dry_run:
             _render_plan_dry_run(adapter, plan, agent_opts, manifest_path)

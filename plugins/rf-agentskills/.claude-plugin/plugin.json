@@ -1,7 +1,7 @@
 {
   "name": "rf-agentskills",
-  "version": "3.0.0",
-  "description": "Robot Framework agent skills for Claude Code - library references, environment setup, robotcode CLI, libdoc keyword lookup, and results analysis",
+  "version": "4.0.0",
+  "description": "All Robot Framework plugins in one install: rf-core, rf-web, rf-api, rf-mobile and rf-desktop.",
   "author": {
     "name": "manykarim",
     "email": "manykarim@users.noreply.github.com"

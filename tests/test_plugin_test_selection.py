@@ -27,7 +27,7 @@ def tree(tmp_path: Path) -> Path:
 
 
 def test_the_real_repository_has_plugin_tests():
-    assert "rf-agentskills" in sel.plugins_with_tests(ROOT)
+    assert {"rf-core", "rf-desktop"} <= set(sel.plugins_with_tests(ROOT))
     assert not (ROOT / "tests" / "test_hook_scripts.py").exists()
 
 
@@ -52,6 +52,19 @@ def test_change_to_a_linked_file_runs_the_linking_plugin(tree: Path):
     link.symlink_to(Path("../../rf-agentskills/scripts/shared.mjs"))
     assert sel.select(tree, ["plugins/rf-agentskills/scripts/shared.mjs"]) == ["rf-agentskills", "rf-example"]
     assert sel.select(tree, ["plugins/rf-agentskills/skills/rf-browser/SKILL.md"]) == ["rf-agentskills"]
+
+
+def test_dependency_neighbours_run_too(tree: Path):
+    for plugin in ("rf-agentskills", "rf-example", "rf-other"):
+        (tree / "plugins" / plugin / "tests").mkdir(parents=True, exist_ok=True)
+        (tree / "plugins" / plugin / ".claude-plugin").mkdir(parents=True)
+    (tree / "plugins" / "rf-agentskills" / ".claude-plugin" / "plugin.json").write_text('{"name": "rf-agentskills"}')
+    (tree / "plugins" / "rf-example" / ".claude-plugin" / "plugin.json").write_text(
+        '{"name": "rf-example", "dependencies": [{"name": "rf-agentskills", "version": "^1.0"}]}')
+    (tree / "plugins" / "rf-other" / ".claude-plugin" / "plugin.json").write_text(
+        '{"name": "rf-other", "dependencies": ["rf-agentskills"]}')
+    assert sel.select(tree, ["plugins/rf-example/skills/x/SKILL.md"]) == ["rf-agentskills", "rf-example"]
+    assert sel.select(tree, ["plugins/rf-agentskills/agents/a.md"]) == ["rf-agentskills", "rf-example", "rf-other"]
 
 
 def test_cli_writes_the_github_output(tree: Path, tmp_path: Path, capsys):

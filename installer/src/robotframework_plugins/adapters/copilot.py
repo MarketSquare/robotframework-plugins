@@ -26,7 +26,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from ._base import InstallOptions, InstallPlan, marketplace_settings_merges, old_marketplace_note
+from ._base import InstallOptions, InstallPlan, marketplace_settings_merges, old_marketplace_note, upgrade_plugins
 from .claude_code import ClaudeCodeAdapter
 
 
@@ -82,6 +82,6 @@ class CopilotAdapter(ClaudeCodeAdapter):
         if migrated:
             notes = (*notes, migrated)
         return InstallPlan(
-            merges=(*base.merges, *marketplace_settings_merges(copilot_settings, opts.ref, opts.plugins)),
+            merges=(*base.merges, *marketplace_settings_merges(copilot_settings, opts.ref, upgrade_plugins(copilot_settings, opts))),
             notes=notes,
         )

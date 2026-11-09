@@ -43,9 +43,10 @@ def find_repo_root(start: Path | None = None) -> Path:
 
 def shipped_skills(repo_root: Path, plugin: str | None = None) -> dict[str, str]:
     """``{skill name: dir name}`` for every ``plugins/*/skills/*/SKILL.md``
-    (only ``plugins/<plugin>/skills/`` when ``plugin`` is given)."""
+    (only ``plugins/<plugin>/skills/`` when ``plugin`` is given and not ``all``)."""
     found: dict[str, str] = {}
-    for skills_dir in sorted((repo_root / "plugins").glob(f"{plugin or '*'}/skills")):
+    pattern = "*" if plugin in (None, ALL_PLUGINS) else plugin
+    for skills_dir in sorted((repo_root / "plugins").glob(f"{pattern}/skills")):
         found.update(skill_dir_map(skills_dir))
     return found
 
@@ -57,17 +58,82 @@ def eval_plugins(repo_root: Path) -> list[str]:
 
 def default_eval_plugin(repo_root: Path) -> str:
     """The plugin the harness evaluates when ``--plugin`` is not given: the
-    only plugin with evals. With several, the caller must choose."""
+    only plugin with evals. With several, the caller must choose (or ``all``)."""
     plugins = eval_plugins(repo_root)
     if len(plugins) != 1:
         found = ", ".join(plugins) or "none"
-        raise ValueError(f"choose a plugin with --plugin (plugins with evals: {found})")
+        raise ValueError(f"choose a plugin with --plugin, or --plugin all (plugins with evals: {found})")
     return plugins[0]
 
 
+#: ``--plugin all``: every plugin's evals at once, read-only (see :func:`merged_evals_dir`).
+ALL_PLUGINS = "all"
+
+
 def plugin_evals_dir(repo_root: Path, plugin: str) -> Path:
-    """``plugins/<plugin>/evals/``: the plugin's tasks, trigger sets and baselines."""
+    """``plugins/<plugin>/evals/``: the plugin's tasks, trigger sets and baselines.
+
+    For ``all``, a merged copy of every plugin's evals (:func:`merged_evals_dir`)."""
+    if plugin == ALL_PLUGINS:
+        return merged_evals_dir(repo_root)
     return repo_root / "plugins" / plugin / "evals"
+
+
+def _merge_baseline(files: list[Path]) -> dict[str, Any]:
+    """One baseline from several plugins' files of the same kind: ``entries``
+    (tiers) or ``skills`` (triggers) are joined; other keys come from the first."""
+    merged: dict[str, Any] = {}
+    for f in files:
+        data = json.loads(f.read_text(encoding="utf-8"))
+        for key, value in data.items():
+            if key in ("entries", "skills") and isinstance(value, dict):
+                merged.setdefault(key, {}).update(value)
+            else:
+                merged.setdefault(key, value)
+    return merged
+
+
+_MERGED: dict[Path, Path] = {}
+
+
+def merged_evals_dir(repo_root: Path) -> Path:
+    """A temporary ``evals/`` holding every plugin's tasks, trigger sets and
+    baselines, built once per process. Writing to it changes no plugin; commands
+    that write baselines need one ``--plugin``."""
+    root = repo_root.resolve()
+    if root in _MERGED:
+        return _MERGED[root]
+    import atexit
+    import shutil
+    import tempfile
+
+    out = Path(tempfile.mkdtemp(prefix="rf-eval-all-")) / "evals"
+    atexit.register(shutil.rmtree, out.parent, ignore_errors=True)
+    baselines: dict[str, list[Path]] = {}
+    for plugin in eval_plugins(root):
+        src = plugin_evals_dir(root, plugin)
+        for f in sorted(src.rglob("*")):
+            if not f.is_file():
+                continue
+            rel = f.relative_to(src)
+            if rel.parts[0] == "baselines" and f.suffix == ".json":
+                baselines.setdefault(rel.name, []).append(f)
+                continue
+            dst = out / rel
+            if dst.exists():
+                if rel.suffix == ".md":
+                    continue  # one README per folder is enough
+                raise ValueError(f"{rel.as_posix()} exists in more than one plugin's evals")
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, dst)
+    for name, files in baselines.items():
+        dst = out / "baselines" / name
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(json.dumps(_merge_baseline(files), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (out / "tasks").mkdir(parents=True, exist_ok=True)
+    (out / "triggers").mkdir(parents=True, exist_ok=True)
+    _MERGED[root] = out
+    return out
 
 
 def _read_mapping(path: Path) -> dict[str, Any]:

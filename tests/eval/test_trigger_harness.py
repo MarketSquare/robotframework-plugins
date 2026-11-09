@@ -20,7 +20,8 @@ from typer.testing import CliRunner
 
 from rf_skill_eval import cli
 from rf_skill_eval.application.batch import Budget
-from rf_skill_eval.application.catalog import load_trigger_set, shipped_skills
+from rf_skill_eval.application.catalog import load_trigger_set, plugin_evals_dir, shipped_skills
+from rf_skill_eval.application.staging import staged_tree
 from rf_skill_eval.application.trigger_eval import (
     OUTCOMES_FILE,
     OutcomeStore,
@@ -41,6 +42,8 @@ from rf_skill_eval.infrastructure.runner.claude_code_runner import ClaudeCodeRun
 from .fakes import FakeRunner, skill_call
 
 _REPO = Path(__file__).resolve().parents[2]
+#: The shipped plugins merged, as a variant root copies them.
+_SHIPPED = staged_tree(_REPO / "plugins")
 _FIXTURE = _REPO / "eval" / "fixtures" / "sut-trigger"
 _SKILLS = shipped_skills(_REPO)
 _NAMES = {"rf-browser": "rf-browser"}
@@ -145,7 +148,7 @@ def test_trigger_profile_requests_restriction_and_fixture(
             raise cli.RfSkillEvalError("stop")
 
     fn = cli._runner_trigger_fn(Capture(), tmp_path, None, workspace_fixture=_FIXTURE)  # type: ignore[arg-type]
-    tset = load_trigger_set(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers" / "rf-requests.yaml", skills=_SKILLS)
+    tset = load_trigger_set(plugin_evals_dir(_REPO, "all") / "triggers" / "rf-requests.yaml", skills=_SKILLS)
     run = fn(tset, tset.queries[0], 0)
     assert run.error == "stop"
     assert seen[0].restrict_tools is True
@@ -243,7 +246,7 @@ def test_unknown_split_rejected(tmp_path: Path) -> None:
 def test_cli_rejects_unknown_split(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = cli_runner.invoke(cli.app, ["trigger", "--skills", "rf-browser", "--split", "test",
-                                      "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
+                                      "--triggers-dir", str(plugin_evals_dir(_REPO, "all") / "triggers")])
     assert res.exit_code == 2
     assert "holdout" in res.output
 
@@ -300,7 +303,7 @@ def test_malformed_holdout_names_rejected(tmp_path: Path, bad: str) -> None:
 def test_cli_rejects_malformed_holdout_split(monkeypatch: pytest.MonkeyPatch, bad: str) -> None:
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = cli_runner.invoke(cli.app, ["trigger", "--skills", "rf-browser", "--split", bad,
-                                      "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
+                                      "--triggers-dir", str(plugin_evals_dir(_REPO, "all") / "triggers")])
     assert res.exit_code == 2
     # Rich colours and wraps the usage error to the terminal width (CI differs
     # from local), so strip ANSI codes and whitespace before matching.
@@ -465,7 +468,7 @@ def test_cli_resume_and_variant_recorded(tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.setattr(cli, "RUNNER_FACTORY", lambda: FakeRunner(behaviour))
     out = tmp_path / "trig"
     args = ["trigger", "--skills", "rf-browser", "--split", "validation", "--runs", "1",
-            "--output", str(out), "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers"),
+            "--output", str(out), "--triggers-dir", str(plugin_evals_dir(_REPO, "all") / "triggers"),
             "--baseline", str(tmp_path / "none.json"), "--variant-root", str(variant),
             "--concurrency", "2"]
     res = cli_runner.invoke(cli.app, args)
@@ -476,7 +479,7 @@ def test_cli_resume_and_variant_recorded(tmp_path: Path, monkeypatch: pytest.Mon
     assert all(p.restrict_tools and p.workspace_fixture is not None for p in seen)
     data = json.loads((out / "trigger-results.json").read_text())
     assert data["variant_root"] == str(variant.resolve())
-    assert data["variant_id"] == description_set_id(_REPO / "plugins" / "rf-agentskills" / "skills")
+    assert data["variant_id"] == description_set_id(_SHIPPED / "skills")
     lines = (out / OUTCOMES_FILE).read_text().splitlines()
     assert len(lines) == len(data["outcomes"])
 
@@ -522,7 +525,7 @@ def test_concurrency_above_two_rejected(tmp_path: Path, monkeypatch: pytest.Monk
                               concurrency=3)
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = cli_runner.invoke(cli.app, ["trigger", "--concurrency", "3",
-                                      "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
+                                      "--triggers-dir", str(plugin_evals_dir(_REPO, "all") / "triggers")])
     assert res.exit_code == 2
     assert "concurrency" in res.output
 
@@ -541,7 +544,7 @@ def _tree_bytes(root: Path) -> dict[str, bytes]:
 def test_builder_replaces_only_listed_descriptions(tmp_path: Path) -> None:
     text = "Use this skill whenever a Robot Framework run left an output.xml behind."
     variant = build_variant(_REPO, {"rf-requests": text}, tmp_path / "v")
-    before = _tree_bytes(_REPO / "plugins" / "rf-agentskills")
+    before = _tree_bytes(_SHIPPED)
     after = _tree_bytes(tmp_path / "v" / "plugins" / "rf-agentskills")
     assert set(before) == set(after)
     assert sorted(k for k in before if before[k] != after[k]) == ["skills/rf-requests/SKILL.md"]
@@ -561,7 +564,7 @@ def test_variant_id_is_stable_and_content_based(tmp_path: Path) -> None:
     empty = build_variant(_REPO, {}, tmp_path / "c")
     assert a.variant_id == b.variant_id
     assert a.variant_id != empty.variant_id
-    assert empty.variant_id == description_set_id(_REPO / "plugins" / "rf-agentskills" / "skills")
+    assert empty.variant_id == description_set_id(_SHIPPED / "skills")
     meta = json.loads((tmp_path / "a" / "variant.json").read_text())
     assert meta["variant_id"] == a.variant_id and meta["candidates"] == cand
 
@@ -610,6 +613,6 @@ def test_builder_script_prints_variant_id(tmp_path: Path) -> None:
 def test_cli_rejects_variant_root_without_plugin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     res = cli_runner.invoke(cli.app, ["trigger", "--variant-root", str(tmp_path),
-                                      "--triggers-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "triggers")])
+                                      "--triggers-dir", str(plugin_evals_dir(_REPO, "all") / "triggers")])
     assert res.exit_code == 2
     assert "plugins" in res.output

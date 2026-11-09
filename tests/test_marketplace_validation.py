@@ -42,11 +42,10 @@ def test_all_plugin_sources_exist():
 
 
 def test_all_skills_have_skill_md():
-    skills_dir = PLUGIN_ROOT / "skills"
-    for entry in sorted(skills_dir.iterdir()):
-        if entry.is_dir():
-            skill_md = entry / "SKILL.md"
-            assert skill_md.exists(), f"Missing SKILL.md: {entry.name}"
+    entries = sorted(d for d in ROOT.glob("plugins/*/skills/*") if d.is_dir())
+    assert entries
+    for entry in entries:
+        assert (entry / "SKILL.md").exists(), f"Missing SKILL.md: {entry}"
 
 
 def test_plugin_names_unique():
@@ -70,26 +69,30 @@ def _json(path: Path) -> dict:
 
 
 def test_plugin_sets_no_default_main_agent():
-    """Enabling the plugin must not replace the user's main agent."""
-    assert not (PLUGIN_ROOT / "settings.json").exists()
-    manifest = _json(PLUGIN_ROOT / ".claude-plugin" / "plugin.json")
-    assert "agent" not in (manifest.get("settings") or {})
+    """Enabling a plugin must not replace the user's main agent."""
+    for plugin in ROOT.glob("plugins/*/.claude-plugin/plugin.json"):
+        assert not (plugin.parent.parent / "settings.json").exists(), plugin
+        assert "agent" not in (_json(plugin).get("settings") or {}), plugin
 
 
 def test_one_claude_format_marketplace_for_every_agent():
     """Copilot, Codex and Cursor read .claude-plugin/; a root plugin.json or
     .cursor-plugin/ manifest would take precedence there and drop hooks/agents."""
     assert not (ROOT / "plugin.json").exists()
-    assert not (PLUGIN_ROOT / "plugin.json").exists()
+    assert not list(ROOT.glob("plugins/*/plugin.json"))
     assert not (ROOT / ".cursor-plugin").exists()
-    assert not (PLUGIN_ROOT / ".cursor-plugin").exists()
+    assert not list(ROOT.glob("plugins/*/.cursor-plugin"))
 
 
 def test_marketplace_and_plugin_manifests_agree():
     marketplace = _json(ROOT / ".claude-plugin" / "marketplace.json")
     manifest = _json(PLUGIN_ROOT / ".claude-plugin" / "plugin.json")
     [entry] = [p for p in marketplace["plugins"] if p["name"] == manifest["name"]]
-    assert entry["source"] == "./plugins/rf-agentskills"
+    # The bundle installs from its generated copy, which carries the same plugin.json.
+    assert entry["source"] == "./bundles/rf-agentskills"
+    assert _json(ROOT / "bundles" / "rf-agentskills" / ".claude-plugin" / "plugin.json") == manifest
+    for e in marketplace["plugins"]:
+        assert _json(ROOT / e["source"] / ".claude-plugin" / "plugin.json")["name"] == e["name"]
     # One version per plugin, only in plugin.json: Claude Code reads it first
     # and warns when an entry disagrees (RELEASING.md, plugin tags <plugin>--v<version>).
     assert manifest["version"]

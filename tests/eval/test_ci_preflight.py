@@ -18,7 +18,7 @@ _DIRS = {
     "rf-requests": "rf-requests",
     "rf-restinstance": "rf-restinstance",
 }
-_TASKS = {"plugins/rf-agentskills/evals/tasks/narrow/narrow-browser-login-01.yaml": "rf-browser"}
+_TASKS = {"plugins/rf-web/evals/tasks/narrow/narrow-browser-login-01.yaml": "rf-browser"}
 _FIXTURES = {"sut-api": {"rf-requests", "rf-restinstance"}}
 runner = CliRunner()
 
@@ -36,11 +36,11 @@ def _map(paths: list[str], changed: set[str] | None = None):  # type: ignore[no-
 @pytest.mark.parametrize(
     ("paths", "skills"),
     [
-        (["plugins/rf-agentskills/skills/rf-selenium/references/locators.md"], {"rf-selenium"}),
-        (["plugins/rf-agentskills/skills/rf-selenium/SKILL.md"], {"rf-selenium"}),
-        (["plugins/rf-agentskills/evals/tasks/narrow/narrow-browser-login-01.yaml"], {"rf-browser"}),
+        (["plugins/rf-web/skills/rf-selenium/references/locators.md"], {"rf-selenium"}),
+        (["plugins/rf-web/skills/rf-selenium/SKILL.md"], {"rf-selenium"}),
+        (["plugins/rf-web/evals/tasks/narrow/narrow-browser-login-01.yaml"], {"rf-browser"}),
         (["eval/fixtures/sut-api/libraries/ApiServer.py"], {"rf-requests", "rf-restinstance"}),
-        (["plugins/rf-agentskills/hooks/hooks.json"], {"plugin"}),
+        (["plugins/rf-core/hooks/hooks.json"], {"plugin"}),
         (["README.md", "docs/ci/usage.md"], set()),
     ],
 )
@@ -51,27 +51,27 @@ def test_changed_paths_map_to_skills(paths: list[str], skills: set[str]) -> None
 
 
 def test_harness_change_selects_full_narrow_tier() -> None:
-    result = _map(["src/rf_skill_eval/cli.py", "plugins/rf-agentskills/skills/rf-browser/SKILL.md"])
+    result = _map(["src/rf_skill_eval/cli.py", "plugins/rf-web/skills/rf-browser/SKILL.md"])
     assert result.full_tier is True
     assert result.skills_arg() == ""
     assert result.github_outputs()["full_tier"] == "true"
 
 
 def test_scoped_run_always_includes_canaries() -> None:
-    assert _map(["plugins/rf-agentskills/skills/rf-selenium/SKILL.md"]).skills_arg() == "plugin,rf-selenium"
+    assert _map(["plugins/rf-web/skills/rf-selenium/SKILL.md"]).skills_arg() == "plugin,rf-selenium"
 
 
 def test_description_change_triggers_trigger_eval() -> None:
-    result = _map(["plugins/rf-agentskills/skills/rf-browser/SKILL.md"], changed={"plugins/rf-agentskills/skills/rf-browser/SKILL.md"})
+    result = _map(["plugins/rf-web/skills/rf-browser/SKILL.md"], changed={"plugins/rf-web/skills/rf-browser/SKILL.md"})
     assert result.trigger_skills == {"rf-browser"}
     assert result.github_outputs()["run_triggers"] == "true"
-    body_only = _map(["plugins/rf-agentskills/skills/rf-browser/SKILL.md"])
+    body_only = _map(["plugins/rf-web/skills/rf-browser/SKILL.md"])
     assert body_only.trigger_skills == set()
     assert body_only.github_outputs()["run_triggers"] == "false"
 
 
 def test_trigger_set_change_runs_that_set() -> None:
-    assert _map(["plugins/rf-agentskills/evals/triggers/rf-requests.yaml"]).trigger_skills == {"rf-requests"}
+    assert _map(["plugins/rf-api/evals/triggers/rf-requests.yaml"]).trigger_skills == {"rf-requests"}
 
 
 def test_nothing_relevant_means_no_evals() -> None:
@@ -87,10 +87,9 @@ def test_frontmatter_description() -> None:
 
 def test_preflight_cli_with_paths_file(tmp_path: Path) -> None:
     paths = tmp_path / "paths.txt"
-    paths.write_text("plugins/rf-agentskills/skills/rf-selenium/SKILL.md\nplugins/rf-agentskills/evals/tasks/narrow/narrow-requests-users-01.yaml\n")
+    paths.write_text("plugins/rf-web/skills/rf-selenium/SKILL.md\nplugins/rf-api/evals/tasks/narrow/narrow-requests-users-01.yaml\n")
     out = tmp_path / "gh_output"
     res = runner.invoke(cli.app, ["preflight", "--paths-file", str(paths),
-                                  "--tasks-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "tasks"),
                                   "--github-output", str(out)])
     assert res.exit_code == 0, res.stdout
     outputs = dict(line.split("=", 1) for line in out.read_text().splitlines())
@@ -169,8 +168,8 @@ def test_deleted_or_renamed_skill_dirs_are_ignored() -> None:
         [
             "skills/robotframework-appium-skill/SKILL.md",
             "plugins/rf-agentskills/skills/appium/SKILL.md",
-            "plugins/rf-agentskills/evals/triggers/rf-keyword-builder.yaml",
-            "plugins/rf-agentskills/skills/rf-browser/SKILL.md",
+            "plugins/rf-core/evals/triggers/rf-keyword-builder.yaml",
+            "plugins/rf-web/skills/rf-browser/SKILL.md",
         ],
         changed={"skills/robotframework-appium-skill/SKILL.md"},
     )

@@ -1,0 +1,26 @@
+{
+  "claude_code_version": "2.1.316 (Claude Code)",
+  "entries": {
+    "narrow-appium-login-01|treatment": {
+      "arm": "treatment",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.011901,
+      "mean_duration_s": 47.81,
+      "mean_input_tokens": 308657.4,
+      "mean_output_tokens": 5725.9,
+      "mean_turns": 11.33,
+      "model": "claude-haiku-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 9,
+      "skill": "rf-appium",
+      "task_hash": "9c13d665a3ed54d242a8b8d6ee5fc30985bfc97f00b1c90d528beb2f022c0d13",
+      "task_id": "narrow-appium-login-01"
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "narrow"
+}

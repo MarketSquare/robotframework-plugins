@@ -142,18 +142,18 @@ def test_real_tree_all_channels_valid(use_yaml):
 @requires_posix_bash
 def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
     repo = tmp_path / "repo"
-    shutil.copytree(ROOT / "plugins" / "rf-agentskills" / "skills", repo / "plugins" / "rf-agentskills" / "skills")
+    shutil.copytree(ROOT / "plugins" / "rf-web" / "skills", repo / "plugins" / "rf-web" / "skills")
     (repo / "scripts").mkdir()
     shutil.copy2(ROOT / "scripts" / "bump-version.sh", repo / "scripts" / "bump-version.sh")
-    rel = "plugins/rf-agentskills/.claude-plugin/plugin.json"
+    rel = "plugins/rf-web/.claude-plugin/plugin.json"
     (repo / rel).parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / rel, repo / rel)
     old = json.loads((ROOT / rel).read_text())["version"]
-    res = subprocess.run([BASH, str(repo / "scripts" / "bump-version.sh"), "rf-agentskills", "patch"],
+    res = subprocess.run([BASH, str(repo / "scripts" / "bump-version.sh"), "rf-web", "patch"],
                          capture_output=True, text=True, env={"REPO_ROOT": str(repo), "PATH": "/usr/bin:/bin"})
     assert res.returncode == 0, res.stdout + res.stderr
     new = json.loads((repo / rel).read_text())["version"]
-    assert new != old and f"rf-agentskills--v{new}" in res.stdout
+    assert new != old and f"rf-web--v{new}" in res.stdout
     assert vs.validate(repo) == []
 
 
@@ -171,7 +171,7 @@ def _frontmatter_field(md: Path, field: str) -> str:
     return ""
 
 
-@pytest.mark.parametrize("md", sorted((ROOT / "plugins" / "rf-agentskills" / "skills").glob("*/SKILL.md")), ids=lambda p: p.parent.name)
+@pytest.mark.parametrize("md", sorted(ROOT.glob("plugins/*/skills/*/SKILL.md")), ids=lambda p: p.parent.name)
 def test_skills_running_robotcode_declare_it(md: Path) -> None:
     """robotcode-prerequisite: a skill that runs robotcode names robotcode[all]>=2.8."""
     if "robotcode " not in md.read_text(encoding="utf-8").split("\n---", 1)[1]:

@@ -1,30 +1,27 @@
-# rf-agentskills plugin
+# rf-agentskills bundle
 
-Robot Framework skills, subagents and validation hooks for coding agents. Install instructions for every agent are in the [repository README](https://github.com/MarketSquare/robotframework-plugins#install).
+Installs every Robot Framework plugin of this marketplace at once: `rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop`. It has no content of its own. Install instructions for every agent are in the [repository README](https://github.com/MarketSquare/robotframework-plugins#install).
 
-## Requires robotcode
+## Install
 
-Install `robotcode[all]>=2.8` in the project's Python environment, next to Robot Framework. Don't use `uvx`, `pipx` or `uv tool` for it: an isolated robotcode cannot see the project's libraries.
-
-```bash
-uv add --dev "robotcode[all]>=2.8"                 # uv
-poetry add --group dev "robotcode[all]>=2.8"       # Poetry
-pip install "robotcode[all]>=2.8"                  # venv + pip (venv active)
+```
+/plugin install rf-agentskills --marketplace MarketSquare/robotframework-plugins
 ```
 
-The `all` extra is needed because it is the only one that brings everything the skills and hooks run: `runner` (`robot`, `discover`, `results`, `libdoc`), `analyze` (`analyze code`), `repl` (`doc`, `repl`, `robot-debug`) and Robocop. A CI job that only runs tests can use `robotcode[runner]`. The `rf-setup` skill installs it for you.
+That one step works on Claude Code 2.1.275 or later. The commands for other agents and older versions are in the repository README.
 
-## Recommended companion: the robotcode plugin
+Until 3.0.0 this plugin held all nine skills, three subagents and the hooks. From 4.0.0 they are maintained in the five plugins above, so a web team can install `rf-core` and `rf-web` only. `rf-agentskills` ships a copy of all five, generated from them for each release. Projects that enable `rf-agentskills@robotframework-plugins` keep everything, under the same `rf-agentskills:` prefix as before.
 
-The RobotCode project publishes `robotcode@robotframework-agent-plugins`, which teaches agents to drive the robotcode CLI. Install it next to this plugin:
-
-```bash
-claude plugin marketplace add robotcodedev/robotframework-agent-plugins
-claude plugin install robotcode@robotframework-agent-plugins
-```
-
-(`copilot plugin …` and `codex plugin marketplace add … / codex plugin add …` work the same way. The RobotCode VS Code extension already bundles it for Copilot Chat.) This plugin does not declare a dependency on it, so it loads either way.
-
-| The robotcode plugin owns | rf-agentskills owns |
+| Plugin | Skills and subagents |
 |---|---|
-| running, discovery, keyword documentation, result analysis, static analysis, `robot.toml` configuration, the REPL and the debugger | Robot Framework syntax (`rf-language`), Python keyword libraries (`rf-python-library`), the test-library skills, environment setup (`rf-setup`), the validation hooks, and the `rf-test-architect`, `rf-debug-expert` and `rf-migration-guide` subagents |
+| `rf-core` | `rf-language`, `rf-setup`, `rf-python-library`; `rf-test-architect`, `rf-debug-expert`, `rf-migration-guide`; all hooks |
+| `rf-web` | `rf-browser`, `rf-selenium` |
+| `rf-api` | `rf-requests`, `rf-restinstance` |
+| `rf-mobile` | `rf-appium` |
+| `rf-desktop` | `rf-platynui` |
+
+## Bundle or separate plugins, not both
+
+Install either this bundle or the plugins you need. With both, each skill appears twice, once as `rf-agentskills:rf-browser` and once as `rf-web:rf-browser`. Moving from the bundle to separate plugins changes the skill prefixes, so update project instructions or docs that name a prefixed skill.
+
+robotcode is a prerequisite of `rf-core`; see its README.

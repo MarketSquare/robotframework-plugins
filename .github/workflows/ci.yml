@@ -76,8 +76,8 @@ jobs:
         run: pip install robotframework-browser || echo "Browser unavailable — those libdoc tests will skip"
         shell: bash
       - name: Install other library-skill libraries (optional — example dry runs)
-        # plugins/rf-agentskills/tests/test_library_skill_structure.py dry-runs every example in
-        # plugins/rf-agentskills/skills/rf-{selenium,appium,requests,restinstance}/assets/examples and
+        # tests/test_library_skill_structure.py dry-runs every example in
+        # plugins/*/skills/rf-{selenium,appium,requests,restinstance}/assets/examples and
         # checks decision-table keywords against libdoc. Fail-soft: a library
         # that cannot be installed (RESTinstance needs Python >= 3.11) makes its
         # cases skip, never pass.
@@ -88,7 +88,7 @@ jobs:
           pip install RESTinstance || echo "RESTinstance unavailable on this interpreter — its example dry runs will skip"
         shell: bash
       - name: Install Robocop 9.x and PyYAML (optional — rf-language rule-ID fidelity and YAML example tests)
-        # plugins/rf-agentskills/tests/test_language_skill.py checks every Robocop rule ID the rf-language
+        # plugins/rf-core/tests/test_language_skill.py checks every Robocop rule ID the rf-language
         # skill cites against Robocop 9.x (the version rf-setup recommends) and
         # runs the YAML variable-file example. Fail-soft: those cases skip.
         run: |
@@ -96,16 +96,16 @@ jobs:
           pip install pyyaml || echo "PyYAML unavailable — the rf-language YAML example test will skip"
         shell: bash
       - name: Run rf-python-library examples and check the example libraries
-        # plugins/rf-agentskills/skills/rf-python-library/assets/examples must really run (not only
+        # plugins/rf-core/skills/rf-python-library/assets/examples must really run (not only
         # dry-run), with the example listener, and the bundled checker must
         # report no error or warning finding for the three example libraries.
-        # plugins/rf-agentskills/tests/test_python_library_skill.py and test_check_library.py
+        # plugins/rf-core/tests/test_python_library_skill.py and test_check_library.py
         # (run below) cover the same plus every code block in the skill.
         run: |
           export PYTHONDONTWRITEBYTECODE=1
           out="$RUNNER_TEMP/pylib"
-          python -m robot --pythonpath plugins/rf-agentskills/skills/rf-python-library/assets/examples --listener ResultListener --outputdir "$out" --console dotted plugins/rf-agentskills/skills/rf-python-library/assets/examples
-          cd plugins/rf-agentskills/skills/rf-python-library/assets/examples
+          python -m robot --pythonpath plugins/rf-core/skills/rf-python-library/assets/examples --listener ResultListener --outputdir "$out" --console dotted plugins/rf-core/skills/rf-python-library/assets/examples
+          cd plugins/rf-core/skills/rf-python-library/assets/examples
           python ../../scripts/check_library.py ExampleLibrary.py converters.py ResultListener.py --json-out "$out/check_library.json"
           python -c "import json, sys; s = json.load(open(sys.argv[1]))['summary']; print(s); sys.exit(1 if s['error'] or s['warning'] else 0)" "$out/check_library.json"
         shell: bash
@@ -231,7 +231,7 @@ jobs:
       - name: Resolve every keyword call against libdoc
         # --require-all: a skill whose library failed to import fails the job
         # instead of being skipped silently.
-        run: python scripts/check-skill-keywords.py --require-all --skills-root plugins/rf-agentskills/skills
+        run: python scripts/check-skill-keywords.py --require-all
 
   check-drift:
     name: Check generated variants and plugin layout
@@ -276,33 +276,35 @@ jobs:
         run: |
           python3 -c "
           import json, os, sys
-          # Check plugin.json
-          with open('plugins/rf-agentskills/.claude-plugin/plugin.json') as f:
-              pj = json.load(f)
-          print(f'Plugin: {pj[\"name\"]} v{pj.get(\"version\",\"?\")}')
-          # Check all skills have SKILL.md
-          skills = [d for d in os.listdir('plugins/rf-agentskills/skills') if os.path.isdir(f'plugins/rf-agentskills/skills/{d}')]
+          import glob
+          # Every plugin has a plugin.json; every skill folder a SKILL.md
+          for pj_path in sorted(glob.glob('plugins/*/.claude-plugin/plugin.json')):
+              with open(pj_path) as f:
+                  pj = json.load(f)
+              print(f'Plugin: {pj[\"name\"]} v{pj.get(\"version\",\"?\")}')
+          skills = sorted(d for d in glob.glob('plugins/*/skills/*') if os.path.isdir(d))
           for s in skills:
-              assert os.path.exists(f'plugins/rf-agentskills/skills/{s}/SKILL.md'), f'Missing SKILL.md in {s}'
+              assert os.path.exists(f'{s}/SKILL.md'), f'Missing SKILL.md in {s}'
           print(f'Skills: {len(skills)} validated')
           # Check scripts
-          import glob
-          scripts = glob.glob('plugins/rf-agentskills/skills/*/scripts/*.py')
+          scripts = glob.glob('plugins/*/skills/*/scripts/*.py')
           assert scripts, 'no per-skill scripts found'
-          assert not glob.glob('plugins/rf-agentskills/scripts/*.py'), 'flat plugin scripts/*.py must not exist'
+          assert not glob.glob('plugins/*/scripts/*.py'), 'flat plugin scripts/*.py must not exist'
           print(f'Scripts: {len(scripts)} found (per skill)')
           # Check agents
-          agents = [f for f in os.listdir('plugins/rf-agentskills/agents') if f.endswith('.md')]
+          agents = glob.glob('plugins/*/agents/*.md')
           print(f'Agents: {len(agents)} found')
           # The rf-tools MCP server was retired (content 2.0.0)
-          assert not os.path.exists('plugins/rf-agentskills/.mcp.json'), 'plugin must not ship an MCP config'
-          assert not os.path.exists('plugins/rf-agentskills/servers'), 'plugin must not ship servers/'
+          assert not glob.glob('plugins/*/.mcp.json'), 'plugins must not ship an MCP config'
+          assert not glob.glob('plugins/*/servers'), 'plugins must not ship servers/'
           print('MCP server: none (retired)')
           "
       - name: Package Claude plugin
         run: |
           cd plugins
-          tar -czf ../rf-agentskills-claude-plugin.tar.gz rf-agentskills/
+          excludes=()
+          for d in */; do excludes+=(--exclude="${d}tests" --exclude="${d}evals"); done
+          tar -czf ../rf-agentskills-claude-plugin.tar.gz "${excludes[@]}" */
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
         with:
@@ -315,8 +317,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Export standalone skills from the plugin
-        # Writes skills/ on the runner only; the repository has no root copy.
-        run: python3 scripts/export-skills.py rf-agentskills skills
+        # Writes every plugin's skills to skills/ on the runner only; the repository has no root copy.
+        run: python3 scripts/export-skills.py all skills
       - name: Package standalone skills (for any agent)
         run: |
           tar -czf robotframework-skills-standalone.tar.gz \

@@ -44,15 +44,19 @@ Every technology plugin SHALL declare `rf-core` as a dependency in its `plugin.j
 
 ### Requirement: The rf-agentskills bundle keeps existing installs whole
 
-`rf-agentskills` SHALL remain in the catalogue as a bundle at version 4.0.0. It SHALL ship no content of its own and SHALL install `rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop`. On every agent that installs plugins from the marketplace (Claude Code, Copilot CLI, VS Code Copilot, Codex), enabling `rf-agentskills` SHALL make the same nine skills, three subagents and hooks available as `rf-agentskills` 3.0.0 did. Its changelog and the release notes SHALL say that skill prefixes changed, for example from `rf-agentskills:rf-browser` to `rf-web:rf-browser`.
+`rf-agentskills` SHALL remain in the catalogue as a bundle at version 4.0.0. Its `catalog.yaml` SHALL list `rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop` under `bundle`, and it SHALL have no content of its own and no `dependencies`. The catalogue generator SHALL write a copy of those plugins' skills, subagents, hooks and hook scripts to `bundles/rf-agentskills/`, and the marketplace entry SHALL point there; the catalogue check SHALL fail when the copy is stale or holds a file the generator no longer writes. On every agent that installs plugins from the marketplace (Claude Code, Copilot CLI, VS Code Copilot, Codex), installing or updating `rf-agentskills` SHALL make the same nine skills, three subagents and hooks available as `rf-agentskills` 3.0.0 did, under the same `rf-agentskills:` prefix. Its changelog, its README and the release notes SHALL say that the skills of the separate plugins carry those plugins' prefixes, for example `rf-web:rf-browser`, and that installing the bundle and a technology plugin shows those skills twice.
 
 #### Scenario: Existing project settings keep working
-- **WHEN** a project's `.claude/settings.json` enables `rf-agentskills@robotframework-plugins` and a teammate starts Claude Code after the split is released
-- **THEN** the nine skills, three subagents and hooks are available, now under the `rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop` prefixes
+- **WHEN** a project's `.claude/settings.json` enables `rf-agentskills@robotframework-plugins`, a teammate has 3.0.0 installed, and updates after the split is released
+- **THEN** the nine skills, three subagents and hooks are available under the `rf-agentskills` prefix, with no further step
 
 #### Scenario: Bundle on Copilot CLI and Codex
 - **WHEN** `rf-agentskills@robotframework-plugins` is installed in Copilot CLI and, separately, in Codex
 - **THEN** each lists the nine skills, and the hooks run
+
+#### Scenario: Stale bundle copy refused
+- **WHEN** a PR edits `plugins/rf-web/skills/rf-browser/SKILL.md` without regenerating
+- **THEN** the catalogue check fails and names `bundles/rf-agentskills/skills/rf-browser/SKILL.md`
 
 ### Requirement: Content names the plugin of a skill it does not ship
 

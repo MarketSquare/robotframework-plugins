@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from robotframework_plugins import _assets
+from robotframework_plugins import _assets, cli
 from robotframework_plugins import transforms as _x
 from robotframework_plugins.adapters import by_name
 from robotframework_plugins.adapters._base import InstallOptions
@@ -243,7 +243,7 @@ def test_goose_plan_has_no_mcp_merge(install_prefix: Path) -> None:
     assert cls is not None
     plan = cls().plan(InstallOptions(prefix=install_prefix))
     assert plan.merges == ()
-    assert not any("rf-agentskills-files" in t.dst.as_posix() for t in plan.targets)
+    assert not any("rf-core-files" in t.dst.as_posix() for t in plan.targets)
 
 
 def test_goose_skills_install_to_agents_dir(install_prefix: Path) -> None:
@@ -333,13 +333,13 @@ def test_opencode_skills_install_natively_to_skills_dir(
 def test_opencode_e2e_hook_plugin_round_trip(
     install_prefix: Path, fake_home: Path
 ) -> None:
-    """The hook plugin and the scripts it resolves (../rf-agentskills-files/scripts/)
+    """The hook plugin and the scripts it resolves (../rf-core-files/scripts/)
     are installed together, and uninstall removes everything."""
     rc = main(["install", "--agent", "opencode", "--prefix", str(install_prefix)])
     assert rc == 0
     assert not (install_prefix / "opencode.json").exists()  # no MCP config
     assert (install_prefix / "plugins" / "rf-agentskills.js").is_file()
-    scripts = install_prefix / "rf-agentskills-files" / "scripts"
+    scripts = install_prefix / "rf-core-files" / "scripts"
     for name in ("validate_robot.mjs", "_hook_input.mjs", "_python_env.mjs", "rf_error_hints.mjs",
                  "check_rf_environment.mjs", "python_runtime.json"):
         assert (scripts / name).is_file(), name
@@ -364,14 +364,16 @@ def test_claude_desktop_emits_one_upload_zip_per_skill(install_prefix: Path) -> 
 
     cls = by_name("claude-desktop")
     assert cls is not None
-    plan = cls().plan(InstallOptions(prefix=install_prefix))
+    plan = cli._plan_plugins(cls(), InstallOptions(prefix=install_prefix))
     assert plan.merges == ()
     zips = {t.dst.name: t for t in plan.targets}
     assert all(t.dst.parent == install_prefix for t in plan.targets)
     assert "rf-browser.zip" in zips and "rf-language.zip" in zips
-    with _assets.asset_root_path() as src_root:
-        shipped = sorted(p.name for p in (src_root / "skills").iterdir()
-                         if (p / "SKILL.md").is_file())
+    shipped = []
+    for plugin in _assets.content_plugins():
+        with _assets.asset_root_path(plugin) as src_root:
+            shipped += [p.name for p in (src_root / "skills").iterdir() if (p / "SKILL.md").is_file()]
+    shipped.sort()
     assert sorted(n.removesuffix(".zip") for n in zips) == shipped
     names = zipfile.ZipFile(io.BytesIO(zips["rf-language.zip"].payload)).namelist()
     # the skill folder is the archive root, as Claude's skill upload expects
@@ -379,7 +381,7 @@ def test_claude_desktop_emits_one_upload_zip_per_skill(install_prefix: Path) -> 
     assert "rf-language/scripts/rf_conventions.py" in names
     assert all(n.startswith("rf-language/") and "__pycache__" not in n for n in names)
     # deterministic: the same tree gives the same bytes (manifest hashes)
-    again = cls().plan(InstallOptions(prefix=install_prefix))
+    again = cli._plan_plugins(cls(), InstallOptions(prefix=install_prefix))
     assert {t.dst.name: t.payload for t in again.targets} == {
         n: t.payload for n, t in zips.items()
     }
@@ -534,7 +536,7 @@ def test_no_agent_stages_the_retired_mcp_server(install_prefix: Path, fake_home:
     assert rc == 0
     assert not list(install_prefix.rglob("rf-tools-server.py"))
     assert not list(install_prefix.rglob("servers"))
-    support = install_prefix / "rf-agentskills-files"
+    support = install_prefix / "rf-core-files"
     if agent in ("codex", "cursor"):
         assert (support / "skills" / "rf-language" / "scripts" / "rf_conventions.py").is_file()
         assert not list((support / "scripts").glob("*.py"))

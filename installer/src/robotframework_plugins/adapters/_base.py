@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Protocol
 
-from .._assets import DEFAULT_PLUGIN
+from .._assets import DEFAULT_PLUGIN, content_plugins
 
 
 # ---------------------------------------------------------------------------
@@ -56,8 +56,11 @@ class InstallOptions:
     ref: str | None = None              # plugin mode: pin the marketplace to this git ref / tag
     # The bundled plugins this run installs, and the one an adapter's
     # ``plan`` is planning right now (the CLI plans each in turn).
-    plugins: tuple[str, ...] = (DEFAULT_PLUGIN,)
+    plugins: tuple[str, ...] = field(default_factory=content_plugins)
     plugin: str = DEFAULT_PLUGIN
+    # True when ``--plugins`` named the plugins. Otherwise an upgrade keeps
+    # what the target already has (see ``upgrade_plugins``).
+    plugins_explicit: bool = False
 
 
 @dataclass(frozen=True)
@@ -277,6 +280,36 @@ def old_marketplace_note(settings_path: Path) -> str | None:
         f"{settings_path}: replaced the {OLD_MARKETPLACE_NAME} marketplace "
         f"({OLD_MARKETPLACE_REPO}) with {MARKETPLACE_NAME} ({MARKETPLACE_REPO})."
     )
+
+
+def enabled_marketplace_plugins(settings_path: Path) -> list[str]:
+    """Plugins ``settings_path`` already enables from this marketplace; the old
+    ``rf-agentskills@robotframework-agentskills`` entry counts as the bundle."""
+    import json
+
+    try:
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    enabled = data.get("enabledPlugins") if isinstance(data, dict) else None
+    if not isinstance(enabled, dict):
+        return []
+    names: list[str] = []
+    for key, on in enabled.items():
+        name, _, market = str(key).partition("@")
+        if on and (market == MARKETPLACE_NAME or (market == OLD_MARKETPLACE_NAME and name == PLUGIN_NAME)):
+            if name not in names:
+                names.append(name)
+    return names
+
+
+def upgrade_plugins(settings_path: Path, opts: InstallOptions) -> tuple[str, ...]:
+    """The plugins to enable in ``settings_path``: ``--plugins`` when given;
+    otherwise what the file already enables (an upgrade, so nothing the user
+    had disappears), else ``opts.plugins``."""
+    if opts.plugins_explicit:
+        return opts.plugins
+    return tuple(enabled_marketplace_plugins(settings_path)) or opts.plugins
 
 
 def marketplace_settings_merges(

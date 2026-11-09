@@ -1,0 +1,22 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+name: rf-desktop
+summary: PlatynUI skill for desktop UI tests.
+tier: verified
+status: active
+maintainers:
+  - github: manykarim
+    name: Many Kasiriha
+libraries:
+  - name: PlatynUI
+    package: robotframework-PlatynUI
+    versions: ">=0.12.0.dev0"
+robotframework: ">=7.0"
+agents:
+  - claude-code
+  - copilot-cli
+  - vscode-copilot
+  - codex
+  - cursor
+  - opencode
+  - goose
+  - claude-desktop

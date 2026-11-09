@@ -8,7 +8,8 @@ Codex, Copilot and other agents, and the Claude Desktop upload archives)
 use the plain ``scripts/x.py`` form instead, as they did before the
 root ``skills/`` copy was retired.
 
-    python scripts/export-skills.py rf-agentskills build/skills
+    python scripts/export-skills.py rf-core build/skills
+    python scripts/export-skills.py all build/skills     # every plugin's skills
 
 Bytecode caches are left out. The output directory is replaced.
 """
@@ -31,11 +32,13 @@ def standalone_skill_md(text: str) -> str:
     return _PLUGIN_SCRIPT.sub(r"\1 scripts/\2", text)
 
 
-def export_skills(skills_dir: Path, out: Path) -> list[str]:
-    """Copy every skill under ``skills_dir`` to ``out``; return the skill names."""
-    if out.exists():
+def export_skills(skills_dir: Path, out: Path, *, replace: bool = True) -> list[str]:
+    """Copy every skill under ``skills_dir`` to ``out``; return the skill names.
+
+    With ``replace=False`` the skills are added to an existing ``out``."""
+    if replace and out.exists():
         shutil.rmtree(out)
-    out.mkdir(parents=True)
+    out.mkdir(parents=True, exist_ok=True)
     names = []
     for skill in sorted(p for p in skills_dir.iterdir() if (p / "SKILL.md").is_file()):
         shutil.copytree(skill, out / skill.name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
@@ -45,17 +48,34 @@ def export_skills(skills_dir: Path, out: Path) -> list[str]:
     return names
 
 
+def skills_dirs(root: Path, plugin: str) -> list[Path]:
+    """``plugins/<plugin>/skills``, or every plugin's for ``all``."""
+    if plugin == "all":
+        return sorted(p for p in (root / "plugins").glob("*/skills") if p.is_dir())
+    return [root / "plugins" / plugin / "skills"]
+
+
+def export_plugins(root: Path, plugin: str, out: Path) -> list[str]:
+    """Export one plugin's skills, or every plugin's (``all``), into ``out``."""
+    if out.exists():
+        shutil.rmtree(out)
+    names: list[str] = []
+    for skills_dir in skills_dirs(root, plugin):
+        names += export_skills(skills_dir, out, replace=False)
+    return names
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("plugin", help="plugin under plugins/ whose skills to export")
+    ap.add_argument("plugin", help="plugin under plugins/ whose skills to export, or 'all'")
     ap.add_argument("out", type=Path, help="output directory (replaced)")
     ap.add_argument("--root", type=Path, default=REPO, help="repository root")
     args = ap.parse_args(argv)
-    skills_dir = args.root / "plugins" / args.plugin / "skills"
-    if not skills_dir.is_dir():
-        print(f"error: {skills_dir} not found", file=sys.stderr)
+    missing = [d for d in skills_dirs(args.root, args.plugin) if not d.is_dir()]
+    if missing:
+        print(f"error: {missing[0]} not found", file=sys.stderr)
         return 1
-    names = export_skills(skills_dir, args.out)
+    names = export_plugins(args.root, args.plugin, args.out)
     print(f"exported {len(names)} skills from {args.plugin} to {args.out}")
     return 0 if names else 1
 

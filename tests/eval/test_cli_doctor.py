@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from typer.testing import CliRunner
 
+from rf_skill_eval.application.catalog import plugin_evals_dir
 from rf_skill_eval.cli import app
 
 runner = CliRunner()
@@ -91,7 +92,7 @@ def _no_ping(monkeypatch) -> None:
 
 def test_doctor_lists_grader_requirements_of_selected_tasks(monkeypatch) -> None:
     _no_ping(monkeypatch)
-    result = runner.invoke(app, ["doctor", "--tasks-dir", str(_REPO / "plugins" / "rf-agentskills" / "evals" / "tasks" / "narrow")])
+    result = runner.invoke(app, ["doctor", "--tasks-dir", str(plugin_evals_dir(_REPO, "all") / "tasks" / "narrow")])
     assert result.exit_code == 0, result.stdout
     for req in ("tool:robot", "module:Browser", "module:SeleniumLibrary", "module:REST"):
         assert f"grader {req}" in result.stdout
