@@ -1,6 +1,7 @@
 ---
 name: rf-migration-guide
 description: Migrates Robot Framework projects. Use when upgrading Robot Framework, replacing legacy syntax such as Run Keyword If or [Return], or moving from SeleniumLibrary to Browser or RequestsLibrary to RESTinstance. Works in phases and reports each file as migrated or unverified.
+tools: Read, Write, Edit, Grep, Glob, Bash, Skill
 ---
 
 # Robot Framework Migration Guide

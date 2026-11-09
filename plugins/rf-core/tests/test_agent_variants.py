@@ -75,7 +75,7 @@ def test_opencode_permission_follows_claude_tools() -> None:
         return yaml.safe_load(text[4:].split("\n---\n", 1)[0])
 
     assert meta("rf-debug-expert")["permission"] == {"edit": "deny", "bash": "allow"}
-    assert "permission" not in meta("rf-test-architect")  # unrestricted agents keep OpenCode's defaults
+    assert meta("rf-test-architect")["permission"] == {"edit": "allow", "bash": "allow"}
 
 
 def test_committed_variants_match_the_generator() -> None:

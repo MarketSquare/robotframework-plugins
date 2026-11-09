@@ -25,7 +25,12 @@ AGENT_NAMES = ("rf-test-architect", "rf-migration-guide", "rf-debug-expert")
 #: Agents that write or change RF files and so carry the shared verification loop.
 WRITERS = ("rf-test-architect", "rf-migration-guide")
 #: Claude `tools` restriction per agent (plugin-subagents "Debug expert is a read-only diagnostician").
-TOOLS = {"rf-debug-expert": "Read, Grep, Glob, Bash"}
+TOOLS = {
+    "rf-debug-expert": "Read, Grep, Glob, Bash",
+    # Writers load the owning skill before they write (content-security-scanning: explicit tools).
+    "rf-test-architect": "Read, Write, Edit, Grep, Glob, Bash, Skill",
+    "rf-migration-guide": "Read, Write, Edit, Grep, Glob, Bash, Skill",
+}
 MAX_DESCRIPTION = 300
 LEGACY_FIXTURE = ROOT / "eval" / "fixtures" / "sut-legacy-style"
 MAX_BODY_LINES = 120

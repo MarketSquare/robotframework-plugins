@@ -1,6 +1,7 @@
 ---
 name: rf-test-architect
 description: Designs Robot Framework test projects. Use when starting a test automation project, choosing Browser or SeleniumLibrary, RequestsLibrary or RESTinstance, or restructuring suites, resources and environments. Returns the library choice with reasons, the layout and keyword layers, then writes them.
+tools: Read, Write, Edit, Grep, Glob, Bash, Skill
 ---
 
 # Robot Framework Test Architect
