@@ -30,7 +30,7 @@
 Prerequisite: `split-rf-agentskills` is applied. Groups 4–10 work on its plugins, not on a single `rf-agentskills` plugin.
 
 
-- [ ] 4.1 Write `scripts/check_content_rules.py` covering every rule in `content-security-scanning`: Unicode tag and zero-width characters, HTML comments in `SKILL.md` and subagents, a missing or `*` subagent `tools` list, unrestricted shell in `allowed-tools`, piping downloads into a shell or interpreter in shipped code, unpinned MCP packages. Add tests using the spike canaries (C1–C6) as fixtures. Verify that every canary fixture fails and the clean plugin passes.
+- [x] 4.1 Write `scripts/check_content_rules.py` covering every rule in `content-security-scanning`: Unicode tag and zero-width characters, HTML comments in `SKILL.md` and subagents, a missing or `*` subagent `tools` list, unrestricted shell in `allowed-tools`, piping downloads into a shell or interpreter in shipped code, unpinned MCP packages. Add tests using the spike canaries (C1–C6) as fixtures. Verify that canaries C1, C2, C3, C5 and C6 fail and the clean plugin passes. C4 (a hook script sending `process.env` with `fetch`) matches no house rule; the scanner gate catches it (5.4).
 - [x] 4.2 Give `rf-test-architect` and `rf-migration-guide` explicit `tools` lists that match what their prompts do, and regenerate the Codex and OpenCode variants. Verify that `check_content_rules.py` passes, the variant drift check passes, and the subagent tests pass.
 
 ## 5. Security PR gate and deep scan
