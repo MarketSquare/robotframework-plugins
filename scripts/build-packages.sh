@@ -4,7 +4,7 @@
 # The repo is a uv workspace (see [tool.uv.workspace] in pyproject.toml):
 #
 #   PUBLIC (PyPI release):
-#     installer/  →  rf-agentskills   (cross-agent installer)
+#     installer/  →  robotframework-plugins   (cross-agent installer)
 #
 #   INTERNAL (never uploaded to PyPI):
 #     root        →  rf-skill-eval    (evaluation harness, classified
@@ -16,7 +16,7 @@
 # of the release flow.
 #
 # Usage:
-#   scripts/build-packages.sh          # build rf-agentskills only (PUBLIC)
+#   scripts/build-packages.sh          # build robotframework-plugins only (PUBLIC)
 #   scripts/build-packages.sh --all    # also build the internal harness
 #   scripts/build-packages.sh --clean  # remove dist/ first
 #   scripts/build-packages.sh --check  # also validate with twine
@@ -54,8 +54,8 @@ if [ "$all" = "1" ]; then
     echo "::: uv build --all-packages (public + internal) :::"
     uv build --all-packages
 else
-    echo "::: uv build --package rf-agentskills (public only) :::"
-    uv build --package rf-agentskills
+    echo "::: uv build --package robotframework-plugins (public only) :::"
+    uv build --package robotframework-plugins
 fi
 
 echo ""

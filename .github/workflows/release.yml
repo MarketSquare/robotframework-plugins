@@ -1,183 +1,213 @@
+# Releases (RELEASING.md; launch-plugin-programme D3).
+#
+#   <plugin>--v<version>               a plugin release: the tag must match the
+#                                      plugin's plugin.json; builds that plugin's
+#                                      archives and a GitHub release.
+#   robotframework-plugins-v<version>  an installer release: the tag must match
+#                                      installer/pyproject.toml and the current
+#                                      month (CalVer); builds the wheel and sdist,
+#                                      creates the GitHub release and publishes to
+#                                      PyPI by trusted publishing (a release
+#                                      candidate goes to TestPyPI).
+#
+# The two patterns never match the same tag. Older tags (v*, rf-agentskills-v*)
+# are history and trigger nothing.
 name: Release
 
 on:
   push:
     tags:
-      - "v*"
+      - "*--v*"
+      - "robotframework-plugins-v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   ci:
     name: Run CI
     uses: ./.github/workflows/ci.yml
 
-  release:
-    name: Create release with artifacts
+  plugin-release:
+    name: Plugin release
+    if: contains(github.ref_name, '--v')
     needs: ci
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
-
-      - name: Install dependencies
+      - run: pip install robotframework pyyaml
+      - name: Check the tag against plugin.json
+        id: tag
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          pip install robotframework pytest
-
-      - name: Extract version
-        id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Export standalone skills from the plugin
-        # Writes skills/ on the runner only (the release tarballs, ZIPs and the
-        # skill count below read it); the repository has no root copy.
-        run: python scripts/export-skills.py all skills
-
+          plugin="${TAG%%--v*}"
+          version="${TAG#*--v}"
+          echo "$plugin" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+)*$' || { echo "::error::bad plugin name in tag $TAG"; exit 1; }
+          manifest="plugins/$plugin/.claude-plugin/plugin.json"
+          [ -f "$manifest" ] || { echo "::error::$TAG names $plugin, but $manifest doesn't exist"; exit 1; }
+          have=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$manifest")
+          [ "$have" = "$version" ] || { echo "::error::$TAG says $version, $manifest says $have"; exit 1; }
+          bundle=$(python3 -c 'import sys, yaml; print("yes" if (yaml.safe_load(open(sys.argv[1])) or {}).get("bundle") else "")' "plugins/$plugin/catalog.yaml")
+          echo "plugin=$plugin" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "bundle=$bundle" >> "$GITHUB_OUTPUT"
       - name: Check drift
         run: bash scripts/check-drift.sh
-
-      # ── Build Claude Code Plugin ──
-      - name: Package Claude plugin
-        run: |
-          cd plugins
-          # Leave out each plugin's own tests/ and evals/, not the example
-          # tests/ folders inside skills.
-          excludes=()
-          for d in */; do excludes+=(--exclude="${d}tests" --exclude="${d}evals"); done
-          tar -czf ../rf-agentskills-claude-plugin-${{ steps.version.outputs.version }}.tar.gz \
-            "${excludes[@]}" */
-
-      # ── Build standalone skills (any agent) ──
-      - name: Package standalone skills
-        run: |
-          tar -czf robotframework-skills-${{ steps.version.outputs.version }}.tar.gz \
-            --transform='s|^skills/||' \
-            skills/
-
-      # ── Build Codex skills package ──
-      - name: Package Codex skills
-        run: |
-          mkdir -p .codex/skills
-          for d in skills/rf-*/; do
-            name=$(basename "$d")
-            cp -r "$d" ".codex/skills/$name"
-          done
-          tar -czf robotframework-skills-codex-${{ steps.version.outputs.version }}.tar.gz .codex/skills/
-
-      # ── Build Copilot skills package ──
-      - name: Package Copilot skills
-        run: |
-          mkdir -p .github/copilot-skills
-          for d in skills/rf-*/; do
-            name=$(basename "$d")
-            cp -r "$d" ".github/copilot-skills/$name"
-          done
-          tar -czf robotframework-skills-copilot-${{ steps.version.outputs.version }}.tar.gz .github/copilot-skills/
-
-      # ── Build Claude Desktop / claude.ai skill uploads (one .zip per skill) ──
-      - name: Package Claude Desktop skill zips
-        run: python scripts/build-skill-zips.py --out skill-zips
-
-      # ── Generate changelog ──
-      - name: Generate changelog
-        run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
-          SKILL_COUNT=$(find skills -mindepth 2 -maxdepth 2 -name SKILL.md -path 'skills/rf-*/SKILL.md' | wc -l | tr -d ' ')
-          AGENT_COUNT=$(ls plugins/rf-core/agents/*.md | wc -l | tr -d ' ')
-          cat > CHANGELOG_BODY.md << 'HEADER'
-          ## Robot Framework Agent Skills v${{ steps.version.outputs.version }}
-
-          ### Installation
-
-          **Plugin marketplace** (Claude Code, GitHub Copilot CLI, VS Code, Codex, Cursor): add `MarketSquare/robotframework-plugins` as a marketplace and install `rf-agentskills`. Pin this release with the ref `v${{ steps.version.outputs.version }}`. Per-agent commands: see the README.
-
-          **Python installer** (any agent, also OpenCode, Goose, Claude Desktop): `pip install robotframework-plugins && robotframework-plugins install --agent <agent>`.
-
-          **Codex:** Extract `robotframework-skills-codex-*.tar.gz` into your project root.
-
-          **Copilot:** Extract `robotframework-skills-copilot-*.tar.gz` into your project root.
-
-          **Any agent:** Extract `robotframework-skills-*.tar.gz` into `.claude/skills/`, `.codex/skills/`, or `.github/skills/`.
-
-          **Claude Desktop / claude.ai:** Download the `rf-*.zip` files and upload each under Customize → Skills → + → Create skill → Upload a skill (code execution must be enabled).
-
-          ### Release Artifacts
-
-          | Artifact | Agent | Contents |
-          |----------|-------|----------|
-          | `claude-plugin-*.tar.gz` | Claude Code | Plugin with skills, agents, hooks |
-          | `skills-*.tar.gz` | Any agent | @SKILL_COUNT@ standalone skill folders (`rf-*`) |
-          | `skills-codex-*.tar.gz` | OpenAI Codex | Skills in `.codex/skills/` layout |
-          | `skills-copilot-*.tar.gz` | GitHub Copilot | Skills in `.github/skills/` layout |
-          | `rf-*.zip` | Claude Desktop, claude.ai | One upload-ready archive per skill |
-
-          HEADER
-          sed -i "s/@SKILL_COUNT@/${SKILL_COUNT}/g" CHANGELOG_BODY.md
-
-          echo "### Changes" >> CHANGELOG_BODY.md
-          echo "" >> CHANGELOG_BODY.md
-          git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> CHANGELOG_BODY.md
-          echo "" >> CHANGELOG_BODY.md
-
-          echo "### Skills Included (${SKILL_COUNT})" >> CHANGELOG_BODY.md
-          echo "" >> CHANGELOG_BODY.md
-          echo "| Skill | Type | Description |" >> CHANGELOG_BODY.md
-          echo "|-------|------|-------------|" >> CHANGELOG_BODY.md
-          for skill_dir in skills/rf-*/; do
-            name=$(basename "$skill_dir")
-            desc=$(head -5 "${skill_dir}SKILL.md" | grep "^description:" | sed 's/^description: //' | cut -c1-80)
-            if [ -d "${skill_dir}scripts" ]; then
-              type="script"
-            else
-              type="reference"
-            fi
-            echo "| ${name} | ${type} | ${desc} |" >> CHANGELOG_BODY.md
-          done
-          echo "" >> CHANGELOG_BODY.md
-
-          echo "### Agents (${AGENT_COUNT})" >> CHANGELOG_BODY.md
-          echo "" >> CHANGELOG_BODY.md
-          for agent in plugins/rf-core/agents/*.md; do
-            name=$(basename "$agent" .md)
-            desc=$(head -5 "$agent" | grep "^description:" | sed 's/^description: //' | cut -c1-80)
-            echo "- **${name}**: ${desc}" >> CHANGELOG_BODY.md
-          done
-
-      # ── Create GitHub Release ──
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          body_path: CHANGELOG_BODY.md
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}
-          files: |
-            rf-agentskills-claude-plugin-${{ steps.version.outputs.version }}.tar.gz
-            robotframework-skills-${{ steps.version.outputs.version }}.tar.gz
-            robotframework-skills-codex-${{ steps.version.outputs.version }}.tar.gz
-            robotframework-skills-copilot-${{ steps.version.outputs.version }}.tar.gz
-            skill-zips/*.zip
+      - name: Build the archives
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN: ${{ steps.tag.outputs.plugin }}
+          VERSION: ${{ steps.tag.outputs.version }}
+          BUNDLE: ${{ steps.tag.outputs.bundle }}
+        run: |
+          mkdir -p dist
+          # The plugin as installed: a bundle ships its generated copy; a plugin
+          # leaves out its own tests/ and evals/ (not the example tests/ in skills).
+          if [ -n "$BUNDLE" ]; then
+            tar -czf "dist/$PLUGIN-$VERSION.tar.gz" -C bundles "$PLUGIN"
+            export_from=all
+          else
+            tar -czf "dist/$PLUGIN-$VERSION.tar.gz" -C plugins \
+              --exclude="$PLUGIN/tests" --exclude="$PLUGIN/evals" "$PLUGIN"
+            export_from="$PLUGIN"
+          fi
+          # Standalone skill folders with plain script paths, and one Claude
+          # Desktop / claude.ai upload archive per skill.
+          python scripts/export-skills.py "$export_from" skills
+          tar -czf "dist/$PLUGIN-skills-$VERSION.tar.gz" -C skills .
+          python scripts/build-skill-zips.py --plugin "$export_from" --out dist
+      - name: Write the release notes
+        env:
+          PLUGIN: ${{ steps.tag.outputs.plugin }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          {
+            echo "## $PLUGIN $VERSION"
+            echo
+            echo "Install from the marketplace \`MarketSquare/robotframework-plugins\` (\`$PLUGIN@robotframework-plugins\`), pinned to this release with the ref \`$PLUGIN--v$VERSION\`. Per-agent steps are in the README."
+            echo
+            # This version's section of the plugin's changelog.
+            awk -v v="$VERSION" '
+              $0 ~ "^## " { if (found) exit; if (index($0, "## " v " ") == 1 || $0 == "## " v) { found = 1; next } }
+              found { print }
+            ' "plugins/$PLUGIN/CHANGELOG.md"
+            echo
+            echo "| Archive | Contents |"
+            echo "|---|---|"
+            echo "| \`$PLUGIN-$VERSION.tar.gz\` | The plugin as the marketplace installs it |"
+            echo "| \`$PLUGIN-skills-$VERSION.tar.gz\` | Standalone skill folders for any agent's skills folder |"
+            echo "| \`rf-*.zip\` | One upload archive per skill for Claude Desktop and claude.ai |"
+          } > notes.md
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          body_path: notes.md
+          prerelease: ${{ contains(steps.tag.outputs.version, '-') }}
+          files: dist/*
 
   update-branches:
     name: Update release branches
-    needs: release
+    needs: plugin-release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - name: Update stable branch
+      - name: Move stable and latest to this release
         run: |
-          git checkout -B stable "$GITHUB_REF_NAME"
-          git push origin stable --force
-      - name: Update latest branch
+          for branch in stable latest; do
+            git checkout -B "$branch" "$GITHUB_REF_NAME"
+            git push origin "$branch" --force
+          done
+
+  installer-release:
+    name: Installer release
+    if: startsWith(github.ref_name, 'robotframework-plugins-v')
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+      candidate: ${{ steps.tag.outputs.candidate }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - run: pip install pyyaml "jsonschema>=4.18" twine
+      - name: Check the tag against pyproject.toml and the month
+        id: tag
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          git checkout -B latest "$GITHUB_REF_NAME"
-          git push origin latest --force
+          version="${TAG#robotframework-plugins-v}"
+          have=$(sed -n 's/^version = "\(.*\)"/\1/p' installer/pyproject.toml | head -1)
+          [ "$have" = "$version" ] || { echo "::error::$TAG says $version, installer/pyproject.toml says $have"; exit 1; }
+          month="$(date -u +%Y).$(date -u +%-m)."
+          case "$version" in
+            "$month"*) ;;
+            *) echo "::error::$version is not a release of this month ($month<patch>); see RELEASING.md"; exit 1 ;;
+          esac
+          candidate=""
+          echo "$version" | grep -Eq '(a|b|rc)[0-9]+$' && candidate=yes
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "candidate=$candidate" >> "$GITHUB_OUTPUT"
+      - name: Build the wheel and sdist
+        run: bash scripts/build-packages.sh --clean --check
+      - name: Write the release notes
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          {
+            python scripts/build-catalog.py --version-table
+            echo
+            awk -v v="$VERSION" '
+              $0 ~ "^## " { if (found) exit; if (index($0, "## " v " ") == 1) { found = 1; next } }
+              found { print }
+            ' installer/CHANGELOG.md
+          } > notes.md
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          body_path: notes.md
+          prerelease: ${{ steps.tag.outputs.candidate == 'yes' }}
+          files: dist/robotframework_plugins-*
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: installer-dist
+          path: dist/robotframework_plugins-*
+
+  publish:
+    name: Publish to ${{ needs.installer-release.outputs.candidate == 'yes' && 'TestPyPI' || 'PyPI' }}
+    needs: installer-release
+    runs-on: ubuntu-latest
+    # Trusted publishing: PyPI accepts this workflow's OIDC token for the
+    # robotframework-plugins project; no API token exists. The environment is
+    # protected, so a maintainer approves each upload.
+    environment:
+      name: ${{ needs.installer-release.outputs.candidate == 'yes' && 'testpypi' || 'pypi' }}
+      url: ${{ needs.installer-release.outputs.candidate == 'yes' && 'https://test.pypi.org/p/robotframework-plugins' || 'https://pypi.org/p/robotframework-plugins' }}
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: installer-dist
+          path: dist
+      - name: Upload
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
+        with:
+          repository-url: ${{ needs.installer-release.outputs.candidate == 'yes' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}
