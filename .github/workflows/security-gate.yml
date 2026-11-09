@@ -129,3 +129,20 @@ jobs:
           name: sarif-gitleaks
           path: ${{ runner.temp }}/gitleaks.sarif
           if-no-files-found: warn
+
+  # The one check branch protection requires: the scan jobs are named after
+  # the plugins a PR changes, so their names differ from PR to PR.
+  result:
+    name: Security gate result
+    if: always()
+    needs: [house-rules, select, scan, gitleaks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any gate job failed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) echo "::error::a security gate job ended with '$r'"; exit 1 ;; esac
+          done

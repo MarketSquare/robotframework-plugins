@@ -586,9 +586,9 @@ def main(argv: list[str] | None = None) -> int:
     stray = stray_files(root, files)
     if args.check:
         for path in stale:
-            print(f"error: {path.relative_to(root)} is out of date", file=sys.stderr)
+            print(f"error: {path.relative_to(root).as_posix()} is out of date", file=sys.stderr)
         for path in stray:
-            print(f"error: {path.relative_to(root)} is not generated any more", file=sys.stderr)
+            print(f"error: {path.relative_to(root).as_posix()} is not generated any more", file=sys.stderr)
         if stale or stray:
             print("Regenerate with: python scripts/build-catalog.py", file=sys.stderr)
             return 1
@@ -597,10 +597,10 @@ def main(argv: list[str] | None = None) -> int:
     for path in stale:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(files[path], encoding="utf-8")
-        print(f"wrote {path.relative_to(root)}")
+        print(f"wrote {path.relative_to(root).as_posix()}")
     for path in stray:
         path.unlink()
-        print(f"removed {path.relative_to(root)}")
+        print(f"removed {path.relative_to(root).as_posix()}")
     print(f"catalogue: {len(plugins)} plugin(s) valid")
     return 0
 

@@ -27,10 +27,14 @@ import argparse
 import json
 import re
 import sys
-import tomllib
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+
+try:
+    import tomllib
+except ImportError:  # Python 3.10: TOML MCP configuration is reported as unreadable
+    tomllib = None
 
 #: Folders under the repository root whose files are shipped content.
 CONTENT_ROOTS = ("plugins", "bundles", "templates")
@@ -274,6 +278,9 @@ def unpinned_package(command: str, args: list[str]) -> str | None:
 
 
 def check_mcp(path: Path, rel: str, text: str) -> Iterator[Finding]:
+    if path.suffix == ".toml" and tomllib is None:
+        yield Finding(rel, 1, "mcp-unpinned", "TOML MCP configuration needs Python 3.11+ to check")
+        return
     for name, server in _servers(path, text).items():
         if not isinstance(server, dict):
             continue
