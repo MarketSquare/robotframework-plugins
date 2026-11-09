@@ -21,10 +21,17 @@ def _cell(m: TriggerMetrics | None) -> list[str]:
 
 
 def render_trigger_markdown(
-    result: TriggerEvalResult, *, baseline: Mapping[str, Any] | None = None
+    result: TriggerEvalResult, *, baseline: Mapping[str, Any] | None = None, extra: list[str] | None = None
 ) -> str:
+    """The trigger report; ``extra`` lines (the partial-install section) go at the end."""
+    md = _render(result, baseline)
+    return md if not extra else md.rstrip("\n") + "\n" + "\n".join(extra) + "\n"
+
+
+def _render(result: TriggerEvalResult, baseline: Mapping[str, Any] | None) -> str:
     metrics = {(m.skill, m.split): m for m in result.metrics}
-    skills = sorted({o.skill for o in result.outcomes})
+    staged = set(result.staged_skills)
+    skills = sorted({o.skill for o in result.outcomes if not staged or o.skill in staged})
     stored = (baseline or {}).get("skills", {})
     # One column group per holdout split that ran (spec: own column), after
     # train and validation: Holdout, Holdout2, ...
@@ -54,7 +61,7 @@ def render_trigger_markdown(
         stored_acc = stored.get(skill, {}).get("validation", {}).get("accuracy")
         out.append(f"| {skill} | " + " | ".join(cells) + f" | {_pct(stored_acc)} |")
     out += _visibility_section(result)
-    failing = [o for o in result.outcomes if not o.passed]
+    failing = [o for o in result.outcomes if not o.passed and (not staged or o.skill in staged)]
     out += ["", "## Failing queries", ""]
     if not failing:
         out.append("_None._")

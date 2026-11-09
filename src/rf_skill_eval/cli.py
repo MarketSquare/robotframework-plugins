@@ -68,9 +68,16 @@ from .application.gate import (
     gate_tasks,
     gate_triggers,
 )
+from .application.partial_install import (
+    cross_technology,
+    cross_technology_json,
+    render_cross_technology,
+    split_outcomes,
+    staged_skills,
+)
 from .application.ports import SkillRunner
 from .application.preflight import frontmatter_description, map_changed_paths
-from .application.staging import staged_tree
+from .application.staging import content_plugins, staged_tree
 from .application.trigger_eval import (
     MAX_TRIGGER_CONCURRENCY,
     OUTCOMES_FILE,
@@ -93,6 +100,7 @@ from .errors import ModelNotAllowedError, RfSkillEvalError
 from .infrastructure.persistence.sqlite_repo import SqliteRunRepository
 from .infrastructure.runner.claude_code_runner import ClaudeCodeRunner
 from .infrastructure.telemetry.skill_listing import LISTING_BUDGET_ENV
+from .infrastructure.telemetry.skill_loads import skill_dir_map
 from .reporting.eval_report import build_report, render_markdown, write_report
 from .reporting.json_report import JsonReportWriter
 from .reporting.markdown_report import MarkdownReportWriter
@@ -905,6 +913,45 @@ def _effective_listing_budget(flag: int | None) -> int | None:
     return value
 
 
+def _skill_owners(root: Path) -> dict[str, str]:
+    """``{skill: plugin}`` over every plugin's ``skills/``."""
+    return {
+        name: skills_dir.parent.name
+        for skills_dir in sorted((root / "plugins").glob("*/skills"))
+        for name in skill_dir_map(skills_dir)
+    }
+
+
+def _staged_or_variant(names: list[str], variant_root: Path | None, root: Path) -> tuple[Path, str]:
+    if names and variant_root is not None:
+        raise typer.BadParameter("--stage and --variant-root can't be combined")
+    return _staged(names, root) if names else _variant(variant_root, root)
+
+
+def _partial_install(result: TriggerEvalResult, staged_plugins: list[str], root: Path, path: Path) -> list[str]:
+    """``--stage``: record the staged set, write the cross-technology measure to
+    ``path`` and return its report section (nothing for a full install)."""
+    if not staged_plugins:
+        return []
+    owner = _skill_owners(root)
+    on = staged_skills(owner, staged_plugins)
+    result.staged, result.staged_skills = tuple(staged_plugins), tuple(sorted(on))
+    rows = cross_technology(split_outcomes(result.outcomes, on)[1], on, owner)
+    write_json(path, cross_technology_json(rows, staged_plugins))
+    return render_cross_technology(rows, staged_plugins)
+
+
+def _staged(names: list[str], root: Path) -> tuple[Path, str]:
+    """``--stage``: the named plugins merged (a partial install) and its variant id."""
+    known = content_plugins(root / "plugins")
+    unknown = [n for n in names if n not in known]
+    if unknown:
+        raise typer.BadParameter(f"--stage: not a plugin with content: {', '.join(unknown)} "
+                                 f"(known: {', '.join(known)})")
+    tree = staged_tree(root / "plugins", names)
+    return tree, variant_id_for(tree)
+
+
 def _variant(variant_root: Path | None, root: Path) -> tuple[Path, str]:
     """Plugin root to stage and its variant id (design D5)."""
     if variant_root is None:
@@ -958,6 +1005,13 @@ def trigger(
         "default: Claude Code's, about 8000 for 200k-context models). Results go to "
         "trigger-results-budget-<N>.json",
     ),
+    stage: str | None = typer.Option(
+        None,
+        "--stage",
+        help="Comma list of plugins to stage, a partial install (e.g. rf-core,rf-web); "
+        "default: every content plugin. Sets of unstaged skills are scored as "
+        "cross-technology queries (partial-install.json)",
+    ),
 ) -> None:
     """Run trigger query sets headlessly (hooks off) and report precision/recall.
 
@@ -975,7 +1029,8 @@ def trigger(
     root = _repo_root()
     triggers_dir = triggers_dir or _evals("triggers", root=root)
     baseline = baseline or _evals("baselines", "triggers.json", root=root)
-    plugin_root, variant_id = _variant(variant_root, root)
+    staged_plugins = _split_csv(stage)
+    plugin_root, variant_id = _staged_or_variant(staged_plugins, variant_root, root)
     names_root = variant_root if variant_root and (variant_root / "plugins").is_dir() else root
     sets, problems = load_trigger_sets(triggers_dir, skills=shipped_skills(names_root, _plugin(root)))
     for p in problems:
@@ -1013,11 +1068,13 @@ def trigger(
             output,
             model,
             workspace_fixture=fixture,
-            plugin_root=plugin_root if variant_root is not None else None,
+            plugin_root=plugin_root if variant_root is not None or staged_plugins else None,
             listing_budget=listing_budget,
         ),
         splits=splits,
         runs=runs,
+        # Every shipped skill, staged or not, so a load of any rf-* skill is seen.
+        name_to_dir=shipped_skills(names_root, None),
         budget=Budget(cap_usd=max_cost_usd),
         model=model or ",".join(sorted({s.model for s in selected})),
         model_override=model,
@@ -1033,8 +1090,9 @@ def trigger(
             f"{output / OUTCOMES_FILE}"
         )
     suffix = "" if listing_budget is None else f"-budget-{listing_budget}"
+    partial = _partial_install(result, staged_plugins, root, output / f"partial-install{suffix}.json")
     result.write(output / f"trigger-results{suffix}.json", harness_version=__version__)
-    md = render_trigger_markdown(result, baseline=load_json(baseline) if baseline else None)
+    md = render_trigger_markdown(result, baseline=load_json(baseline) if baseline else None, extra=partial)
     (output / f"trigger-report{suffix}.md").write_text(md, encoding="utf-8")
     console.print(md, markup=False, highlight=False)
     if result.budget_stopped:

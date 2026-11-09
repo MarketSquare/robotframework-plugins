@@ -178,10 +178,17 @@ class TriggerEvalResult:
     resumed: int = 0
     #: ``SLASH_COMMAND_TOOL_CHAR_BUDGET`` given to the sessions; None = default.
     listing_budget: int | None = None
+    #: ``--stage``: the plugins staged (a partial install), and their skills.
+    #: Empty: every content plugin (a full install).
+    staged: tuple[str, ...] = ()
+    staged_skills: tuple[str, ...] = ()
 
     @property
     def metrics(self) -> list[TriggerMetrics]:
-        return trigger_metrics([o for o in self.outcomes if o.runs > 0])
+        """Per staged skill (all skills for a full install); the sets of unstaged
+        skills are scored by :mod:`.partial_install` instead."""
+        keep = set(self.staged_skills)
+        return trigger_metrics([o for o in self.outcomes if o.runs > 0 and (not keep or o.skill in keep)])
 
     @property
     def incomplete_queries(self) -> list[QueryOutcome]:
@@ -199,6 +206,8 @@ class TriggerEvalResult:
             "variant_id": self.variant_id,
             "variant_root": self.variant_root,
             "listing_budget": self.listing_budget,
+            "staged": list(self.staged),
+            "staged_skills": list(self.staged_skills),
             "spent_usd": round(self.spent_usd, 6),
             "budget_stopped": self.budget_stopped,
             "visibility": {
@@ -227,6 +236,8 @@ class TriggerEvalResult:
             variant_id=str(data.get("variant_id", "")),
             variant_root=str(data.get("variant_root", "")),
             listing_budget=_row_budget(data),
+            staged=tuple(data.get("staged", ())),
+            staged_skills=tuple(data.get("staged_skills", ())),
         )
 
     def write(self, path: Path, *, harness_version: str) -> Path:

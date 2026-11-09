@@ -616,3 +616,47 @@ def test_cli_rejects_variant_root_without_plugin(tmp_path: Path, monkeypatch: py
                                       "--triggers-dir", str(plugin_evals_dir(_REPO, "all") / "triggers")])
     assert res.exit_code == 2
     assert "plugins" in res.output
+
+
+# --- partial installs (split-rf-agentskills task 6.1) -------------------------
+
+
+def test_trigger_stage_runs_a_partial_install(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Web only: rf-core + rf-web staged; an API query that loads rf-browser is counted."""
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
+    staged_dirs: set[frozenset[str]] = set()
+
+    def behaviour(task, profile, replicate):  # type: ignore[no-untyped-def]
+        assert profile.plugin_root is not None
+        staged_dirs.add(frozenset(p.name for p in (profile.plugin_root / "skills").iterdir()))
+        if task.skill == "rf-browser":
+            return {}, skill_call("rf-browser"), 0.001
+        if task.skill == "rf-requests":
+            return {}, skill_call("rf-browser"), 0.001  # wrong technology
+        return {}, [], 0.001
+
+    monkeypatch.setattr(cli, "RUNNER_FACTORY", lambda: FakeRunner(behaviour))
+    out = tmp_path / "trig"
+    res = cli_runner.invoke(cli.app, ["trigger", "--stage", "rf-core,rf-web", "--skills", "rf-browser,rf-requests",
+                                      "--split", "validation", "--runs", "1", "--output", str(out),
+                                      "--baseline", str(tmp_path / "none.json")])
+    assert res.exit_code == 0, res.output
+    assert staged_dirs == {frozenset({"rf-language", "rf-setup", "rf-python-library", "rf-browser", "rf-selenium"})}
+    data = json.loads((out / "trigger-results.json").read_text())
+    assert data["staged"] == ["rf-core", "rf-web"] and "rf-requests" not in data["staged_skills"]
+    partial = json.loads((out / "partial-install.json").read_text())
+    api = partial["cross_technology"]["rf-api"]
+    assert api["queries"] > 0 and api["crossed"] == api["queries"] and api["loaded"] == {"rf-browser": api["queries"]}
+    report = (out / "trigger-report.md").read_text()
+    assert "## Partial install: technologies not staged" in report
+    assert "| rf-requests |" not in report.split("## Partial install")[0]
+    assert "| rf-browser |" in report
+
+
+def test_trigger_stage_needs_known_plugins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
+    res = cli_runner.invoke(cli.app, ["trigger", "--stage", "rf-core,rf-nope", "--output", str(tmp_path / "t")])
+    assert res.exit_code != 0 and "rf-nope" in res.output
+    res = cli_runner.invoke(cli.app, ["trigger", "--stage", "rf-core", "--variant-root", str(tmp_path),
+                                      "--output", str(tmp_path / "t")])
+    assert res.exit_code != 0
