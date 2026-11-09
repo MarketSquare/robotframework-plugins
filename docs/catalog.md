@@ -13,9 +13,9 @@
 
 ## Installer
 
-`pip install robotframework-plugins==2026.12.0` installs these plugin versions:
+`pip install robotframework-plugins==2026.11.0` installs these plugin versions:
 
-| robotframework-plugins 2026.12.0 bundles | Version | Tier |
+| robotframework-plugins 2026.11.0 bundles | Version | Tier |
 |---|---|---|
 | `rf-agentskills` | 4.0.0 | verified |
 | `rf-api` | 1.0.0 | verified |

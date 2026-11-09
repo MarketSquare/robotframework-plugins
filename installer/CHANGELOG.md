@@ -2,10 +2,10 @@
 
 The installer has calendar versions (`YYYY.M.PATCH`), independent of the plugins' own versions; each release states which plugin versions it bundles. Up to 0.8.0 it was published as `rf-agentskills`. See `RELEASING.md` at the repo root.
 
-## Unreleased (2026.12.0)
+## 2026.11.0 — 2026-11-09
 
 ### Renamed
-- **The package is now `robotframework-plugins`**, with the command `robotframework-plugins` and the module `robotframework_plugins`, from `MarketSquare/robotframework-plugins`. It continues `rf-agentskills` 0.8.0; `rf-agentskills` 0.9.0 depends on it and forwards with a notice. Versions switch to calendar versions, starting with `2026.12.0`.
+- **The package is now `robotframework-plugins`**, with the command `robotframework-plugins` and the module `robotframework_plugins`, from `MarketSquare/robotframework-plugins`. It continues `rf-agentskills` 0.8.0; `rf-agentskills` 0.9.0 depends on it and forwards with a notice. Versions switch to calendar versions, starting with `2026.11.0`.
 - **The marketplace is `robotframework-plugins`.** `--mode plugin` writes the new marketplace entry and source, and re-installing replaces an old `robotframework-agentskills` entry, keeping its `--ref` pin.
 
 ### Added

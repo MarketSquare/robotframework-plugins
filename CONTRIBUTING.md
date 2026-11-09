@@ -75,14 +75,14 @@ There are three kinds of version, and as a plugin author you only ever bump one 
 | What | Example | Where it lives | Who bumps it |
 |---|---|---|---|
 | A plugin | `rf-core` 1.0.0, the `rf-agentskills` bundle 4.0.0 | its `plugin.json` | the plugin's maintainers |
-| The installer | `robotframework-plugins` 2026.12.0 | `installer/pyproject.toml` | the release manager |
+| The installer | `robotframework-plugins` 2026.11.0 | `installer/pyproject.toml` | the release manager |
 | The eval harness | `rf-skill-eval` 0.1.0 | root `pyproject.toml` | nobody outside CI; it is never published |
 
 A plugin has SemVer: bump `major` for a removed or renamed skill, `minor` for new content, `patch` for fixes. Each plugin counts on its own, which is why `rf-core` can be at 1.0.0 while the bundle is at 4.0.0: the bundle carries on the numbering of the single plugin it replaced.
 
 The installer uses calendar versions, because each release is a snapshot of the whole catalogue taken in that month. The version table in the README shows which plugin versions an installer release bundles:
 
-| robotframework-plugins 2026.12.0 bundles | Version |
+| robotframework-plugins 2026.11.0 bundles | Version |
 |---|---|
 | `rf-core` | 1.0.0 |
 | `rf-web` | 1.0.0 |

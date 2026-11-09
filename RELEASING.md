@@ -7,7 +7,7 @@ Two kinds of release come out of this repository: a **plugin release**, which pu
 | What | Version scheme | Source of truth | Tag |
 |---|---|---|---|
 | Each plugin (`rf-core`, `rf-web`, …, the `rf-agentskills` bundle) | SemVer | `plugins/<plugin>/.claude-plugin/plugin.json` | `<plugin>--v<version>`, for example `rf-core--v1.0.0` |
-| The installer `robotframework-plugins` | CalVer `YYYY.M.PATCH` | `installer/pyproject.toml` | `robotframework-plugins-v<version>`, for example `robotframework-plugins-v2026.12.0` |
+| The installer `robotframework-plugins` | CalVer `YYYY.M.PATCH` | `installer/pyproject.toml` | `robotframework-plugins-v<version>`, for example `robotframework-plugins-v2026.11.0` |
 | `rf-skill-eval` (internal) | SemVer | root `pyproject.toml` | none; never published |
 
 The marketplace entries carry no version: Claude Code reads it from `plugin.json`. `CONTRIBUTING.md` ("Versions") explains which number to bump.
@@ -33,7 +33,7 @@ A pushed tag is the ref users pin a marketplace to: never move or delete one.
 
 ## Installer release
 
-The installer version is the year and month of the release, then a patch number: the first release in December 2026 is `2026.12.0`, a fix in the same month `2026.12.1`.
+The installer version is the year and month of the release, then a patch number: the first release, in November 2026, is `2026.11.0`, a fix in the same month `2026.11.1`.
 
 1. Set `version` in `installer/pyproject.toml` and `__version__` in `installer/src/robotframework_plugins/__init__.py`, and add the release to `installer/CHANGELOG.md`.
 2. Regenerate the version table in the README and `docs/catalog.md`: `python scripts/build-catalog.py`.
@@ -45,7 +45,7 @@ The installer version is the year and month of the release, then a patch number:
    uvx --refresh robotframework-plugins@<version> version
    ```
 
-A release candidate (`2026.12.0rc1`) goes through the same steps; it publishes to TestPyPI first, to check the flow.
+A release candidate (`2026.11.0rc1`) goes through the same steps; it publishes to TestPyPI first, to check the flow.
 
 ## What the version table says
 
@@ -53,7 +53,7 @@ Each installer release bundles the active and deprecated plugins at their curren
 
 ```console
 $ robotframework-plugins version
-robotframework-plugins 2026.12.0
+robotframework-plugins 2026.11.0
 bundled plugins: rf-agentskills 4.0.0, rf-api 1.0.0, rf-core 1.0.0, rf-desktop 1.0.0, rf-mobile 1.0.0, rf-web 1.0.0
 ```
 
