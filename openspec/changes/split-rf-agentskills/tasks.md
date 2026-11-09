@@ -2,7 +2,7 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 
 ## 1. Spike: dependencies and symlinks
 
-- [ ] 1.1 Build a scratch marketplace with a plugin `dep-a` (one skill, one hook), a plugin `dep-b` that depends on `dep-a`, and a bundle that depends on both and also symlinks one skill from `dep-a`. Install the bundle in isolated homes on Claude Code, Copilot CLI and Codex at their current versions. Record, per agent, whether the dependencies install, whether the skills and the hook load, and whether the symlinked skill loads. Verify by attaching the per-agent results table to this change's design (D5).
+- [x] 1.1 Build a scratch marketplace with a plugin `dep-a` (one skill, one hook), a plugin `dep-b` that depends on `dep-a`, and a bundle that depends on both and also symlinks one skill from `dep-a`. Install the bundle in isolated homes on Claude Code, Copilot CLI and Codex at their current versions. Record, per agent, whether the dependencies install, whether the skills and the hook load, and whether the symlinked skill loads. Verify by attaching the per-agent results table to this change's design (D5).
 - [x] 1.2 *(Skipped with the maintainer's agreement: Codex drops symlinks on every platform, so none ship and the Windows checkout can't change the decision; see design D5.)* Clone the scratch marketplace on Windows with `core.symlinks=false` (GitHub Actions `windows-latest`) and install it in Claude Code there. Verify by recording whether the symlinked skill arrives as content, as a text file holding a path, or not at all.
 - [x] 1.3 Choose the D5 row that matches the results and record the decision in design.md. Verify that the bundle mechanism and the shared-file mechanism are each named once, with the spike evidence.
 
@@ -10,7 +10,7 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 
 - [x] 2.1 Create `plugins/rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop`, moving skills, subagents, hooks, scripts, variants, tests and evals with `git mv` from `plugins/rf-agentskills/` as the `plugin-split` table assigns them. Verify that `git log --follow plugins/rf-web/skills/rf-browser/SKILL.md` reaches the original commits, and the "Every skill has one home" scenario.
 - [x] 2.2 Write each plugin's `plugin.json` (version 1.0.0; technology plugins depend on `rf-core` `^1.0`), `catalog.yaml` (libraries with PyPI `package` names), README and CHANGELOG, and add CODEOWNERS paths per skill folder. Verify that `claude plugin validate .` passes and the "Installing web brings core" scenario passes in an isolated Claude Code home.
-- [ ] 2.3 Turn `plugins/rf-agentskills/` into the 4.0.0 bundle using the mechanism chosen in 1.3, with a changelog entry on the prefix change. Verify the "Existing project settings keep working" and "Bundle on Copilot CLI and Codex" scenarios in isolated homes.
+- [x] 2.3 Turn `plugins/rf-agentskills/` into the 4.0.0 bundle using the mechanism chosen in 1.3, with a changelog entry on the prefix change. Verify the "Existing project settings keep working" and "Bundle on Copilot CLI and Codex" scenarios in isolated homes.
 - [x] 2.4 Add the catalogue check that refuses a plugin without content. Verify the "Empty plugin refused" fixture.
 
 ## 3. Move library-specific content out of core
@@ -42,4 +42,4 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 
 - [x] 7.1 Re-check D10 against `launch-plugin-programme` as it stands when this change is applied (the non-goal, D16, task order, 10.2 and the `package` field were edited when this change was proposed), and update any of its spec deltas that name `rf-agentskills` as the only plugin where that is now false. Verify that `openspec validate --strict` passes for both changes.
 - [x] 7.2 *(The voice check is launch task 9.1 and doesn't exist yet: checked by hand for its banned phrases and exclamation marks.)* Update the README catalogue and install sections, `docs/catalog.md` and the version table for six plugins, with the prefix-change note. Verify the docs voice check and the catalogue `--check`.
-- [ ] 7.3 Verify end to end in isolated homes, before release: fresh install of `rf-core` + `rf-web` on Claude Code, Copilot CLI and Codex from the marketplace; `uvx robotframework-plugins install --agent claude-code --yes` in a Browser project; and an upgrade from `rf-agentskills` 0.8.0.
+- [x] 7.3 Verify end to end in isolated homes, before release: fresh install of `rf-core` + `rf-web` on Claude Code, Copilot CLI and Codex from the marketplace; `uvx robotframework-plugins install --agent claude-code --yes` in a Browser project; and an upgrade from `rf-agentskills` 0.8.0.

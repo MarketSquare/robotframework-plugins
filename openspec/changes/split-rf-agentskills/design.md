@@ -98,8 +98,8 @@ The spike (task 1) installs a test marketplace with a bundle and a dependency on
 | | Claude Code 2.1.318 | Copilot CLI 1.0.91 | Codex 0.162.1 |
 |---|---|---|---|
 | Installs `dependencies` | yes ("+ 2 dependencies: dep-a, dep-b") | no: only `bundle` | no: only `bundle`; `dep-a`, `dep-b` "not installed" |
-| Skills load | yes: `bundle:spike-alpha-link`, `dep-a:spike-alpha`, `dep-b:spike-beta` in a live session (Haiku 5.5) | installed ("Installed 2 skills"); a live session (2026-11-09) lists them | installed in the cache; no live session yet |
-| Hook runs | yes: `SessionStart` and `UserPromptSubmit` both wrote their marker | yes (2026-11-09): Claude-format `hooks/hooks.json` and Copilot's own `hooks.json` both run, with `${CLAUDE_PLUGIN_ROOT}` set and the project in the event's `cwd`; `additionalContext` never reaches the model | not checked (no live session) |
+| Skills load | yes: `bundle:spike-alpha-link`, `dep-a:spike-alpha`, `dep-b:spike-beta` in a live session (Haiku 5.5) | installed ("Installed 2 skills"); a live session (2026-11-09) lists them | installed in the cache; a live session (2026-11-09) lists them |
+| Hook runs | yes: `SessionStart` and `UserPromptSubmit` both wrote their marker | yes (2026-11-09): Claude-format `hooks/hooks.json` and Copilot's own `hooks.json` both run, with `${CLAUDE_PLUGIN_ROOT}` set and the project in the event's `cwd`; `additionalContext` never reaches the model | not run in a headless session: Codex holds plugin hooks for trust review first (2026-11-09) |
 | Symlinked skill folder | copied as content, loads; named after the link's folder, not its frontmatter `name` | copied as content | **dropped** from the cache |
 | Symlinked file in a skill | copied as content | copied as content | **dropped** |
 | Symlinked `hooks/` folder | copied as content | copied as content | **dropped** |
@@ -117,7 +117,8 @@ The spike (task 1) installs a test marketplace with a bundle and a dependency on
   - On Claude Code, `claude plugin update` moves 3.0.0 to 4.0.0, and the next session lists the nine skills and three subagents as `rf-agentskills:<name>`. The `SessionStart`, `UserPromptSubmit` and `Stop` hooks run.
   - Copilot CLI ("Installed 9 skills") and Codex install the same copy with its subagents, hooks and hook scripts.
   - Copilot CLI 1.0.91, live (2026-11-09): a session lists the nine skills and the three subagents as `rf-agentskills:<name>`. An edit session ran all six hook scripts of the copy (traced with a Node preload): `check_rf_environment`, `maybe_inject_rf_context`, `validate_robot`, `report_pending_errors`, `maybe_remind_robot_tests` and `validate_robot_project`. Copilot does not pass hook output (`additionalContext`) to the model, so the routing and environment hints don't reach it there. That holds for any plugin and was already true of 3.0.0, whose hooks have the same format.
-  - Codex: the live session waits for a login (task 2.3 stays open).
+  - Codex 0.162.1, live (2026-11-09): a session lists the nine skills as `rf-agentskills:<name>`. It lists no subagents, and 3.0.0 installed the same way lists none either: Codex doesn't load plugin subagents. No hook ran, for the bundle or for a marker plugin, because Codex reviews plugin hooks before it runs them; a headless check would need `--dangerously-bypass-hook-trust`, which was not used. 3.0.0 has the same hooks, so this is no change.
+  - A fresh `rf-core` + `rf-web` install on Codex lists `rf-core:rf-language`, `rf-core:rf-python-library`, `rf-core:rf-setup`, `rf-web:rf-browser` and `rf-web:rf-selenium`.
 
 **Decision (tasks 1.3 and 2.3).** The result is row 3, because Codex drops symlinks, not because Windows does. The upgrade check rules out a dependency bundle on Claude Code too, so `rf-agentskills` works the same way on every agent:
 - **Bundle mechanism: a generated copy, no `dependencies`.**
