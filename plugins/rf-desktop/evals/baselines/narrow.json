@@ -1,0 +1,26 @@
+{
+  "claude_code_version": "2.1.316 (Claude Code)",
+  "entries": {
+    "narrow-platynui-calculator-01|treatment": {
+      "arm": "treatment",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.014235,
+      "mean_duration_s": 51.49,
+      "mean_input_tokens": 404158.2,
+      "mean_output_tokens": 6120.8,
+      "mean_turns": 13.0,
+      "model": "claude-haiku-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 9,
+      "skill": "rf-platynui",
+      "task_hash": "70cdf07c4e3c5f1f9c1f35e2ad0d551ff52937c575c4ec43f5b1c688e8cfbe70",
+      "task_id": "narrow-platynui-calculator-01"
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "narrow"
+}

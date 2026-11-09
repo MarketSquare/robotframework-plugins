@@ -1,0 +1,295 @@
+"""Adapter for Cursor (≥ 2.4).
+
+Cursor 2.4+ added native SKILL.md support (changelog "Subagents,
+Skills, and Image Generation" at cursor.com/changelog/2-4). Skills are
+auto-discovered from any of:
+
+* ``<project>/.cursor/skills/<name>/`` (project)
+* ``~/.cursor/skills/<name>/``         (user)
+* Plus cross-vendor: ``.claude/skills/``, ``.codex/skills/``,
+  ``.agents/skills/`` — all read by Cursor automatically.
+
+We pick the agent-native path (``~/.cursor/skills/<name>/``) so users
+who installed Cursor without any other agent still get the bundle.
+
+* skills    → ``<root>/skills/<name>/SKILL.md`` (+ subtree). Verbatim
+              copy modulo ``${CLAUDE_PLUGIN_ROOT}`` substitution. Same
+              format Cursor 2.4 documents at cursor.com/docs/skills.
+* subagents → ``<root>/agents/<name>.md``. Cursor 2.4 also added
+              native subagent support — same .md frontmatter shape as
+              Claude Code, so verbatim copy works.
+* hooks     → ``<root>/hooks.json`` via
+              :func:`transforms.rewrite_hooks_for_cursor` (lowercases
+              event names and namespaces ``mcp__rf-mcp__*`` matchers
+              to ``MCP:rf-mcp``). The result is wrapped under a
+              top-level ``"hooks"`` key — Cursor's expected shape.
+
+Plugin-co-located hook scripts are staged under
+``<root>/<plugin>-files/`` (same trick the Claude Code adapter
+uses) so the post-substitution ``${CLAUDE_PLUGIN_ROOT}`` references in
+SKILL bodies and hook commands resolve to absolute paths.
+
+User-scope install root is ``~/.cursor/``; project scope uses
+``<project>/.cursor/``. ``--prefix`` overrides both.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable
+
+from .. import _assets
+from .. import transforms as _x
+from ._base import (
+    needs_support_dir,
+    legacy_markers,
+    MARKETPLACE_REPO,
+    plugin_id,
+    AdapterBase,
+    ConfigMergeOp,
+    InstallOptions,
+    InstallPlan,
+    InstallTarget,
+    skill_script_files,
+    support_dir_name,
+)
+
+
+
+
+@dataclass
+class CursorAdapter(AdapterBase):
+    name: str = "cursor"
+    pretty: str = "Cursor"
+    user_root_subpath: tuple[str, ...] = (".cursor",)
+    project_root_subpath: tuple[str, ...] = (".cursor",)
+
+    # ------------------------------------------------------------------
+    # detect
+    # ------------------------------------------------------------------
+
+    def detect(self) -> bool:
+        """True if either the Cursor CLI is on PATH or ``~/.cursor`` exists."""
+        if shutil.which("cursor") is not None:
+            return True
+        return (Path.home() / ".cursor").is_dir()
+
+    # ------------------------------------------------------------------
+    # plan
+    # ------------------------------------------------------------------
+
+    def plan(self, opts: InstallOptions) -> InstallPlan:
+        root = self.install_root(opts)
+        plugin_dst = root / support_dir_name(opts.plugin)
+        plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
+
+        # Cursor's hooks.json embeds the same `node "<…>.mjs"` commands
+        # as Claude Code's — see ``transforms.rewrite_hooks_for_cursor``
+        # which only adjusts the matcher namespacing, not the command
+        # shape. If Node isn't on PATH, skip hooks with a note.
+        register_hooks = "hooks" in opts.what and _x.node_available()
+
+        with _assets.asset_root_path(opts.plugin) as src_root:
+            targets = list(self._collect_targets(
+                src_root=src_root,
+                root=root,
+                plugin_dst=plugin_dst,
+                plugin_root_abs=plugin_root_abs,
+                what=opts.what,
+            ))
+            merges = list(self._collect_merges(
+                src_root=src_root,
+                root=root,
+                plugin_root_abs=plugin_root_abs,
+                what=opts.what,
+                register_hooks=register_hooks,
+            ))
+
+        notes: list[str] = []
+        if "hooks" in opts.what and not register_hooks:
+            notes.append(
+                "Node.js was not found on PATH; Cursor hooks were NOT registered. "
+                "Install Node.js then re-run with `--agent cursor` to enable them."
+            )
+        return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
+
+    def plugin_plan(self, opts: InstallOptions) -> InstallPlan | None:
+        """Cursor keeps marketplaces on the Cursor account: print the steps."""
+        return InstallPlan(notes=(
+            f"Cursor: add the marketplace https://github.com/{MARKETPLACE_REPO} "
+            "(Customize -> Plugins, or `cursor-agent plugin marketplace add "
+            f"https://github.com/{MARKETPLACE_REPO}`), then install "
+            + ", ".join(plugin_id(p) for p in opts.plugins) + " and "
+            "choose project or user scope.",
+            "Cursor also imports the plugin when it is installed in Claude Code and "
+            "enabled in .claude/settings.json (Settings -> Third-Party Imports).",
+        ))
+
+    def _collect_targets(
+        self,
+        *,
+        src_root: Path,
+        root: Path,
+        plugin_dst: Path,
+        plugin_root_abs: str,
+        what: frozenset[str],
+    ) -> Iterable[InstallTarget]:
+        # 1. Skills → <root>/skills/<name>/ (Cursor 2.4+ reads SKILL.md
+        #    natively per cursor.com/docs/skills). Verbatim copy of the
+        #    full skill tree so references/, assets/, scripts/ come
+        #    along too.
+        if "skills" in what:
+            skills_src = src_root / "skills"
+            if skills_src.is_dir():
+                for f in sorted(skills_src.rglob("*")):
+                    if not f.is_file():
+                        continue
+                    rel = f.relative_to(skills_src)
+                    yield InstallTarget(
+                        dst=root / "skills" / rel,
+                        payload=self.render_skill_dir(
+                            self._read_with_substitution(f, plugin_root_abs),
+                            f, root / "skills" / rel.parts[0],
+                        ),
+                        transform_name="plugin_root_substitution",
+                    )
+
+        # 2. Subagents → <root>/agents/<name>.md (Cursor 2.4 added
+        #    native subagent support; same .md format as Claude Code).
+        if "agents" in what:
+            agents_src = src_root / "agents"
+            if agents_src.is_dir():
+                for agent_md in sorted(agents_src.glob("*.md")):
+                    yield InstallTarget(
+                        dst=root / "agents" / agent_md.name,
+                        payload=self._read_with_substitution(agent_md, plugin_root_abs),
+                        transform_name="plugin_root_substitution",
+                    )
+
+        # 3. Plugin-co-located files: scripts/, hooks/.
+        #    Same pattern as Claude Code — staged under
+        #    <root>/<plugin>-files/ so substituted paths resolve.
+        if {"hooks", "skills"} & what and needs_support_dir(src_root):
+            for category in ("scripts", "hooks"):
+                cat_src = src_root / category
+                if not cat_src.is_dir():
+                    continue
+                for f in sorted(cat_src.rglob("*")):
+                    if not f.is_file():
+                        continue
+                    rel = f.relative_to(src_root)
+                    yield InstallTarget(
+                        dst=plugin_dst / rel,
+                        payload=self._read_with_substitution(f, plugin_root_abs),
+                        transform_name="plugin_root_substitution",
+                        executable=f.suffix in (".sh", ".ps1") or f.name.endswith(".bash"),
+                    )
+            # Per-skill scripts for the hooks (<plugin_dst>/skills/<skill>/scripts/;
+            # the Stop hook runs skills/rf-results/scripts/rf_results.py).
+            for f in skill_script_files(src_root):
+                rel = f.relative_to(src_root)
+                yield InstallTarget(
+                    dst=plugin_dst / rel,
+                    payload=f.read_bytes(),
+                    transform_name="skill_script_for_hooks",
+                )
+            # Pin the install-time Python interpreter so hook .mjs scripts
+            # target the env that has robotframework. See claude_code.py
+            # for the rationale.
+            yield InstallTarget(
+                dst=plugin_dst / "scripts" / "python_runtime.json",
+                payload=_x.python_runtime_config_bytes(),
+                transform_name="python_runtime_pin",
+            )
+
+    def _collect_merges(
+        self,
+        *,
+        src_root: Path,
+        root: Path,
+        plugin_root_abs: str,
+        what: frozenset[str],
+        register_hooks: bool = True,
+    ) -> Iterable[ConfigMergeOp]:
+        # 4. Hooks → <root>/hooks.json with cursor-namespaced events.
+        #    Skipped when Node isn't on PATH at install time.
+        if register_hooks:
+            hooks_json_src = src_root / "hooks" / "hooks.json"
+            if hooks_json_src.is_file():
+                yield self._hooks_merge_op(
+                    hooks_json_src=hooks_json_src,
+                    hooks_path=root / "hooks.json",
+                    plugin_root_abs=plugin_root_abs,
+                )
+
+    # ------------------------------------------------------------------
+    # post_install
+    # ------------------------------------------------------------------
+
+    def post_install(self, opts: InstallOptions) -> list[str]:
+        notes = [
+            "Cursor will pick up rules in .cursor/rules/ on next session.",
+            "Subagents are folded into rules as _subagent-<name>.mdc.",
+        ]
+        if "hooks" in opts.what:
+            notes.append(
+                "Hooks installed to .cursor/hooks.json with cursor-namespaced "
+                "events (postToolUse, etc.) and matchers (MCP:rf-mcp)."
+            )
+        return notes
+
+    # ------------------------------------------------------------------
+    # internals
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _read_with_substitution(src: Path, plugin_root_abs: str) -> bytes:
+        """Read ``src`` and substitute ``${CLAUDE_PLUGIN_ROOT}``."""
+        data = src.read_bytes()
+        if _x.is_substitution_candidate(src):
+            return _x.substitute_plugin_root_bytes(data, plugin_root_abs)
+        return data
+
+
+    def _hooks_merge_op(
+        self,
+        *,
+        hooks_json_src: Path,
+        hooks_path: Path,
+        plugin_root_abs: str,
+    ) -> ConfigMergeOp:
+        raw = _x.substitute_plugin_root(
+            hooks_json_src.read_text(encoding="utf-8"),
+            plugin_root_abs,
+        )
+        hooks_obj = json.loads(raw)
+        # Plugin's hooks.json wraps under "hooks"; unwrap to get the
+        # event-keyed dict, rewrite for cursor, then wrap back.
+        events = hooks_obj.get("hooks", hooks_obj)
+        cursor_events = _x.rewrite_hooks_for_cursor(events)
+
+        # Ownership marker: rf-agentskills hook commands reference this
+        # install dir. Granular merge preserves any user/other-tool hooks
+        # already present in hooks.json.
+        marker = plugin_root_abs
+
+        def apply() -> list[str]:
+            return _x.merge_hooks_block(hooks_path, cursor_events, marker=marker, legacy_markers=legacy_markers(plugin_root_abs))
+
+        def revert() -> None:
+            _x.remove_owned_hook_entries(
+                hooks_path, marker=marker, events=list(cursor_events)
+            )
+
+        return ConfigMergeOp(
+            path=hooks_path,
+            description=f"merge hooks block into {hooks_path}",
+            apply=apply,
+            revert=revert,
+            kind="json_hooks",
+            key_path=("hooks",),
+            marker=marker,
+        )

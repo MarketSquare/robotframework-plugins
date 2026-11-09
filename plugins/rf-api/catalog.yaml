@@ -1,0 +1,25 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+name: rf-api
+summary: RequestsLibrary and RESTinstance skills for API tests.
+tier: verified
+status: active
+maintainers:
+  - github: manykarim
+    name: Many Kasiriha
+libraries:
+  - name: RequestsLibrary
+    package: robotframework-requests
+    versions: ">=0.9.7"
+  - name: RESTinstance
+    package: RESTinstance
+    versions: ">=1.8,<2"
+robotframework: ">=7.0"
+agents:
+  - claude-code
+  - copilot-cli
+  - vscode-copilot
+  - codex
+  - cursor
+  - opencode
+  - goose
+  - claude-desktop

@@ -1,0 +1,129 @@
+"""CI test selection per plugin (plugin-catalogue: "PR runs only the changed
+plugin's tests"), on a scratch tree with a fixture second plugin."""
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parent.parent
+
+_spec = importlib.util.spec_from_file_location("select_plugin_tests", ROOT / "scripts" / "select-plugin-tests.py")
+sel = importlib.util.module_from_spec(_spec)
+sys.modules["select_plugin_tests"] = sel
+_spec.loader.exec_module(sel)
+
+
+@pytest.fixture
+def tree(tmp_path: Path) -> Path:
+    for plugin in ("rf-agentskills", "rf-example"):
+        (tmp_path / "plugins" / plugin / "tests").mkdir(parents=True)
+        (tmp_path / "plugins" / plugin / "tests" / "test_x.py").write_text("")
+    hook = tmp_path / "plugins" / "rf-agentskills" / "scripts" / "shared.mjs"
+    hook.parent.mkdir()
+    hook.write_text("")
+    return tmp_path
+
+
+def test_the_real_repository_has_plugin_tests():
+    assert {"rf-core", "rf-desktop"} <= set(sel.plugins_with_tests(ROOT))
+    assert not (ROOT / "tests" / "test_hook_scripts.py").exists()
+
+
+def test_change_inside_one_plugin_runs_only_that_plugin(tree: Path):
+    changed = ["plugins/rf-agentskills/skills/rf-browser/SKILL.md", "plugins/rf-agentskills/tests/test_x.py"]
+    assert sel.select(tree, changed) == ["rf-agentskills"]
+    assert sel.select(tree, ["plugins/rf-example/catalog.yaml"]) == ["rf-example"]
+
+
+def test_change_outside_plugins_runs_every_plugin(tree: Path):
+    assert sel.select(tree, ["plugins/rf-example/catalog.yaml", "scripts/check-drift.sh"]) == [
+        "rf-agentskills", "rf-example"]
+
+
+def test_no_changed_paths_runs_every_plugin(tree: Path):
+    assert sel.select(tree, None) == ["rf-agentskills", "rf-example"]
+
+
+def test_change_to_a_linked_file_runs_the_linking_plugin(tree: Path):
+    link = tree / "plugins" / "rf-example" / "scripts" / "shared.mjs"
+    link.parent.mkdir()
+    link.symlink_to(Path("../../rf-agentskills/scripts/shared.mjs"))
+    assert sel.select(tree, ["plugins/rf-agentskills/scripts/shared.mjs"]) == ["rf-agentskills", "rf-example"]
+    assert sel.select(tree, ["plugins/rf-agentskills/skills/rf-browser/SKILL.md"]) == ["rf-agentskills"]
+
+
+def test_dependency_neighbours_run_too(tree: Path):
+    for plugin in ("rf-agentskills", "rf-example", "rf-other"):
+        (tree / "plugins" / plugin / "tests").mkdir(parents=True, exist_ok=True)
+        (tree / "plugins" / plugin / ".claude-plugin").mkdir(parents=True)
+    (tree / "plugins" / "rf-agentskills" / ".claude-plugin" / "plugin.json").write_text('{"name": "rf-agentskills"}')
+    (tree / "plugins" / "rf-example" / ".claude-plugin" / "plugin.json").write_text(
+        '{"name": "rf-example", "dependencies": [{"name": "rf-agentskills", "version": "^1.0"}]}')
+    (tree / "plugins" / "rf-other" / ".claude-plugin" / "plugin.json").write_text(
+        '{"name": "rf-other", "dependencies": ["rf-agentskills"]}')
+    assert sel.select(tree, ["plugins/rf-example/skills/x/SKILL.md"]) == ["rf-agentskills", "rf-example"]
+    assert sel.select(tree, ["plugins/rf-agentskills/agents/a.md"]) == ["rf-agentskills", "rf-example", "rf-other"]
+
+
+def test_cli_writes_the_github_output(tree: Path, tmp_path: Path, capsys):
+    paths = tmp_path / "changed.txt"
+    paths.write_text("plugins/rf-agentskills/skills/rf-browser/SKILL.md\n")
+    out = tmp_path / "gh.txt"
+    assert sel.main(["--root", str(tree), "--paths-file", str(paths), "--github-output", str(out)]) == 0
+    assert capsys.readouterr().out.split() == ["rf-agentskills"]
+    key, value = out.read_text().strip().split("=", 1)
+    assert key == "plugins" and json.loads(value) == ["rf-agentskills"]
+
+
+# --- security gate selection (plugin-catalogue "Shared files have one owner") --
+
+@pytest.fixture
+def content_tree(tmp_path: Path) -> Path:
+    for plugin, folder in (("rf-core", "hooks"), ("rf-web", "skills"), ("rf-docs-only", "docs")):
+        (tmp_path / "plugins" / plugin / folder).mkdir(parents=True)
+    (tmp_path / "plugins" / "rf-all").mkdir()
+    (tmp_path / "plugins" / "rf-all" / "catalog.yaml").write_text("bundle: [rf-core, rf-web]\n")
+    (tmp_path / "bundles" / "rf-all" / "hooks").mkdir(parents=True)
+    return tmp_path
+
+
+def test_shared_hook_change_scans_both_plugins(content_tree: Path):
+    """A hook script whose copy the bundle carries: the gate scans the plugin and the bundle."""
+    assert sel.select_security(content_tree, ["plugins/rf-core/scripts/validate_robot.mjs"]) == ["rf-all", "rf-core"]
+
+
+def test_security_selection_rules(content_tree: Path):
+    assert sel.select_security(content_tree, ["plugins/rf-web/skills/rf-browser/SKILL.md"]) == ["rf-all", "rf-web"]
+    assert sel.select_security(content_tree, ["bundles/rf-all/hooks/hooks.json"]) == ["rf-all"]
+    assert sel.select_security(content_tree, ["plugins/rf-all/catalog.yaml"]) == ["rf-all"]
+    assert sel.select_security(content_tree, ["security/baselines/rf-core.yaml"]) == ["rf-all", "rf-core", "rf-web"]
+    assert sel.select_security(content_tree, None) == ["rf-all", "rf-core", "rf-web"]
+    assert sel.select_security(content_tree, ["plugins/rf-docs-only/docs/x.md"]) == []
+
+
+def test_security_cli(content_tree: Path, tmp_path: Path, capsys):
+    paths = tmp_path / "changed.txt"
+    paths.write_text("plugins/rf-core/hooks/hooks.json\n")
+    out = tmp_path / "gh-output"
+    assert sel.main(["--security", "--paths-file", str(paths), "--github-output", str(out), "--root", str(content_tree)]) == 0
+    assert json.loads(out.read_text().split("=", 1)[1]) == ["rf-all", "rf-core"]
+
+
+def test_the_real_repository_security_selection():
+    assert sel.select_security(ROOT, ["plugins/rf-core/scripts/validate_robot.mjs"]) == ["rf-agentskills", "rf-core"]
+
+
+def test_plugin_without_tests_runs_its_dependencies_tests(tree: Path):
+    """rf-web has no tests of its own; rf-core's tests check the routes to its skills."""
+    web = tree / "plugins" / "rf-web" / ".claude-plugin"
+    web.mkdir(parents=True)
+    (web / "plugin.json").write_text(json.dumps({"name": "rf-web", "dependencies": [{"name": "rf-agentskills"}]}))
+    (tree / "plugins" / "rf-agentskills" / ".claude-plugin").mkdir()
+    (tree / "plugins" / "rf-agentskills" / ".claude-plugin" / "plugin.json").write_text('{"name": "rf-agentskills"}')
+    assert sel.select(tree, ["plugins/rf-web/skills/rf-browser/SKILL.md"]) == ["rf-agentskills"]
+
+
+def test_the_real_repository_rf_web_change_runs_rf_core_tests():
+    assert "rf-core" in sel.select(ROOT, ["plugins/rf-web/skills/rf-browser/SKILL.md"])

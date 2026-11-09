@@ -1,0 +1,19 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+name: rf-core
+summary: Robot Framework syntax, environment setup, Python keyword libraries, test design and debugging subagents, and the validation hooks.
+tier: verified
+status: active
+maintainers:
+  - github: manykarim
+    name: Many Kasiriha
+libraries: []
+robotframework: ">=7.0"
+agents:
+  - claude-code
+  - copilot-cli
+  - vscode-copilot
+  - codex
+  - cursor
+  - opencode
+  - goose
+  - claude-desktop

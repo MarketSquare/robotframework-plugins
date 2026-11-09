@@ -1,0 +1,52 @@
+# Review groups and tier exceptions (spec plugin-trust-tiers; design D9).
+# Read by scripts/check-governance.py and scripts/required-reviews.py.
+# Changing this file needs the security reviewers' approval.
+
+teams:
+  # Approves verified plugins and tier promotions.
+  foundation: MarketSquare/robotframework-plugins-reviewers
+  # Approves security-relevant changes (spec content-security-scanning).
+  security: MarketSquare/robotframework-plugins-security
+
+# Security-relevant paths: a change to any of them needs the security team.
+# Patterns use fnmatch; "*" matches across folders. A SKILL.md counts only
+# when its allowed-tools line changes (scripts/required-reviews.py).
+security_paths:
+  - "plugins/*/hooks/*"
+  - "bundles/*/hooks/*"
+  - "plugins/*/scripts/*"
+  - "bundles/*/scripts/*"
+  - "plugins/*/skills/*/scripts/*"
+  - "bundles/*/skills/*/scripts/*"
+  - "plugins/*/variants/opencode/plugins/*"
+  - "plugins/*/agents/*"
+  - "bundles/*/agents/*"
+  - "plugins/*/variants/*/agents/*"
+  - "*.mcp.json"
+  - "*/mcp.json"
+  - "plugins/*/.claude-plugin/*"
+  - "bundles/*/.claude-plugin/*"
+  - ".claude-plugin/*"
+  - "security/*"
+  - "scripts/check_content_rules.py"
+  - "scripts/compare-findings.py"
+  - "scripts/install-scanners.sh"
+  - "scripts/security-scan.sh"
+  - "scripts/required-reviews.py"
+  - "scripts/check-governance.py"
+  - ".github/workflows/*"
+  - ".github/CODEOWNERS"
+  - ".github/governance.yaml"
+  - ".gitleaksignore"
+
+# Verified plugins that don't meet every verified criterion yet. Each entry
+# names what is missing and lasts until a date; after it, check-governance.py
+# fails. New promotions to verified get no entry.
+tier_grace:
+  - plugins: [rf-agentskills, rf-core, rf-web, rf-api, rf-mobile, rf-desktop]
+    missing: [second-maintainer, foundation-maintainer]
+    until: 2027-01-31
+    reason: >-
+      The programme launches with one maintainer. A second maintainer from the
+      Foundation reviewers team joins before the first CalVer release
+      (launch task 10.2); otherwise these plugins move to the community tier.

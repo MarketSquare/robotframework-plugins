@@ -1,0 +1,43 @@
+{
+  "claude_code_version": "2.1.316 (Claude Code)",
+  "entries": {
+    "adv-appium-deprecated-visibility|baseline": {
+      "arm": "baseline",
+      "gating": false,
+      "incomplete": 0,
+      "mean_cost_usd": 0.074543,
+      "mean_duration_s": 17.8,
+      "mean_input_tokens": 114116.3,
+      "mean_output_tokens": 1634.8,
+      "mean_turns": 5.83,
+      "model": "claude-sonnet-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 6,
+      "skill": "rf-appium",
+      "task_hash": "d42a7ea8bb1e41559d26e50e33c6618c166557ca92ff7080527b35bafd6ca889",
+      "task_id": "adv-appium-deprecated-visibility"
+    },
+    "adv-appium-deprecated-visibility|treatment": {
+      "arm": "treatment",
+      "gating": false,
+      "incomplete": 0,
+      "mean_cost_usd": 0.089432,
+      "mean_duration_s": 23.96,
+      "mean_input_tokens": 142273.2,
+      "mean_output_tokens": 1844.3,
+      "mean_turns": 7.67,
+      "model": "claude-sonnet-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 6,
+      "skill": "rf-appium",
+      "task_hash": "d42a7ea8bb1e41559d26e50e33c6618c166557ca92ff7080527b35bafd6ca889",
+      "task_id": "adv-appium-deprecated-visibility"
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "adversarial"
+}

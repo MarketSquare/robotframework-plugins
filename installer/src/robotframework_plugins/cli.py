@@ -1,0 +1,1311 @@
+"""Console-script entrypoint: ``rf-agentskills <subcommand> ...``.
+
+The CLI wires four moving pieces together:
+
+1. ``adapters`` — per-agent plan() builders.
+2. ``manifest`` — the JSON record of what this machine has installed.
+3. ``transforms`` — pure transforms used by the adapters and re-used
+   here only for ``${CLAUDE_PLUGIN_ROOT}`` substitution display in
+   --dry-run.
+4. argparse — subcommand dispatch.
+
+Subcommands implemented:
+
+* ``install``    — write files, perform config merges, remove files a
+                   previous install wrote that the bundle no longer
+                   ships (hash-checked), update manifest.
+* ``uninstall``  — read manifest, remove only matching files (skipping
+                   user-edited ones), revert config merges.
+* ``list``       — show the manifest.
+* ``targets``    — show which adapters detect their target on this machine.
+* ``doctor``     — combined health check (assets, manifest, adapters,
+                   unowned legacy skill directories — reported, never deleted).
+* ``version``    — print bundle version.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from dataclasses import replace
+from pathlib import Path
+from typing import Sequence
+
+from rich.console import Console
+from rich.table import Table
+
+from . import __version__, _assets, detect as _detect, manifest as _m
+from .adapters import ALL_ADAPTERS, all_names, by_name
+from .adapters._base import (
+    Adapter,
+    ConfigMergeOp,
+    InstallOptions,
+    InstallPlan,
+    InstallTarget,
+)
+
+
+console = Console()
+err_console = Console(stderr=True)
+
+
+# ---------------------------------------------------------------------------
+# argparse
+# ---------------------------------------------------------------------------
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="robotframework-plugins",
+        description="Cross-agent installer for Robot Framework agent plugins.",
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"robotframework-plugins {__version__}"
+    )
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    # install ---------------------------------------------------------------
+    sp = sub.add_parser("install", help="Install Robot Framework plugins into one or more agents.")
+    grp = sp.add_mutually_exclusive_group(required=False)
+    grp.add_argument("--agent", choices=all_names(), help="Single agent (back-compat).")
+    grp.add_argument("--all", action="store_true", help="Every detected agent (back-compat).")
+    grp.add_argument(
+        "--agents",
+        metavar="SEL",
+        help="Selection: 'all' (every known agent), 'none', 'detected', "
+        "or a comma-separated list of agent ids. Omit for the interactive "
+        "wizard (or detected agents when non-interactive).",
+    )
+    sp.add_argument("--scope", choices=("project", "user"), default="project",
+                    help="Install scope (default: project).")
+    sp.add_argument("--project", type=Path, help="Project directory for --scope project (default: CWD).")
+    sp.add_argument("--prefix", type=Path, help="Override install root (used by tests).")
+    sp.add_argument(
+        "--what",
+        default="skills,agents,hooks",
+        help="Comma-separated subset of skills,agents,hooks (default: all). "
+             "'mcp' is accepted for compatibility and ignored: the bundle no "
+             "longer ships an MCP server.",
+    )
+    sp.add_argument(
+        "--mode",
+        choices=("files", "plugin"),
+        default="files",
+        help="files (default): copy skills/agents/hooks. plugin: point the agent at the "
+             "robotframework-plugins marketplace (committed settings for project "
+             "scope); agents without a marketplace fall back to files.",
+    )
+    sp.add_argument("--ref", help="With --mode plugin: pin the marketplace to this git tag/branch.")
+    sp.add_argument(
+        "--plugins",
+        metavar="NAMES",
+        help="Comma-separated plugins to install (see `robotframework-plugins catalog`), or "
+             "'all' for every active verified plugin. Default: on an upgrade, the plugins that "
+             "cover what is installed; otherwise rf-core plus the plugins for the libraries the "
+             "project declares (pyproject.toml, requirements*.txt), or every verified plugin "
+             "when it declares none.",
+    )
+    sp.add_argument("--yes", "-y", action="store_true",
+                    help="Accept the detected default without prompting.")
+    sp.add_argument("--no-input", action="store_true",
+                    help="Never prompt; fail instead of asking (CI).")
+    sp.add_argument("--dry-run", action="store_true", help="Show plan without writing.")
+    sp.add_argument("--force", action="store_true", help="Overwrite user-modified files.")
+
+    # uninstall -------------------------------------------------------------
+    sp = sub.add_parser("uninstall", help="Remove a previous install (manifest-tracked).")
+    sp.add_argument("--agent", choices=all_names(), required=True)
+    sp.add_argument("--scope", choices=("project", "user"), default="project",
+                    help="Install scope (default: project).")
+    sp.add_argument("--project", type=Path, help="Project directory for --scope project (default: CWD).")
+    sp.add_argument("--dry-run", action="store_true")
+
+    # list ------------------------------------------------------------------
+    sub.add_parser("list", help="Show what the manifest records as installed.")
+
+    # targets ---------------------------------------------------------------
+    sub.add_parser("targets", help="Show which agents are detected on this machine.")
+
+    # doctor ----------------------------------------------------------------
+    sub.add_parser("doctor", help="Health check (assets, adapters, manifest).")
+
+    # version ---------------------------------------------------------------
+    sub.add_parser("version", help="Print bundle version.")
+
+    # catalog ---------------------------------------------------------------
+    sp = sub.add_parser("catalog", help="List the plugins bundled in this installer.")
+    sp.add_argument("--json", action="store_true", help="Print the catalogue as JSON.")
+
+    return parser
+
+
+# ---------------------------------------------------------------------------
+# Command implementations
+# ---------------------------------------------------------------------------
+
+
+def _opts_from_args(args: argparse.Namespace) -> InstallOptions:
+    what = frozenset(s.strip() for s in str(args.what).split(",") if s.strip())
+    if "mcp" in what:
+        err_console.print(
+            "[yellow]note:[/yellow] --what mcp is ignored — the rf-tools MCP server "
+            "was removed; the skills run their scripts directly."
+        )
+        what = what - {"mcp"}
+    project = args.project
+    if args.scope == "project" and project is None:
+        project = Path.cwd()
+    return InstallOptions(
+        scope=args.scope,
+        project_dir=project,
+        prefix=args.prefix,
+        what=what,
+        dry_run=getattr(args, "dry_run", False),
+        force=getattr(args, "force", False),
+        mode=getattr(args, "mode", "files") or "files",
+        ref=getattr(args, "ref", None),
+    )
+
+
+def _manifest_path(opts: InstallOptions) -> Path:
+    """Where this install's manifest lives — per scope (project-local for
+    project scope, global for user). ``--prefix`` overrides only the install
+    *root*, not the manifest, so install/uninstall stay symmetric and the
+    manifest never lands inside the install tree."""
+    return _m.manifest_path_for(opts.scope, opts.project_dir)
+
+
+def _detected_names() -> list[str]:
+    return [cls().name for cls in ALL_ADAPTERS if cls().detect()]
+
+
+class _SelectionError(ValueError):
+    """Raised for an invalid --agents value."""
+
+
+def _explicit_selection(args: argparse.Namespace) -> list[str] | None:
+    """Resolve an explicit selection from flags, or None if none was given.
+
+    Returns a (possibly empty) list of agent names. An empty list ('none')
+    is distinct from None ('no flag given' → wizard / detected fallback).
+    """
+    if getattr(args, "agent", None):
+        return [args.agent]
+    if getattr(args, "all", False):
+        return _detected_names()
+    sel = getattr(args, "agents", None)
+    if sel is None:
+        return None
+    token = sel.strip().lower()
+    if token == "all":
+        return list(all_names())
+    if token == "none":
+        return []
+    if token == "detected":
+        return _detected_names()
+    names = [s.strip() for s in sel.split(",") if s.strip()]
+    unknown = [n for n in names if n not in all_names()]
+    if unknown:
+        raise _SelectionError(
+            f"unknown agent(s): {', '.join(unknown)}. "
+            f"valid: {', '.join(all_names())}"
+        )
+    return names
+
+
+def _is_interactive(args: argparse.Namespace) -> bool:
+    """Prompt only on a real TTY and when not opted out via --yes/--no-input."""
+    if getattr(args, "no_input", False) or getattr(args, "yes", False):
+        return False
+    try:
+        return sys.stdin.isatty()
+    except (ValueError, OSError):
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Plugin selection
+# ---------------------------------------------------------------------------
+
+
+class _PluginError(Exception):
+    pass
+
+
+def _default_plugins(catalog: list[dict]) -> list[str]:
+    """Every active verified plugin with content, in catalogue order (a bundle
+    adds nothing its dependencies don't)."""
+    return [p["name"] for p in catalog
+            if p.get("status") == "active" and p.get("tier") == "verified" and not _assets.is_bundle(p)]
+
+
+def _resolve_plugins(args: argparse.Namespace, catalog: list[dict]) -> list[str] | None:
+    """Plugins named by ``--plugins``; ``None`` when the flag is absent.
+
+    Raises :class:`_PluginError` for a name the installer doesn't bundle
+    (unknown, or removed from the catalogue).
+    """
+    raw = getattr(args, "plugins", None)
+    if raw is None:
+        return None
+    if raw.strip().lower() == "all":
+        return _default_plugins(catalog)
+    names = [n.strip() for n in raw.split(",") if n.strip()]
+    known = {p["name"] for p in catalog}
+    unknown = [n for n in names if n not in known]
+    if unknown or not names:
+        what = ", ".join(unknown) if unknown else "(none given)"
+        raise _PluginError(
+            f"unknown or removed plugin: {what}. Available: {', '.join(sorted(known)) or '(none)'}"
+        )
+    return list(dict.fromkeys(names))
+
+
+def _skill_owners(catalog: list[dict]) -> dict[str, str]:
+    """``{skill folder: plugin}`` over the bundled content plugins."""
+    owners: dict[str, str] = {}
+    for p in catalog:
+        if _assets.is_bundle(p):
+            continue
+        try:
+            with _assets.asset_root_path(p["name"]) as root:
+                for md in (root / "skills").glob("*/SKILL.md"):
+                    owners.setdefault(md.parent.name, p["name"])
+        except (FileNotFoundError, OSError):
+            continue
+    return owners
+
+
+def _upgrade_selection(manifest_path: Path, agents: list[str], scope: str, catalog: list[dict]) -> list[str]:
+    """Plugins that cover an earlier file-mode install of ``agents``.
+
+    A record written by robotframework-plugins names each file's plugin. An
+    older record (rf-agentskills 0.8.0 or earlier) does not: its skills are
+    mapped to the plugin that ships them now, and ``rf-core`` covers the
+    subagents and hooks."""
+    try:
+        manifest = _m.Manifest.load(manifest_path)
+    except (OSError, ValueError):
+        return []
+    known = {p["name"]: p for p in catalog}
+    owners = _skill_owners(catalog)
+    chosen: list[str] = []
+
+    def add(name: str) -> None:
+        for n in _assets.expand_bundles([name], catalog):
+            if n in known and n not in chosen:
+                chosen.append(n)
+
+    for agent in agents:
+        inst = manifest.for_agent(agent, scope)
+        if inst is None:
+            continue
+        for entry in inst.files:
+            if entry.plugin and not _assets.is_bundle(known.get(entry.plugin, {})):
+                add(entry.plugin)
+                continue
+            parts = Path(entry.path).parts
+            if _m.entry_category(entry) == "skills" and "skills" in parts:
+                skill = parts[parts.index("skills") + 1] if parts.index("skills") + 1 < len(parts) else ""
+                if skill in owners:
+                    add(owners[skill])
+                    continue
+            add(_assets.DEFAULT_PLUGIN)
+    return [p["name"] for p in catalog if p["name"] in chosen]
+
+
+def _default_selection(args: argparse.Namespace, catalog: list[dict], selection: list[str]) -> list[str]:
+    """``--plugins`` absent: an upgrade keeps what the install covers; a fresh
+    install takes rf-core plus what the project declares (spec plugin-split)."""
+    opts = _opts_from_args(args)
+    previous = _upgrade_selection(_manifest_path(opts), selection, opts.scope, catalog)
+    project = opts.project_dir if opts.project_dir is not None else Path.cwd()
+    found = _detect.detect(project, catalog)
+    if previous:
+        # Keep everything installed; add the plugins for libraries the project
+        # declares since (the SessionStart report points users here).
+        added = [n for n in found.plugins if found.detected and n not in previous]
+        chosen = [p["name"] for p in catalog if p["name"] in previous or p["name"] in added]
+        note = f"; adds {', '.join(added)} for the project's libraries" if added else ""
+        console.print(f"[dim]plugins:[/dim] {', '.join(chosen)} (upgrade: they cover what is installed{note}; "
+                      "narrow with --plugins)")
+        return chosen
+    if found.detected:
+        why = "; ".join(f"{name}: {', '.join(f'{pkg} ({src})' for pkg, src in pkgs)}"
+                        for name, pkgs in found.reasons.items())
+        console.print(f"[dim]plugins:[/dim] {', '.join(found.plugins)} (rf-core, plus the project's "
+                      f"libraries: {why})")
+    else:
+        console.print(f"[dim]plugins:[/dim] {', '.join(found.plugins)} (no library detected in {project}; "
+                      "installing every verified plugin)")
+    return found.plugins
+
+
+def _warn_deprecated(names: list[str], catalog: list[dict]) -> None:
+    by_name_ = {p["name"]: p for p in catalog}
+    for n in names:
+        p = by_name_.get(n, {})
+        if p.get("status") == "deprecated":
+            err_console.print(
+                f"[yellow]warn:[/yellow] {n} is deprecated since {p.get('deprecated_since', '?')}; "
+                f"use {p.get('replacement', 'its replacement')} instead."
+            )
+
+
+def _plugin_label(p: dict) -> str:
+    status = "" if p.get("status") == "active" else f", {p.get('status')}"
+    return f"{p['name']} ({p.get('tier', '?')}{status}): {p.get('summary', '')}"
+
+
+def _select_plugins_interactively(catalog: list[dict], default: list[str]) -> list[str] | None:
+    """Plugin step of the wizard; questionary if available, else stdlib fallback."""
+    try:
+        import questionary  # optional [interactive] extra
+    except ImportError:
+        console.print("Select plugins (comma/space-separated numbers; Enter = marked):")
+        for i, p in enumerate(catalog, 1):
+            mark = "*" if p["name"] in default else " "
+            console.print(f"  [{mark}] {i}. {_plugin_label(p)}")
+        try:
+            raw = input("> ").strip()
+        except EOFError:
+            return default
+        if not raw:
+            return default
+        picks: list[str] = []
+        for tok in raw.replace(",", " ").split():
+            if tok.isdigit() and 1 <= int(tok) <= len(catalog):
+                name = catalog[int(tok) - 1]["name"]
+                if name not in picks:
+                    picks.append(name)
+        return picks
+    return questionary.checkbox(
+        "Select plugins to install:",
+        choices=[questionary.Choice(_plugin_label(p), value=p["name"], checked=p["name"] in default)
+                 for p in catalog],
+    ).ask()
+
+
+def cmd_catalog(args: argparse.Namespace) -> int:
+    catalog = _assets.bundled_catalog()
+    if getattr(args, "json", False):
+        print(json.dumps({"installer": __version__, "plugins": [
+            {k: p.get(k) for k in ("name", "version", "tier", "status", "summary")}
+            | {"bundle": bool(p.get("bundle")), "bundled": list(p.get("bundled", [])),
+               "dependencies": list(p.get("dependencies", []))}
+            | ({"replacement": p["replacement"]} if "replacement" in p else {})
+            for p in catalog
+        ]}, indent=2))
+        return 0
+    table = Table(title=f"robotframework-plugins {__version__} bundles")
+    for col in ("plugin", "version", "tier", "status", "summary"):
+        table.add_column(col)
+    for p in catalog:
+        status = p.get("status", "?")
+        if status == "deprecated":
+            status = f"deprecated, use {p.get('replacement', '?')}"
+        table.add_row(p["name"], str(p.get("version") or "-"), p.get("tier", "?"), status, p.get("summary", ""))
+    console.print(table)
+    return 0
+
+
+def _select_agents_interactively(detected: list[str]) -> list[str] | None:
+    """Multi-select wizard; questionary if available, else stdlib fallback.
+
+    Returns the chosen agent names, or None if the user cancelled.
+    """
+    choices = list(all_names())
+    try:
+        import questionary  # optional [interactive] extra
+    except ImportError:
+        return _select_agents_stdlib(detected, choices)
+    answer = questionary.checkbox(
+        "Select agents to install Robot Framework plugins into:",
+        choices=[
+            questionary.Choice(
+                f"{by_name(n)().pretty} ({n})",
+                value=n,
+                checked=n in detected,
+            )
+            for n in choices
+        ],
+    ).ask()
+    return answer  # None when cancelled (Ctrl-C/Esc)
+
+
+def _select_agents_stdlib(detected: list[str], choices: list[str]) -> list[str] | None:
+    """Dependency-free numbered selector used when questionary is absent."""
+    console.print("Select agents (comma/space-separated numbers; Enter = detected):")
+    for i, n in enumerate(choices, 1):
+        mark = "*" if n in detected else " "
+        console.print(f"  [{mark}] {i}. {by_name(n)().pretty} ({n})")
+    try:
+        raw = input("> ").strip()
+    except EOFError:
+        return detected
+    if not raw:
+        return detected
+    picks: list[str] = []
+    for tok in raw.replace(",", " ").split():
+        if tok.isdigit() and 1 <= int(tok) <= len(choices):
+            name = choices[int(tok) - 1]
+            if name not in picks:
+                picks.append(name)
+    return picks
+
+
+def cmd_install(args: argparse.Namespace) -> int:
+    # 1. Resolve selection: explicit flags → wizard (TTY) → detected fallback.
+    try:
+        selection = _explicit_selection(args)
+    except _SelectionError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        return 2
+
+    if selection is None:
+        if _is_interactive(args):
+            selection = _select_agents_interactively(_detected_names())
+            if selection is None:
+                console.print("[dim]cancelled[/dim]")
+                return 0
+        else:
+            selection = _detected_names()
+            if not selection:
+                err_console.print(
+                    "[red]error:[/red] no agents detected and none selected."
+                )
+                err_console.print(f"valid agents: {', '.join(all_names())}")
+                err_console.print(
+                    "pass --agents all|detected|<csv>, or --agent <name>."
+                )
+                return 1
+
+    if not selection:
+        console.print("[dim]nothing selected — nothing to install[/dim]")
+        return 0
+
+    catalog = _assets.bundled_catalog()
+    try:
+        plugins = _resolve_plugins(args, catalog)
+    except _PluginError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        return 2
+    explicit = plugins is not None
+    if plugins is None:
+        plugins = _default_selection(args, catalog, selection)
+        if _is_interactive(args) and len(catalog) > 1:
+            plugins = _select_plugins_interactively(catalog, plugins)
+            if plugins is None:
+                console.print("[dim]cancelled[/dim]")
+                return 0
+    if not plugins:
+        console.print("[dim]no plugin selected — nothing to install[/dim]")
+        return 0
+    _warn_deprecated(plugins, catalog)
+
+    opts = replace(_opts_from_args(args), plugins=tuple(plugins), plugin=plugins[0], plugins_explicit=explicit)
+    # File mode copies content per plugin: a bundle there means the plugins it bundles.
+    file_plugins = tuple(_assets.expand_bundles(plugins, catalog))
+    if opts.ref and opts.mode != "plugin":
+        err_console.print("[red]error:[/red] --ref needs --mode plugin")
+        return 2
+    manifest_path = _manifest_path(opts)
+
+    rc = 0
+    for name in selection:
+        cls = by_name(name)
+        if cls is None:
+            err_console.print(f"[red]error:[/red] unknown agent {name!r}")
+            rc = max(rc, 2)
+            continue
+        adapter = cls()
+        agent_opts = opts
+        plan = adapter.plugin_plan(opts) if opts.mode == "plugin" else None
+        if plan is None:
+            if opts.mode == "plugin":
+                console.print(
+                    f"[dim]{adapter.name}:[/dim] no plugin marketplace for {adapter.pretty} — "
+                    "installing files instead."
+                )
+            agent_opts = replace(opts, mode="files", plugins=file_plugins, plugin=file_plugins[0])
+            plan = _plan_plugins(adapter, agent_opts)
+        if opts.dry_run:
+            _render_plan_dry_run(adapter, plan, agent_opts, manifest_path)
+            continue
+        rc |= _execute_plan(adapter, plan, agent_opts, manifest_path)
+        if agent_opts.mode == "plugin":
+            rc |= _run_plugin_commands(adapter, agent_opts, run=bool(getattr(args, "yes", False)))
+    return rc
+
+
+def _plan_plugins(adapter: Adapter, opts: InstallOptions) -> InstallPlan:
+    """One plan covering every plugin in ``opts.plugins``.
+
+    The adapter plans each plugin on its own; the parts are joined so that
+    the stale-file pass sees the whole install and doesn't remove one
+    plugin's files while installing another. Each file records its plugin.
+    """
+    targets: list[InstallTarget] = []
+    merges: list[ConfigMergeOp] = []
+    notes: list[str] = []
+    for plugin in opts.plugins:
+        part = adapter.plan(replace(opts, plugin=plugin))
+        targets.extend(replace(t, plugin=plugin) for t in part.targets)
+        merges.extend(part.merges)
+        notes.extend(n for n in part.notes if n not in notes)
+    return InstallPlan(targets=tuple(targets), merges=tuple(merges), notes=tuple(notes))
+
+
+def _run_plugin_commands(adapter: Adapter, opts: InstallOptions, *, run: bool) -> int:
+    """Run the adapter's per-user plugin commands (only with --yes)."""
+    commands = adapter.plugin_commands(opts) if hasattr(adapter, "plugin_commands") else []
+    if not commands or not run:
+        return 0
+    import shutil
+    import subprocess
+
+    if shutil.which(commands[0][0]) is None:
+        err_console.print(f"[yellow]warn:[/yellow] {commands[0][0]} not on PATH — run the commands above yourself.")
+        return 0
+    for cmd in commands:
+        console.print(f"  [dim]$[/dim] {' '.join(cmd)}")
+        res = subprocess.run(cmd, check=False)
+        if res.returncode != 0:
+            err_console.print(f"[red]error:[/red] `{' '.join(cmd)}` exited {res.returncode}")
+            return 1
+    return 0
+
+
+def _revert_merge(merge: _m.ConfigMerge) -> None:
+    """Undo one recorded config merge.
+
+    Reconstructs deletion from kind + key_path + added_keys: the in-process
+    ``revert`` callback isn't reachable from a fresh CLI invocation.
+    """
+    from . import transforms as _x
+
+    path = Path(merge.path)
+    if not path.is_file():
+        return
+    try:
+        if merge.kind == "json_top":
+            _x.remove_json_keys(path, merge.added_keys)
+        elif merge.kind == "json_nested":
+            _x.remove_json_keys_at_path(path, key_path=merge.key_path, keys=merge.added_keys)
+        elif merge.kind == "json_hooks":
+            _x.remove_owned_hook_entries(
+                path,
+                marker=merge.marker or "",
+                events=merge.added_keys,
+                top_key=merge.key_path[0] if merge.key_path else "hooks",
+            )
+        elif merge.kind == "toml_table":
+            _x.remove_toml_table(path, merge.key_path)
+        elif merge.kind == "yaml_block":
+            _x.remove_yaml_keys(
+                path, merge.added_keys,
+                parent_key=merge.key_path[0] if merge.key_path else None,
+            )
+        else:
+            err_console.print(
+                f"[yellow]warn:[/yellow] unknown merge kind {merge.kind!r} for {path} — skipping revert"
+            )
+    except Exception as exc:
+        err_console.print(f"[yellow]warn:[/yellow] revert {path}: {exc}")
+
+
+def cmd_uninstall(args: argparse.Namespace) -> int:
+    project = args.project
+    if args.scope == "project" and project is None:
+        project = Path.cwd()
+    manifest_path = _m.manifest_path_for(args.scope, project)
+
+    manifest = _m.Manifest.load(manifest_path)
+    record = manifest.for_agent(args.agent, args.scope)
+    if record is None:
+        err_console.print(
+            f"[yellow]nothing to do:[/yellow] no manifest entry for "
+            f"agent={args.agent!r} scope={args.scope!r}"
+        )
+        return 0
+
+    removed_files: list[str] = []
+    skipped_files: list[str] = []
+    for entry in record.files:
+        p = Path(entry.path)
+        if not p.is_file():
+            continue
+        if _m.is_user_modified(entry):
+            skipped_files.append(str(p))
+            continue
+        if not args.dry_run:
+            try:
+                p.unlink()
+                _m.prune_empty_parents(p)
+            except OSError as exc:
+                err_console.print(f"[yellow]warn:[/yellow] {p}: {exc}")
+        removed_files.append(str(p))
+
+    if not args.dry_run:
+        for merge in record.config_merges:
+            _revert_merge(merge)
+
+    if not args.dry_run:
+        manifest.remove(args.agent, args.scope)
+        manifest.save(manifest_path)
+
+    table = Table(title=f"uninstall {args.agent} ({args.scope})")
+    table.add_column("removed", style="green")
+    table.add_column("skipped (user-edited)", style="yellow")
+    rows = max(len(removed_files), len(skipped_files))
+    for i in range(rows):
+        table.add_row(
+            removed_files[i] if i < len(removed_files) else "",
+            skipped_files[i] if i < len(skipped_files) else "",
+        )
+    if rows == 0:
+        table.add_row("(nothing to remove)", "")
+    console.print(table)
+    if args.dry_run:
+        console.print("[dim](dry run — no files actually removed)[/dim]")
+    return 0
+
+
+def cmd_list(_args: argparse.Namespace) -> int:
+    # Show the global (user-scope) manifest plus the project-local manifest
+    # in the current directory, if any (project installs live in-repo).
+    installs = list(_m.Manifest.load().iter_agents())
+    proj_manifest = Path.cwd() / ".rf-agentskills" / "installed.json"
+    if proj_manifest.is_file():
+        installs.extend(_m.Manifest.load(proj_manifest).iter_agents())
+    if not installs:
+        console.print("[dim]no installations recorded[/dim]")
+        return 0
+    table = Table(title="robotframework-plugins installations")
+    table.add_column("agent")
+    table.add_column("scope")
+    table.add_column("bundle")
+    table.add_column("installed_at")
+    table.add_column("files")
+    for ins in installs:
+        table.add_row(
+            ins.agent,
+            ins.scope,
+            ins.bundle_version,
+            ins.installed_at,
+            str(len(ins.files)),
+        )
+    console.print(table)
+    return 0
+
+
+def cmd_targets(_args: argparse.Namespace) -> int:
+    table = Table(title="agent detection")
+    table.add_column("agent")
+    table.add_column("display")
+    table.add_column("detected")
+    for cls in ALL_ADAPTERS:
+        adapter = cls()
+        table.add_row(
+            adapter.name,
+            adapter.pretty,
+            "[green]yes[/green]" if adapter.detect() else "[dim]no[/dim]",
+        )
+    console.print(table)
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Legacy skill directories (content < 2.0.0)
+# ---------------------------------------------------------------------------
+
+# Directory names earlier bundles used for skills. Since content 2.0.0 every
+# skill has one identifier, ``rf-<topic>``, in every channel. Re-installing
+# prunes the old directories this installer recorded; ``doctor`` only warns
+# about the ones it does not own (e.g. copied by hand from a release tarball).
+_LEGACY_TOPICS = (
+    "appium", "browser", "keyword-builder", "libdoc-explain", "libdoc-search",
+    "platynui", "requests", "resource-architect", "restinstance", "results",
+    "robotcode", "selenium", "setup", "testcase-builder",
+)
+LEGACY_SKILL_DIRS: frozenset[str] = frozenset(
+    # old Claude Code plugin / installer short names
+    set(_LEGACY_TOPICS)
+    # old root / standalone-tarball directory names
+    | {f"robotframework-{t}-skill" for t in _LEGACY_TOPICS if t not in ("results", "libdoc-search", "libdoc-explain")}
+    | {"robotframework-results", "robotframework-libdoc-search", "robotframework-libdoc-explain"}
+)
+# ``name:`` values those directories carried (short plugin names, and the
+# rf-* names the root/standalone copies already used).
+LEGACY_SKILL_NAMES: frozenset[str] = frozenset(
+    set(_LEGACY_TOPICS) | {f"rf-{t}" for t in _LEGACY_TOPICS}
+)
+
+# Skills retired in content 3.0.0: the robotcode CLI (robotcode doc / results)
+# and the RobotCode project's own `robotcode` plugin cover them. Installs that
+# recorded them prune them as stale; copies made by hand are reported.
+RETIRED_SKILL_DIRS: frozenset[str] = frozenset({"rf-robotcode", "rf-libdoc", "rf-results"})
+RETIRED_SKILL_REPLACEMENT = {
+    "rf-robotcode": "the robotcode plugin (robotcode@robotframework-agent-plugins)",
+    "rf-libdoc": "`robotcode doc keywords` / `robotcode doc keyword`",
+    "rf-results": "`robotcode results`",
+}
+
+
+def _skill_md_name(skill_md: Path) -> str | None:
+    try:
+        text = skill_md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if not text.startswith("---"):
+        return None
+    for line in text.splitlines()[1:]:
+        if line.strip() == "---":
+            break
+        if line.startswith("name:"):
+            return line.split(":", 1)[1].strip().strip("\"'")
+    return None
+
+
+def _skill_folders() -> list[Path]:
+    """Every skills folder an adapter installs into (user and project scope),
+    derived from the adapters' own plans so it never drifts from them."""
+    folders: set[Path] = set()
+    for scope in ("user", "project"):
+        opts = InstallOptions(scope=scope, project_dir=Path.cwd(), what=frozenset({"skills"}))
+        for cls in ALL_ADAPTERS:
+            try:
+                plan = cls().plan(opts)
+            except Exception:  # pragma: no cover - defensive; doctor must not crash
+                continue
+            for target in plan.targets:
+                dst = Path(target.dst)
+                if dst.name == "SKILL.md" and _m.category_for_path(dst) == "skills":
+                    folders.add(dst.parent.parent)
+    return sorted(folders)
+
+
+def _owned_paths() -> list[Path]:
+    paths: list[Path] = []
+    for mpath in (_m.default_manifest_path(), _m.manifest_path_for("project", Path.cwd())):
+        try:
+            for ins in _m.Manifest.load(mpath).iter_agents():
+                paths.extend(Path(f.path) for f in ins.files)
+        except Exception:  # pragma: no cover - unreadable manifest is reported elsewhere
+            continue
+    return paths
+
+
+def find_legacy_skill_dirs() -> list[Path]:
+    """Unowned legacy rf-agentskills skill dirs in any adapter's skills folder.
+
+    A directory is reported only if its name is a known legacy name, its
+    SKILL.md ``name:`` is one of our old names and mentions Robot Framework
+    (so someone else's ``browser`` skill is left alone), and no manifest
+    records a file inside it.
+    """
+    owned = _owned_paths()
+    found: list[Path] = []
+    for folder in _skill_folders():
+        for name in sorted(LEGACY_SKILL_DIRS | RETIRED_SKILL_DIRS):
+            d = folder / name
+            skill_md = d / "SKILL.md"
+            if not skill_md.is_file():
+                continue
+            if _skill_md_name(skill_md) not in LEGACY_SKILL_NAMES | RETIRED_SKILL_DIRS:
+                continue
+            try:
+                if "robot" not in skill_md.read_text(encoding="utf-8", errors="replace").lower():
+                    continue
+            except OSError:
+                continue
+            if any(p == d or d in p.parents for p in owned):
+                continue
+            found.append(d)
+    return found
+
+
+def _legacy_dir_warning(d: Path) -> str:
+    if d.name in RETIRED_SKILL_DIRS:
+        return (
+            f"[yellow]warn:[/yellow] {d} is the {d.name} skill, retired in content 3.0.0 "
+            f"(use {RETIRED_SKILL_REPLACEMENT[d.name]}); rf-agentskills did not install this copy, "
+            f"so it was kept. Remove it with: rm -r \"{d}\""
+        )
+    return (
+        f"[yellow]warn:[/yellow] {d} is a pre-2.0 rf-agentskills skill directory "
+        f"(renamed to rf-<topic> in content 2.0.0) that rf-agentskills did not install; "
+        f"remove it with: rm -r \"{d}\""
+    )
+
+
+def cmd_doctor(_args: argparse.Namespace) -> int:
+    rc = 0
+    table = Table(title="robotframework-plugins doctor")
+    table.add_column("check")
+    table.add_column("status")
+    table.add_column("details")
+
+    # 1. Bundled assets present.
+    try:
+        with _assets.asset_root_path() as root:
+            n = sum(1 for _ in _assets.asset_files())
+            table.add_row(
+                "bundled assets",
+                "[green]ok[/green]" if n > 0 else "[red]MISSING[/red]",
+                f"root={root} files={n}",
+            )
+            if n == 0:
+                rc = 1
+    except Exception as exc:
+        table.add_row("bundled assets", "[red]ERROR[/red]", str(exc))
+        rc = 1
+
+    # 2. Manifest readable.
+    try:
+        manifest = _m.Manifest.load()
+        table.add_row(
+            "manifest",
+            "[green]ok[/green]",
+            f"path={_m.default_manifest_path()} entries={len(manifest.installations)}",
+        )
+    except Exception as exc:
+        table.add_row("manifest", "[red]ERROR[/red]", str(exc))
+        rc = 1
+
+    # 3. Per-adapter detection.
+    for cls in ALL_ADAPTERS:
+        adapter = cls()
+        ok = adapter.detect()
+        table.add_row(
+            f"adapter:{adapter.name}",
+            "[green]detected[/green]" if ok else "[dim]not detected[/dim]",
+            adapter.pretty,
+        )
+
+    # 4. Legacy skill directories from pre-2.0 bundles that we do not own.
+    legacy = find_legacy_skill_dirs()
+    table.add_row(
+        "legacy skill dirs",
+        "[yellow]warn[/yellow]" if legacy else "[green]ok[/green]",
+        f"{len(legacy)} unowned legacy or retired skill dir(s)" if legacy else "none found",
+    )
+
+    console.print(table)
+    for d in legacy:
+        err_console.print(_legacy_dir_warning(d))
+    return rc
+
+
+def cmd_version(_args: argparse.Namespace) -> int:
+    """Print the installer version and the version of each bundled plugin.
+
+    The two are versioned independently on purpose (see RELEASING.md): the
+    installer's ``__version__`` tracks adapter / CLI / manifest changes; each
+    plugin has its own version in its ``plugin.json``. Both are printed so
+    support tickets and triage can be precise without requiring alignment.
+    """
+    console.print(f"robotframework-plugins {__version__}")
+    plugins = [p for p in _assets.bundled_catalog() if p.get("version")]
+    if plugins:
+        console.print("bundled plugins: " + ", ".join(f"{p['name']} {p['version']}" for p in plugins), soft_wrap=True)
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# plan execution / rendering
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# stale-file pruning on re-install
+# ---------------------------------------------------------------------------
+
+
+#: MCP server that installers before content 2.0.0 registered for every agent.
+#: The bundle no longer ships it; re-installing removes its config entries
+#: and files (see :func:`_retire_legacy_mcp` and :func:`_is_retired_file`).
+RETIRED_MCP_SERVER = "rf-tools"
+#: Agents whose only support files (``rf-agentskills-files/``) served that
+#: server; for the others the folder still holds hook scripts (OpenCode's
+#: hook plugin runs them since marketplace-distribution).
+_SUPPORT_FOR_MCP_ONLY = frozenset({"claude-desktop", "goose"})
+
+
+def _is_retired_file(entry: _m.FileEntry, agent: str) -> bool:
+    """A file an older install wrote only for the retired MCP server."""
+    parts = Path(entry.path).parts
+    if _m.SUPPORT_DIR_NAME not in parts:
+        return False  # only rf-agentskills ever shipped the rf-tools server
+    rel = parts[parts.index(_m.SUPPORT_DIR_NAME) + 1:]
+    return agent in _SUPPORT_FOR_MCP_ONLY or (bool(rel) and rel[0] == "servers")
+
+
+def _is_retired_merge(merge: _m.ConfigMerge) -> bool:
+    return RETIRED_MCP_SERVER in merge.added_keys or RETIRED_MCP_SERVER in merge.key_path
+
+
+def _retire_legacy_mcp(merges: Sequence[_m.ConfigMerge], *, dry_run: bool = False) -> tuple[
+    list[_m.ConfigMerge], list[str]
+]:
+    """Remove the ``rf-tools`` entries older installs merged into agent configs.
+
+    Returns the merges still tracked (other keys of a partly retired merge
+    stay recorded) and the config files that were cleaned.
+    """
+    from . import transforms as _x
+
+    kept: list[_m.ConfigMerge] = []
+    cleaned: list[str] = []
+    for merge in merges:
+        if not _is_retired_merge(merge):
+            kept.append(merge)
+            continue
+        path = Path(merge.path)
+        if path.is_file() and not dry_run:
+            try:
+                if merge.kind == "toml_table":
+                    _x.remove_toml_table(path, list(merge.key_path))
+                elif merge.kind == "yaml_block":
+                    _x.remove_yaml_keys(
+                        path, [RETIRED_MCP_SERVER],
+                        parent_key=merge.key_path[0] if merge.key_path else None,
+                    )
+                elif path.name == "mcp.json" and path.parent.name == ".vscode":
+                    # Copilot wrote VS Code's {"servers": {...}} shape.
+                    _x.remove_json_keys_at_path(path, ["servers"], [RETIRED_MCP_SERVER])
+                elif merge.key_path:
+                    _x.remove_json_keys_at_path(
+                        path, list(merge.key_path), [RETIRED_MCP_SERVER]
+                    )
+                else:
+                    _x.remove_json_keys(path, [RETIRED_MCP_SERVER])
+            except Exception as exc:  # pragma: no cover - defensive
+                err_console.print(f"[yellow]warn:[/yellow] remove {RETIRED_MCP_SERVER} from {path}: {exc}")
+                kept.append(merge)
+                continue
+        if path.is_file():
+            cleaned.append(str(path))
+        rest = [k for k in merge.added_keys if k != RETIRED_MCP_SERVER]
+        if rest and merge.kind != "toml_table":
+            kept.append(_m.ConfigMerge(
+                path=merge.path, added_keys=rest, kind=merge.kind,
+                key_path=list(merge.key_path), marker=merge.marker,
+            ))
+    return kept, cleaned
+
+
+def _partition_previous(
+    previous: _m.Installation | None,
+    plan: InstallPlan,
+    opts: InstallOptions,
+) -> tuple[list[_m.FileEntry], list[_m.FileEntry]]:
+    """Split the previous record's files into (stale, carried).
+
+    * A previous file that is a target of the new plan is neither: it is
+      re-written and re-recorded.
+    * **stale** — not in the new plan and its category is being installed
+      now (a category in ``--what``, or one the new plan writes, e.g. the
+      shared ``support`` files). The bundle no longer ships it.
+    * **carried** — its category is not part of this install (e.g. agents
+      during ``--what skills``). It stays on disk and stays tracked.
+    """
+    if previous is None:
+        return [], []
+    new_paths = {str(t.dst) for t in plan.targets}
+    in_scope = set(opts.what) | {_m.category_for_path(t.dst) for t in plan.targets}
+    stale: list[_m.FileEntry] = []
+    carried: list[_m.FileEntry] = []
+    for entry in previous.files:
+        if entry.path in new_paths:
+            continue
+        if _m.entry_category(entry) in in_scope or _is_retired_file(entry, previous.agent):
+            stale.append(entry)
+        else:
+            carried.append(entry)
+    return stale, carried
+
+
+def _prune_stop(path: Path, install_root: Path | None) -> Path:
+    """Directory at which empty-parent pruning stops (exclusive).
+
+    The install root when ``path`` lives under it; otherwise the nearest
+    ``skills`` ancestor (Codex / Goose skills live outside the root, under
+    ``~/.agents/skills``); otherwise the file's own directory (no pruning).
+    """
+    if install_root is not None:
+        try:
+            path.relative_to(install_root)
+            return install_root
+        except ValueError:
+            pass
+    for parent in path.parents:
+        if parent.name == "skills":
+            return parent
+    return path.parent
+
+
+def _remove_stale(
+    stale: Sequence[_m.FileEntry],
+    install_root: Path | None,
+) -> tuple[list[str], list[str]]:
+    """Delete hash-matching stale files; return (removed, kept_user_modified)."""
+    removed: list[str] = []
+    kept: list[str] = []
+    for entry in stale:
+        p = Path(entry.path)
+        if not p.is_file():
+            continue
+        if _m.is_user_modified(entry):
+            kept.append(str(p))
+            continue
+        try:
+            p.unlink()
+            _m.prune_empty_parents(p, stop_at=_prune_stop(p, install_root))
+            removed.append(str(p))
+        except OSError as exc:
+            err_console.print(f"[yellow]warn:[/yellow] {p}: {exc}")
+    return removed, kept
+
+
+def _removed_skills(removed: Sequence[str], written: Sequence[_m.FileEntry]) -> list[str]:
+    """Skill folders this run removed entirely (none of their files was written),
+    e.g. after narrowing with ``--plugins``."""
+    def skill_of(path: str) -> str | None:
+        parts = Path(path).parts
+        if _m.support_dir_index(parts) is not None or "skills" not in parts[:-1]:
+            return None
+        i = len(parts) - 1 - parts[::-1].index("skills")
+        return parts[i + 1] if i + 1 < len(parts) - 1 else None
+    kept = {skill_of(e.path) for e in written}
+    return sorted({s for s in map(skill_of, removed) if s and s not in kept})
+
+
+def _dropped_plugins(stale: Sequence[_m.FileEntry], written: Sequence[_m.FileEntry]) -> list[str]:
+    """Plugins of the previous install that this run installs nothing of, each
+    marked when the catalogue no longer has it (plugin-lifecycle, "Upgrade
+    cleans up a removed plugin")."""
+    try:
+        known = {p["name"] for p in _assets.bundled_catalog()}
+    except (OSError, ValueError):  # pragma: no cover - defensive
+        known = set()
+    kept = {e.plugin for e in written if e.plugin}
+    names = sorted({e.plugin for e in stale if e.plugin and e.plugin not in kept})
+    return [n if n in known else f"{n} (no longer in the catalogue)" for n in names]
+
+
+def _install_root(adapter: Adapter, opts: InstallOptions) -> Path | None:
+    getter = getattr(adapter, "install_root", None)
+    if getter is None:
+        return None
+    try:
+        return Path(getter(opts))
+    except Exception:  # pragma: no cover - defensive
+        return None
+
+
+def _render_plan_dry_run(
+    adapter: Adapter,
+    plan: InstallPlan,
+    opts: InstallOptions | None = None,
+    manifest_path: Path | None = None,
+) -> None:
+    table = Table(title=f"[dry-run] {adapter.pretty} ({adapter.name})")
+    table.add_column("op", style="cyan")
+    table.add_column("destination")
+    table.add_column("details")
+
+    for tgt in plan.targets:
+        table.add_row(
+            "write",
+            str(tgt.dst),
+            f"{len(tgt.payload)} bytes"
+            + (f", transform={tgt.transform_name}" if tgt.transform_name else "")
+            + (", +x" if tgt.executable else ""),
+        )
+    for merge in plan.merges:
+        table.add_row("merge", str(merge.path), merge.description)
+    if opts is not None and manifest_path is not None:
+        previous = _m.Manifest.load(manifest_path).for_agent(adapter.name, opts.scope)
+        stale, _carried = _partition_previous(previous, plan, opts)
+        for merge in (previous.config_merges if previous else []):
+            if _is_retired_merge(merge):
+                table.add_row(
+                    "unmerge", merge.path,
+                    f"remove the retired {RETIRED_MCP_SERVER} MCP server entry",
+                )
+        for entry in stale:
+            p = Path(entry.path)
+            if not p.is_file():
+                continue
+            if _m.is_user_modified(entry):
+                table.add_row("keep", str(p), "no longer shipped; user-modified, kept and untracked")
+            else:
+                table.add_row("remove", str(p), "no longer shipped by this bundle")
+    for note in plan.notes:
+        table.add_row("note", "—", note)
+    if not plan.targets and not plan.merges and not plan.notes:
+        table.add_row("—", "—", "no-op (adapter produced an empty plan)")
+    console.print(table)
+
+
+def _execute_plan(
+    adapter: Adapter,
+    plan: InstallPlan,
+    opts: InstallOptions,
+    manifest_path: Path,
+) -> int:
+    """Write every target, perform every merge, update the manifest.
+
+    Returns 0 on success, non-zero if any target failed safety checks.
+    """
+    if not plan.targets and not plan.merges:
+        if plan.notes:
+            for note in plan.notes:
+                console.print(f"[dim]{adapter.name}:[/dim] {note}")
+        return 0
+
+    files_written: list[_m.FileEntry] = []
+    config_merges: list[_m.ConfigMerge] = []
+    rc = 0
+
+    # 1. Files.
+    for tgt in plan.targets:
+        if tgt.dst.is_file() and not opts.force:
+            # Conflict: file exists. Check whether it's already ours
+            # (manifest record matches hash) — if so, overwrite freely.
+            # Otherwise, warn and skip (force flag overrides).
+            existing_owned = _is_already_owned(tgt.dst, adapter.name, opts.scope, manifest_path)
+            if not existing_owned:
+                err_console.print(
+                    f"[yellow]warn:[/yellow] {tgt.dst} already exists (not "
+                    f"installed by us). Skipping. Use --force to overwrite."
+                )
+                rc = max(rc, 1)
+                continue
+
+        tgt.dst.parent.mkdir(parents=True, exist_ok=True)
+        # Atomic-ish write: tmp + replace.
+        tmp = tgt.dst.with_suffix(tgt.dst.suffix + ".rfagentskills.tmp")
+        tmp.write_bytes(tgt.payload)
+        os.replace(tmp, tgt.dst)
+        if tgt.executable and os.name != "nt":
+            os.chmod(tgt.dst, 0o755)
+        files_written.append(_m.file_entry_for(tgt.dst, transform=tgt.transform_name, plugin=tgt.plugin))
+
+    # 2. Config merges.
+    for merge in plan.merges:
+        try:
+            added_keys = merge.apply()
+            config_merges.append(_m.ConfigMerge(
+                path=str(merge.path),
+                added_keys=list(added_keys),
+                kind=merge.kind,
+                key_path=list(merge.key_path),
+                backup_path=None,
+                marker=merge.marker,
+            ))
+        except Exception as exc:
+            err_console.print(f"[red]error:[/red] {merge.path}: {exc}")
+            rc = max(rc, 2)
+
+    # 3. Stale files: remove what the previous install wrote but this
+    #    bundle no longer ships (same hash-based safety as uninstall).
+    manifest = _m.Manifest.load(manifest_path)
+    previous = manifest.for_agent(adapter.name, opts.scope)
+    stale, carried = _partition_previous(previous, plan, opts)
+    stale_removed, stale_kept = _remove_stale(stale, _install_root(adapter, opts))
+    # Config merges not re-performed this time (e.g. hooks/MCP during a
+    # `--what skills` re-install) stay tracked so uninstall can revert them.
+    redone = {(m.path, m.kind, tuple(m.key_path)) for m in config_merges}
+    carried_merges = [
+        m for m in (previous.config_merges if previous else [])
+        if (m.path, m.kind, tuple(m.key_path)) not in redone
+    ]
+    carried_merges, retired_configs = _retire_legacy_mcp(carried_merges)
+    if opts.mode == "plugin":
+        # The plugin brings its own hooks; hook entries of an earlier file
+        # install would point at the support files pruned as stale above.
+        for m in carried_merges:
+            if m.kind == "json_hooks":
+                _revert_merge(m)
+        carried_merges = [m for m in carried_merges if m.kind != "json_hooks"]
+
+    # 4. Manifest.
+    manifest.upsert(_m.Installation(
+        agent=adapter.name,
+        scope=opts.scope,
+        installed_at=_m.now_iso(),
+        bundle_version=__version__,
+        files=files_written + carried,
+        config_merges=config_merges + carried_merges,
+        notes=list(plan.notes),
+    ))
+    manifest.save(manifest_path)
+
+    # 5. Post-install nudges.
+    table = Table(title=f"installed {adapter.pretty}")
+    table.add_column("op", style="cyan")
+    table.add_column("destination")
+    table.add_row("files", f"{len(files_written)} written")
+    table.add_row("merges", f"{len(config_merges)} performed")
+    table.add_row("stale", f"{len(stale_removed)} removed (no longer shipped)")
+    gone = _removed_skills(stale_removed, files_written)
+    if gone:
+        table.add_row("removed", "skills " + ", ".join(gone))
+    dropped = _dropped_plugins(stale, files_written)
+    if dropped:
+        table.add_row("removed", "plugins " + ", ".join(dropped))
+    for path in retired_configs:
+        table.add_row("retired", f"{RETIRED_MCP_SERVER} MCP server removed from {path}")
+    console.print(table)
+    for path in stale_kept:
+        err_console.print(
+            f"[yellow]warn:[/yellow] {path} is no longer shipped but was "
+            f"modified by you — kept and no longer tracked."
+        )
+    notes = list(plan.notes) if opts.mode == "plugin" else adapter.post_install(opts)
+    for note in notes:
+        console.print(f"  [dim]→[/dim] {note}")
+    for d in find_legacy_skill_dirs():
+        if d.name in RETIRED_SKILL_DIRS:
+            err_console.print(_legacy_dir_warning(d))
+
+    return rc
+
+
+def _is_already_owned(path: Path, agent: str, scope: str, manifest_path: Path) -> bool:
+    """Check if ``path`` is recorded in our manifest for this (agent, scope)."""
+    manifest = _m.Manifest.load(manifest_path)
+    record = manifest.for_agent(agent, scope)
+    if record is None:
+        return False
+    target_str = str(path)
+    return any(entry.path == target_str for entry in record.files)
+
+
+# ---------------------------------------------------------------------------
+# Entrypoint
+# ---------------------------------------------------------------------------
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    handlers = {
+        "install": cmd_install,
+        "uninstall": cmd_uninstall,
+        "list": cmd_list,
+        "targets": cmd_targets,
+        "doctor": cmd_doctor,
+        "version": cmd_version,
+        "catalog": cmd_catalog,
+    }
+    return handlers[args.cmd](args)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(main())

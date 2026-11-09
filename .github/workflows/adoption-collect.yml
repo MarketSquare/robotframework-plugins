@@ -1,0 +1,62 @@
+# Collect public adoption signals (spec adoption-reporting, "Public adoption
+# signals are collected"; design D11).
+#
+# GitHub keeps traffic data for 14 days, so a weekly run stores each snapshot
+# on the `adoption-data` branch: traffic/<date>/{views,clones,referrers,paths}.json.
+# Snapshots overlap; scripts/adoption-report.py counts each day once.
+# The traffic API needs push access: the default token may be refused, in which
+# case set ADOPTION_TOKEN (fine-grained, this repository, Administration: read).
+name: Adoption data
+
+on:
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: adoption-collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Switch to the data branch
+        run: |
+          if git ls-remote --exit-code --heads origin adoption-data >/dev/null; then
+            git switch adoption-data
+          else
+            git switch --orphan adoption-data
+            git rm -rf --quiet . || true
+            printf '# Adoption data\n\nWeekly GitHub traffic snapshots (adoption-collect.yml). Not code.\n' > README.md
+          fi
+      - name: Fetch traffic
+        env:
+          GH_TOKEN: ${{ secrets.ADOPTION_TOKEN || github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          day=$(date -u +%F)
+          dir="traffic/$day"
+          mkdir -p "$dir"
+          gh api "repos/$REPO/traffic/views?per=day" > "$dir/views.json"
+          gh api "repos/$REPO/traffic/clones?per=day" > "$dir/clones.json"
+          gh api "repos/$REPO/traffic/popular/referrers" > "$dir/referrers.json"
+          gh api "repos/$REPO/traffic/popular/paths" > "$dir/paths.json"
+          echo "Stored $(jq '.views | length' "$dir/views.json") days of views and $(jq '.clones | length' "$dir/clones.json") of clones." >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md traffic
+          if git diff --cached --quiet; then
+            echo "No new data."
+            exit 0
+          fi
+          git commit -m "data: traffic snapshot $(date -u +%F)"
+          git push origin adoption-data

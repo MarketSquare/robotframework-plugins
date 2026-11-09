@@ -1,0 +1,25 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+name: rf-agentskills
+summary: All Robot Framework plugins in one install (rf-core, rf-web, rf-api, rf-mobile, rf-desktop), as one plugin.
+tier: verified
+status: active
+maintainers:
+  - github: manykarim
+    name: Many Kasiriha
+libraries: []
+bundle:
+  - rf-core
+  - rf-web
+  - rf-api
+  - rf-mobile
+  - rf-desktop
+robotframework: ">=7.0"
+agents:
+  - claude-code
+  - copilot-cli
+  - vscode-copilot
+  - codex
+  - cursor
+  - opencode
+  - goose
+  - claude-desktop

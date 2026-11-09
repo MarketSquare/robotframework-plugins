@@ -1,0 +1,32 @@
+# The last rf-agentskills release (spec repository-migration, "The old PyPI
+# package forwards to the new one"; launch task 10.3). It depends on
+# robotframework-plugins and forwards the rf-agentskills command to it.
+# Build it once, publish it, then delete this folder. No later release.
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rf-agentskills"
+version = "0.9.0"
+description = "Moved: this installer is now robotframework-plugins. This release forwards to it."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [{ name = "Many Kasiriha" }]
+dependencies = ["robotframework-plugins>=2026.11.0"]
+classifiers = [
+  "Development Status :: 7 - Inactive",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/MarketSquare/robotframework-plugins"
+"Moved to" = "https://pypi.org/project/robotframework-plugins/"
+
+[project.scripts]
+rf-agentskills = "rf_agentskills:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rf_agentskills"]

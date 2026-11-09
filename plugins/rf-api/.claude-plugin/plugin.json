@@ -1,0 +1,25 @@
+{
+  "name": "rf-api",
+  "version": "1.0.0",
+  "description": "RequestsLibrary and RESTinstance skills for Robot Framework API tests.",
+  "author": {
+    "name": "manykarim",
+    "email": "manykarim@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+  "repository": "https://github.com/MarketSquare/robotframework-plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "robotframework",
+    "testing",
+    "api-testing",
+    "requests",
+    "restinstance"
+  ],
+  "dependencies": [
+    {
+      "name": "rf-core",
+      "version": "^1.0"
+    }
+  ]
+}

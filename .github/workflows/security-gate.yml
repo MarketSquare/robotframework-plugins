@@ -1,0 +1,148 @@
+# Security PR gate (spec content-security-scanning; design D6).
+#
+# Runs on every PR, forks included, with read-only permissions and no secrets.
+# Nothing from the PR is executed: the scanners read the plugin files as data.
+# Findings go to SARIF artifacts and the job summary; the gate fails on a new
+# HIGH or CRITICAL finding that is not in security/baselines/<plugin>.yaml, or
+# on an expired baseline entry. The nightly run scans every plugin, so expiry
+# dates and new scanner rules are noticed without a PR.
+name: Security gate
+
+on:
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  house-rules:
+    name: House content rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Check shipped content
+        run: python3 scripts/check_content_rules.py
+
+  select:
+    name: Choose plugins to scan
+    runs-on: ubuntu-latest
+    outputs:
+      plugins: ${{ steps.select.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - id: select
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || '' }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            python3 scripts/select-plugin-tests.py --security --base "origin/$BASE_REF" --github-output "$GITHUB_OUTPUT"
+          else
+            python3 scripts/select-plugin-tests.py --security --github-output "$GITHUB_OUTPUT"
+          fi
+
+  scan:
+    name: Scan ${{ matrix.plugin }}
+    needs: select
+    if: needs.select.outputs.plugins != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJSON(needs.select.outputs.plugins) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - run: pip install pyyaml
+      - name: Install the pinned scanners
+        run: scripts/install-scanners.sh "$RUNNER_TEMP/scanners"
+      - name: Scan and compare with the baseline
+        env:
+          SCANNERS: ${{ runner.temp }}/scanners/bin
+          PLUGIN: ${{ matrix.plugin }}
+        run: |
+          status=0
+          scripts/security-scan.sh "$PLUGIN" "$RUNNER_TEMP/scan" || status=$?
+          cat "$RUNNER_TEMP/scan/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+      - name: Upload SARIF
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sarif-${{ matrix.plugin }}
+          path: |
+            ${{ runner.temp }}/scan/*.sarif
+            ${{ runner.temp }}/scan/summary.md
+          if-no-files-found: warn
+
+  gitleaks:
+    name: Secrets in the PR diff
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - name: Install the pinned scanners
+        run: scripts/install-scanners.sh "$RUNNER_TEMP/scanners"
+      - name: Scan the commits of this PR
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          status=0
+          "$RUNNER_TEMP/scanners/bin/gitleaks" git . --no-banner --redact \
+            --log-opts "origin/$BASE_REF..HEAD" \
+            --report-format sarif --report-path "$RUNNER_TEMP/gitleaks.sarif" || status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "### Gitleaks found a secret in this PR" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $status
+      - name: Upload SARIF
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sarif-gitleaks
+          path: ${{ runner.temp }}/gitleaks.sarif
+          if-no-files-found: warn
+
+  # The one check branch protection requires: the scan jobs are named after
+  # the plugins a PR changes, so their names differ from PR to PR.
+  result:
+    name: Security gate result
+    if: always()
+    needs: [house-rules, select, scan, gitleaks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any gate job failed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) echo "::error::a security gate job ended with '$r'"; exit 1 ;; esac
+          done

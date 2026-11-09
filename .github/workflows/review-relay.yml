@@ -1,0 +1,29 @@
+# Relays review events to the required-reviews check (design D9).
+#
+# A review on a fork PR runs without secrets, and the check needs a token that
+# can read team membership. This workflow only records the PR number; the
+# Required reviews workflow then runs on workflow_run, in this repository's
+# context, and re-evaluates the PR. Nothing here reads PR content.
+name: Review relay
+
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions: {}
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record the PR number
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir -p relay
+          echo "$PR_NUMBER" > relay/pr-number
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: review-relay
+          path: relay/pr-number
+          retention-days: 1

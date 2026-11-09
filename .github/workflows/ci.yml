@@ -1,0 +1,392 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  select-plugins:
+    name: Select plugin tests
+    # The shared tests in tests/ always run; a plugin's own tests run when the
+    # change touches that plugin (or a file it links to) or anything outside
+    # plugins/. Pushes and release calls run every plugin.
+    runs-on: ubuntu-latest
+    outputs:
+      plugins: ${{ steps.select.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: select
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || '' }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            python3 scripts/select-plugin-tests.py --base "origin/$BASE_REF" --github-output "$GITHUB_OUTPUT"
+          else
+            python3 scripts/select-plugin-tests.py --github-output "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: select-plugins
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        # tests/installer/ imports robotframework_plugins; install it from the
+        # in-repo package so the test collector can resolve it. The
+        # editable install also runs the hatchling build hook that
+        # bundles every active plugin under plugins/ into the package's _assets/
+        # tree — that's what the runtime asset-loader reads.
+        run: |
+          # pytest-asyncio is required by `asyncio_mode = "auto"` in
+          # pyproject; pytest 9+ treats the unknown config option as a
+          # fatal error otherwise. robotcode[all] (the documented
+          # prerequisite; it also brings Robocop) lets the validation-hook
+          # tests run for real here instead of skipping.
+          pip install robotframework pytest pytest-asyncio pyyaml "jsonschema>=4.18" "robotcode[all]>=2.8"
+          pip install -e ./installer
+        shell: bash
+      - name: Install PlatynUI (optional — rf-platynui keyword-fidelity test)
+        # PlatynUI new_core requires Python 3.12+; the fidelity test skips when
+        # it's absent, so this install is fail-soft (no-op on the 3.10 matrix
+        # leg or if the pre-release is unavailable). Pinned to the verified
+        # pre-release; prebuilt wheel, no Rust.
+        run: pip install "robotframework-PlatynUI==0.12.0.dev330" || echo "PlatynUI unavailable on this interpreter — rf-platynui fidelity test will skip"
+        shell: bash
+      - name: Install Browser Library (optional — rf-browser example and keyword checks)
+        # Lets the rf-browser example dry runs and decision-table keyword checks
+        # run for real; skip-if-absent otherwise. No `rfbrowser init` needed —
+        # libdoc only introspects the Python library.
+        run: pip install robotframework-browser || echo "Browser unavailable — those libdoc tests will skip"
+        shell: bash
+      - name: Install other library-skill libraries (optional — example dry runs)
+        # tests/test_library_skill_structure.py dry-runs every example in
+        # plugins/*/skills/rf-{selenium,appium,requests,restinstance}/assets/examples and
+        # checks decision-table keywords against libdoc. Fail-soft: a library
+        # that cannot be installed (RESTinstance needs Python >= 3.11) makes its
+        # cases skip, never pass.
+        run: |
+          pip install robotframework-seleniumlibrary || echo "SeleniumLibrary unavailable — its example dry runs will skip"
+          pip install robotframework-appiumlibrary || echo "AppiumLibrary unavailable — its example dry runs will skip"
+          pip install robotframework-requests || echo "RequestsLibrary unavailable — its example dry runs will skip"
+          pip install RESTinstance || echo "RESTinstance unavailable on this interpreter — its example dry runs will skip"
+        shell: bash
+      - name: Install Robocop 9.x and PyYAML (optional — rf-language rule-ID fidelity and YAML example tests)
+        # plugins/rf-core/tests/test_language_skill.py checks every Robocop rule ID the rf-language
+        # skill cites against Robocop 9.x (the version rf-setup recommends) and
+        # runs the YAML variable-file example. Fail-soft: those cases skip.
+        run: |
+          pip install "robotframework-robocop>=9.1,<10" || echo "Robocop 9 unavailable — rf-language robocop tests will skip"
+          pip install pyyaml || echo "PyYAML unavailable — the rf-language YAML example test will skip"
+        shell: bash
+      - name: Run rf-python-library examples and check the example libraries
+        # plugins/rf-core/skills/rf-python-library/assets/examples must really run (not only
+        # dry-run), with the example listener, and the bundled checker must
+        # report no error or warning finding for the three example libraries.
+        # plugins/rf-core/tests/test_python_library_skill.py and test_check_library.py
+        # (run below) cover the same plus every code block in the skill.
+        run: |
+          export PYTHONDONTWRITEBYTECODE=1
+          out="$RUNNER_TEMP/pylib"
+          python -m robot --pythonpath plugins/rf-core/skills/rf-python-library/assets/examples --listener ResultListener --outputdir "$out" --console dotted plugins/rf-core/skills/rf-python-library/assets/examples
+          cd plugins/rf-core/skills/rf-python-library/assets/examples
+          python ../../scripts/check_library.py ExampleLibrary.py converters.py ResultListener.py --json-out "$out/check_library.json"
+          python -c "import json, sys; s = json.load(open(sys.argv[1]))['summary']; print(s); sys.exit(1 if s['error'] or s['warning'] else 0)" "$out/check_library.json"
+        shell: bash
+      - name: Run tests
+        # tests/eval/ is the rf-skill-eval harness suite — an INTERNAL
+        # workspace package (root pyproject; "Private :: Do Not Upload")
+        # whose live-agent tests live under tests/eval/ and bring in
+        # the full eval dep set (pydantic, typer, jinja2, sqlite,
+        # parquet…). That suite is exercised end-to-end by the
+        # skill-evaluation workflow against real Claude Code; locally
+        # run with `uv sync --all-extras && uv run pytest tests/eval/`.
+        # This CI job stays focused on the plugin's own Python scripts
+        # plus the public rf-agentskills installer (installed above).
+        # Shared tests first, then each selected plugin's tests in its own run
+        # (plugins may reuse test module names).
+        env:
+          PLUGINS: ${{ needs.select-plugins.outputs.plugins }}
+        run: |
+          status=0
+          python -m pytest tests/ --ignore=tests/eval -v --tb=short || status=1
+          for plugin in $(python -c "import json, os; print(' '.join(json.loads(os.environ['PLUGINS'])))"); do
+            echo "::group::plugins/$plugin/tests"
+            python -m pytest "plugins/$plugin/tests" -v --tb=short || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+        shell: bash
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - name: Lint plugin skill scripts
+        run: ruff check plugins/*/skills/*/scripts/*.py --select E,F,W --ignore E501
+      - name: Lint skill zip builder
+        run: ruff check scripts/build-skill-zips.py scripts/export-skills.py scripts/select-plugin-tests.py --select E,F,W --ignore E501
+      - name: Lint repo QA scripts
+        run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py scripts/check-plugin-references.py --select E,F,W --ignore E501
+
+  template-plugin:
+    name: Template plugin passes the PR checks
+    # programme-documentation, "Template plugin passes CI": copies
+    # templates/plugin/ to plugins/example/ in a scratch checkout and runs the
+    # PR checks and the tests CI would select for it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install robotframework pytest pytest-asyncio pyyaml "jsonschema>=4.18" "robotcode[all]>=2.8"
+          pip install -e ./installer
+      - name: Copy the template and run the checks
+        run: scripts/check-template.sh "$RUNNER_TEMP/template-check"
+
+  validate-plugin:
+    name: Validate plugin structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The PR base is needed to check that marketplace renames are append-only.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # pytest-asyncio satisfies `asyncio_mode = "auto"` in pyproject
+      # (pytest 9+ errors on the unknown config option without it).
+      - run: pip install pytest pytest-asyncio pyyaml "jsonschema>=4.18"
+      - name: Validate the plugin catalogue
+        # Also: unique skill, subagent and hook install names across plugins,
+        # symlinks inside the repository, and (in PRs) append-only renames.
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || '' }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            python scripts/build-catalog.py --check --base "origin/$BASE_REF"
+          else
+            python scripts/build-catalog.py --check
+          fi
+      - name: Docs voice
+        # Banned corporate phrases and at most one exclamation mark per
+        # document (programme-documentation; the rest is a review item).
+        run: python scripts/check-docs-voice.py
+      - name: Ownership and tier evidence
+        # CODEOWNERS matches catalog.yaml maintainers; verified plugins have
+        # their evidence or a dated grace entry (.github/governance.yaml).
+        run: python scripts/check-governance.py
+      - name: Validate manifests and SKILL.md frontmatter
+        # Includes the marketplace/plugin manifest consistency checks.
+        run: python -m pytest tests/test_marketplace_validation.py -v
+      - name: Per-agent variants match the generator
+        run: python scripts/build-agent-variants.py --check
+      - name: Validate the skills of every plugin
+        run: python scripts/validate-skills.py --channel all
+
+  validate-robot-syntax:
+    name: Validate .robot examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install robotframework
+      - name: Parse all .robot files
+        run: |
+          python3 -c "
+          import os, sys
+          from robot.api import get_model
+          errors, count = [], 0
+          for root, dirs, files in os.walk('plugins'):
+              for f in files:
+                  if f.endswith('.robot'):
+                      path = os.path.join(root, f)
+                      count += 1
+                      try:
+                          get_model(path)
+                      except Exception as e:
+                          errors.append(f'{path}: {e}')
+          if errors:
+              for e in errors: print(f'ERROR: {e}', file=sys.stderr)
+              sys.exit(1)
+          print(f'All {count} .robot files valid')
+          "
+
+  check-skill-keywords:
+    name: Check library-skill keywords
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Robot Framework and the skills' target libraries
+        # libdoc only introspects the Python libraries: no `rfbrowser init`,
+        # browser, WebDriver or Appium server is needed.
+        run: |
+          pip install robotframework robotframework-browser robotframework-seleniumlibrary \
+            robotframework-appiumlibrary robotframework-requests RESTinstance \
+            "robotframework-PlatynUI==0.12.0.dev330"
+      - name: Resolve every keyword call against libdoc
+        # --require-all: a skill whose library failed to import fails the job
+        # instead of being skipped silently.
+        run: python scripts/check-skill-keywords.py --require-all
+
+  check-drift:
+    name: Check generated variants and plugin layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Variants, skill names, symlinks and script command form
+        run: bash scripts/check-drift.sh
+      - name: Cross-plugin skill references name their plugin
+        run: python3 scripts/check-plugin-references.py
+
+  validate-skills:
+    name: Validate SKILL.md frontmatter (agentskills.io)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Stdlib-only: name == dir, charset/length, description <= 1024,
+      # compatibility <= 500, no tags, allowed keys, license, metadata,
+      # metadata.version == the plugin.json version.
+      - name: Validate every plugin
+        run: python scripts/validate-skills.py --channel all
+      # Non-blocking cross-check against the reference implementation, so we
+      # notice if our reading of the spec diverges from skills-ref.
+      - name: Cross-check with skills-ref (non-blocking)
+        continue-on-error: true
+        run: |
+          pip install skills-ref
+          for d in plugins/*/skills/rf-*/; do
+            agentskills validate "$d"
+          done
+
+  build-claude-plugin:
+    name: Build Claude Code plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate plugin
+        run: |
+          python3 -c "
+          import json, os, sys
+          import glob
+          # Every plugin has a plugin.json; every skill folder a SKILL.md
+          for pj_path in sorted(glob.glob('plugins/*/.claude-plugin/plugin.json')):
+              with open(pj_path) as f:
+                  pj = json.load(f)
+              print(f'Plugin: {pj[\"name\"]} v{pj.get(\"version\",\"?\")}')
+          skills = sorted(d for d in glob.glob('plugins/*/skills/*') if os.path.isdir(d))
+          for s in skills:
+              assert os.path.exists(f'{s}/SKILL.md'), f'Missing SKILL.md in {s}'
+          print(f'Skills: {len(skills)} validated')
+          # Check scripts
+          scripts = glob.glob('plugins/*/skills/*/scripts/*.py')
+          assert scripts, 'no per-skill scripts found'
+          assert not glob.glob('plugins/*/scripts/*.py'), 'flat plugin scripts/*.py must not exist'
+          print(f'Scripts: {len(scripts)} found (per skill)')
+          # Check agents
+          agents = glob.glob('plugins/*/agents/*.md')
+          print(f'Agents: {len(agents)} found')
+          # The rf-tools MCP server was retired (content 2.0.0)
+          assert not glob.glob('plugins/*/.mcp.json'), 'plugins must not ship an MCP config'
+          assert not glob.glob('plugins/*/servers'), 'plugins must not ship servers/'
+          print('MCP server: none (retired)')
+          "
+      - name: Package Claude plugin
+        run: |
+          cd plugins
+          excludes=()
+          for d in */; do excludes+=(--exclude="${d}tests" --exclude="${d}evals"); done
+          tar -czf ../rf-agentskills-claude-plugin.tar.gz "${excludes[@]}" */
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-plugin
+          path: rf-agentskills-claude-plugin.tar.gz
+
+  build-portable-skills:
+    name: Build portable skills packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export standalone skills from the plugin
+        # Writes every plugin's skills to skills/ on the runner only; the repository has no root copy.
+        run: python3 scripts/export-skills.py all skills
+      - name: Package standalone skills (for any agent)
+        run: |
+          tar -czf robotframework-skills-standalone.tar.gz \
+            --transform='s|^skills/||' \
+            skills/
+      - name: Package Codex skills
+        run: |
+          mkdir -p .codex/skills
+          for d in skills/rf-*/; do
+            name=$(basename "$d")
+            ln -sf "../../$d" ".codex/skills/$name"
+          done
+          tar -chzf robotframework-skills-codex.tar.gz .codex/skills/
+      - name: Package Copilot skills
+        run: |
+          mkdir -p .github/skills
+          for d in skills/rf-*/; do
+            name=$(basename "$d")
+            ln -sf "../../$d" ".github/skills/$name"
+          done
+          tar -chzf robotframework-skills-copilot.tar.gz .github/skills/
+      - name: Package Claude Desktop / claude.ai skill uploads
+        run: python scripts/build-skill-zips.py --out skill-zips
+      - name: Upload standalone skills
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-skills
+          path: robotframework-skills-standalone.tar.gz
+      - name: Upload Claude Desktop skill zips
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-desktop-skill-zips
+          path: skill-zips/*.zip
+      - name: Upload Codex skills
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-skills
+          path: robotframework-skills-codex.tar.gz
+      - name: Upload Copilot skills
+        uses: actions/upload-artifact@v4
+        with:
+          name: copilot-skills
+          path: robotframework-skills-copilot.tar.gz

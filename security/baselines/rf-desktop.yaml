@@ -1,0 +1,7 @@
+# Reviewed security findings for rf-desktop (spec content-security-scanning,
+# "The gate fails on new findings only"). Only HIGH and CRITICAL findings need an
+# entry; scripts/compare-findings.py reports the rest without failing.
+# Each entry needs a reason, the reviewer (a member of the security reviewers
+# team) and an expiry at most 12 months away. Changes need security-team approval.
+plugin: rf-desktop
+entries: []

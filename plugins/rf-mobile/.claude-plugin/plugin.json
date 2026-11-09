@@ -1,0 +1,24 @@
+{
+  "name": "rf-mobile",
+  "version": "1.0.0",
+  "description": "AppiumLibrary skill for Robot Framework mobile tests on Android and iOS.",
+  "author": {
+    "name": "manykarim",
+    "email": "manykarim@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+  "repository": "https://github.com/MarketSquare/robotframework-plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "robotframework",
+    "testing",
+    "mobile-testing",
+    "appium"
+  ],
+  "dependencies": [
+    {
+      "name": "rf-core",
+      "version": "^1.0"
+    }
+  ]
+}

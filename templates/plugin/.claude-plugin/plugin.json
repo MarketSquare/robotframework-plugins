@@ -1,0 +1,21 @@
+{
+  "name": "example",
+  "version": "0.1.0",
+  "description": "One-line description of what the plugin helps an agent do.",
+  "author": {
+    "name": "your-github-handle"
+  },
+  "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+  "repository": "https://github.com/MarketSquare/robotframework-plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "robotframework",
+    "testing"
+  ],
+  "dependencies": [
+    {
+      "name": "rf-core",
+      "version": "^1.0"
+    }
+  ]
+}

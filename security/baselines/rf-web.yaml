@@ -1,0 +1,25 @@
+# Reviewed security findings for rf-web (spec content-security-scanning,
+# "The gate fails on new findings only"). Only HIGH and CRITICAL findings need an
+# entry; scripts/compare-findings.py reports the rest without failing.
+# Each entry needs a reason, the reviewer (a member of the security reviewers
+# team) and an expiry at most 12 months away. Changes need security-team approval.
+plugin: rf-web
+entries:
+- scanner: skillspector
+  rule: TM1
+  file: plugins/rf-web/skills/rf-selenium/references/troubleshooting.md
+  fingerprint: 7ed6d84b6f2c55a0
+  severity: HIGH
+  reason: 'False positive: documentation example, not a tool call: clearing Selenium Manager''s driver cache (rm
+    -rf ~/.cache/selenium).'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: TM1
+  file: plugins/rf-web/skills/rf-selenium/references/troubleshooting.md
+  fingerprint: 0b971c82b3b6d416
+  severity: HIGH
+  reason: 'False positive: documentation example, not a tool call: clearing Selenium Manager''s driver cache (rm
+    -rf ~/.cache/selenium).'
+  reviewed_by: manykarim
+  expires: '2027-11-08'

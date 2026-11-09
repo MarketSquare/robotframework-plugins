@@ -1,0 +1,220 @@
+# Reviewed security findings for rf-core (spec content-security-scanning,
+# "The gate fails on new findings only"). Only HIGH and CRITICAL findings need an
+# entry; scripts/compare-findings.py reports the rest without failing.
+# Each entry needs a reason, the reviewer (a member of the security reviewers
+# team) and an expiry at most 12 months away. Changes need security-team approval.
+plugin: rf-core
+entries:
+- scanner: skillspector
+  rule: RA1
+  file: plugins/rf-core/agents/rf-test-architect.md
+  fingerprint: 5943071c8ec4dd62
+  severity: HIGH
+  reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: MP3
+  file: plugins/rf-core/scripts/_pending_errors.mjs
+  fingerprint: 0d1b5f667a01e8bd
+  severity: HIGH
+  reason: 'False positive: the Stop hook adds and deletes keys in its own per-session pending-errors state, not
+    in agent memory.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/_python_env.mjs
+  fingerprint: d95be7e37de40006
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/_python_env.mjs
+  fingerprint: e5cb7dbaf6d80b36
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/_python_env.mjs
+  fingerprint: 8c772fadd353b690
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/_python_env.mjs
+  fingerprint: ca902a8865da9dd9
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/check_rf_environment.mjs
+  fingerprint: d95be7e37de40006
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/check_rf_environment.mjs
+  fingerprint: 3816914a9224eff7
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/check_rf_environment.mjs
+  fingerprint: c063870b0b825be3
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/report_pending_errors.mjs
+  fingerprint: d95be7e37de40006
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/report_pending_errors.mjs
+  fingerprint: 52fc9e65cc50c90a
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: MP3
+  file: plugins/rf-core/scripts/report_pending_errors.mjs
+  fingerprint: 0d1b5f667a01e8bd
+  severity: HIGH
+  reason: 'False positive: the Stop hook adds and deletes keys in its own per-session pending-errors state, not
+    in agent memory.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/validate_robot.mjs
+  fingerprint: 9855f8c51520d44f
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/validate_robot.mjs
+  fingerprint: 52fc9e65cc50c90a
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: DATA_EXFIL_ENV_DUMP
+  file: plugins/rf-core/scripts/validate_robot.mjs
+  fingerprint: a9d9166687e64954
+  severity: HIGH
+  reason: 'False positive: the hook passes its own environment to its own child process (node validate_robot.mjs)
+    with TOOL_INPUT cleared; nothing leaves the machine.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/validate_robot_project.mjs
+  fingerprint: d95be7e37de40006
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/scripts/validate_robot_project.mjs
+  fingerprint: 52fc9e65cc50c90a
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: E2
+  file: plugins/rf-core/skills/rf-python-library/scripts/check_library.py
+  fingerprint: e1d460a1f5b4b87d
+  severity: HIGH
+  reason: 'False positive: check_library.py copies os.environ to start its own worker subprocess with two extra
+    variables; nothing is sent anywhere.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: PIPELINE_TAINT_FLOW
+  file: plugins/rf-core/skills/rf-setup/references/ci.md
+  fingerprint: 1168cb2d90a6d9a1
+  severity: HIGH
+  reason: 'Documentation decision (design D8): rf-setup tells the user how to install uv with Astral''s official
+    install script; it is an instruction for a person, not code the plugin runs.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: PIPELINE_TAINT_FLOW
+  file: plugins/rf-core/skills/rf-setup/references/uv.md
+  fingerprint: 1168cb2d90a6d9a1
+  severity: HIGH
+  reason: 'Documentation decision (design D8): rf-setup tells the user how to install uv with Astral''s official
+    install script; it is an instruction for a person, not code the plugin runs.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: RA1
+  file: plugins/rf-core/variants/codex/agents/rf-test-architect.toml
+  fingerprint: 5943071c8ec4dd62
+  severity: HIGH
+  reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: RA1
+  file: plugins/rf-core/variants/opencode/agents/rf-test-architect.md
+  fingerprint: 5943071c8ec4dd62
+  severity: HIGH
+  reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/variants/opencode/plugins/rf-core.js
+  fingerprint: d95be7e37de40006
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: COMMAND_INJECTION_JS_CHILD_PROCESS
+  file: plugins/rf-core/variants/opencode/plugins/rf-core.js
+  fingerprint: 696f46d93c769d30
+  severity: CRITICAL
+  reason: 'Accepted: the hook starts fixed programs (node, the project''s Python, robotcode) with argument arrays
+    through spawnSync, never through a shell; the only inputs are file paths from the hook event.'
+  reviewed_by: manykarim
+  expires: '2027-11-08'

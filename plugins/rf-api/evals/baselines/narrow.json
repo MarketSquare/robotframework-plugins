@@ -1,0 +1,43 @@
+{
+  "claude_code_version": "2.1.316 (Claude Code)",
+  "entries": {
+    "narrow-requests-users-01|treatment": {
+      "arm": "treatment",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.013189,
+      "mean_duration_s": 77.76,
+      "mean_input_tokens": 361927.7,
+      "mean_output_tokens": 5459.9,
+      "mean_turns": 13.78,
+      "model": "claude-haiku-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 9,
+      "skill": "rf-requests",
+      "task_hash": "a649e0f83496832c1f42e1c1aee15005d24ecc595133d05d8fa28b1354754a4c",
+      "task_id": "narrow-requests-users-01"
+    },
+    "narrow-restinstance-schema-01|treatment": {
+      "arm": "treatment",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.01326,
+      "mean_duration_s": 83.55,
+      "mean_input_tokens": 391734.7,
+      "mean_output_tokens": 5101.4,
+      "mean_turns": 14.78,
+      "model": "claude-haiku-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 9,
+      "skill": "rf-restinstance",
+      "task_hash": "bdd4fdeaac254014d77f0d3177a71c9e57315df5bdca765c63cc512a8849df64",
+      "task_id": "narrow-restinstance-schema-01"
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "narrow"
+}

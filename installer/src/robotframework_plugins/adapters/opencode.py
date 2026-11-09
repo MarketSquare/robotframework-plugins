@@ -1,0 +1,170 @@
+"""Adapter for OpenCode (sst/opencode).
+
+Per opencode.ai/docs/skills/ (page updated 2026-05-07), OpenCode now
+loads SKILL.md natively via a built-in ``skill`` tool. Skill folders
+are auto-discovered from any of:
+
+* ``<project>/.opencode/skills/<name>/SKILL.md`` (project)
+* ``~/.config/opencode/skills/<name>/SKILL.md``  (user, XDG)
+* Plus cross-vendor: ``.claude/skills/`` and ``.agents/skills/``
+
+Layout produced:
+
+* ``<root>/skills/<name>/`` (+ subtree)   — verbatim SKILL.md copy
+* ``<root>/agents/<name>.md``             — the generated OpenCode subagent
+                                            variant (``mode: subagent``)
+* ``<root>/plugins/rf-core.js``          — generated JS plugin that runs the
+                                            shared hook scripts on OpenCode events
+* ``<root>/rf-core-files/scripts/``      — those hook scripts (the plugin
+                                            resolves them relative to itself)
+
+User scope: ``~/.config/opencode/``. Project scope: ``<project>/.opencode/``.
+Variants come from ``plugins/rf-core/variants/opencode/``
+(``scripts/build-agent-variants.py``).
+"""
+
+from __future__ import annotations
+
+import shutil
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable
+
+from .. import _assets
+from .. import transforms as _x
+from ._base import AdapterBase, InstallOptions, InstallPlan, InstallTarget, support_dir_name
+
+
+OPENCODE_JSON = "opencode.json"
+
+
+@dataclass
+class OpenCodeAdapter(AdapterBase):
+    name: str = "opencode"
+    pretty: str = "OpenCode"
+    user_root_subpath: tuple[str, ...] = (".config", "opencode")
+    project_root_subpath: tuple[str, ...] = (".opencode",)
+
+    # ------------------------------------------------------------------
+    # detect
+    # ------------------------------------------------------------------
+
+    def detect(self) -> bool:
+        if shutil.which("opencode") is not None:
+            return True
+        return (Path.home() / ".config" / "opencode").is_dir()
+
+    # ------------------------------------------------------------------
+    # plan
+    # ------------------------------------------------------------------
+
+    def plan(self, opts: InstallOptions) -> InstallPlan:
+        root = self.install_root(opts)
+        plugin_dst = root / support_dir_name(opts.plugin)
+        plugin_root_abs = _x.to_native_path_string(plugin_dst.resolve())
+
+        with _assets.asset_root_path(opts.plugin) as src_root:
+            targets = list(self._collect_targets(
+                src_root=src_root,
+                root=root,
+                plugin_dst=plugin_dst,
+                plugin_root_abs=plugin_root_abs,
+                what=opts.what,
+            ))
+
+        return InstallPlan(targets=tuple(targets))
+
+    def _collect_targets(
+        self,
+        *,
+        src_root: Path,
+        root: Path,
+        plugin_dst: Path,
+        plugin_root_abs: str,
+        what: frozenset[str],
+    ) -> Iterable[InstallTarget]:
+        variants = src_root / "variants" / "opencode"
+        # 1. Subagents → <root>/agents/<name>.md (generated OpenCode variants).
+        if "agents" in what:
+            for f in sorted((variants / "agents").glob("*.md")):
+                yield InstallTarget(
+                    dst=root / "agents" / f.name,
+                    payload=f.read_bytes(),
+                    transform_name="opencode_agent_variant",
+                )
+
+        # 2. Skills → <root>/skills/<name>/ (OpenCode reads SKILL.md
+        #    natively per opencode.ai/docs/skills/). Verbatim copy of
+        #    the full skill tree.
+        if "skills" in what:
+            skills_src = src_root / "skills"
+            if skills_src.is_dir():
+                for f in sorted(skills_src.rglob("*")):
+                    if not f.is_file():
+                        continue
+                    rel = f.relative_to(skills_src)
+                    yield InstallTarget(
+                        dst=root / "skills" / rel,
+                        payload=self.render_skill_dir(
+                            self._read_with_substitution(f, plugin_root_abs),
+                            f, root / "skills" / rel.parts[0],
+                        ),
+                        transform_name="plugin_root_substitution",
+                    )
+
+        # 3. Hooks → the generated JS plugin plus the hook scripts it runs.
+        if "hooks" in what:
+            yield from self._hook_targets(variants, src_root, root, plugin_dst)
+
+    @staticmethod
+    def _hook_targets(
+        variants: Path, src_root: Path, root: Path, plugin_dst: Path
+    ) -> Iterable[InstallTarget]:
+        plugin_js = variants / "plugins" / f"{plugin_dst.name.removesuffix('-files')}.js"
+        if not plugin_js.is_file():
+            return
+        yield InstallTarget(
+            dst=root / "plugins" / plugin_js.name,
+            payload=plugin_js.read_bytes(),
+            transform_name="opencode_plugin_variant",
+        )
+        for f in sorted((src_root / "scripts").glob("*")):
+            if f.is_file():
+                yield InstallTarget(
+                    dst=plugin_dst / "scripts" / f.name,
+                    payload=f.read_bytes(),
+                    transform_name="opencode_hook_script",
+                )
+        # validate_robot and check_rf_environment read the pinned interpreter.
+        yield InstallTarget(
+            dst=plugin_dst / "scripts" / "python_runtime.json",
+            payload=_x.python_runtime_config_bytes(),
+            transform_name="python_runtime_pin",
+        )
+
+    # ------------------------------------------------------------------
+    # post_install
+    # ------------------------------------------------------------------
+
+    def post_install(self, opts: InstallOptions) -> list[str]:
+        notes = ["OpenCode picks up skills and subagents on next session."]
+        if "hooks" in opts.what:
+            notes.append(
+                "Hooks run through plugins/rf-core.js (needs `node` on PATH): "
+                ".robot/.resource validation after edits, Robot Framework error hints "
+                "after shell commands, and an environment report in the first tool "
+                "output. The prompt-context and end-of-task reminder hooks have no "
+                "OpenCode equivalent."
+            )
+        return notes
+
+    # ------------------------------------------------------------------
+    # internals
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _read_with_substitution(src: Path, plugin_root_abs: str) -> bytes:
+        data = src.read_bytes()
+        if _x.is_substitution_candidate(src):
+            return _x.substitute_plugin_root_bytes(data, plugin_root_abs)
+        return data

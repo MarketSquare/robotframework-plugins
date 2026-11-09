@@ -1,0 +1,43 @@
+{
+  "claude_code_version": "2.1.316 (Claude Code)",
+  "entries": {
+    "narrow-browser-login-01|treatment": {
+      "arm": "treatment",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.012543,
+      "mean_duration_s": 126.01,
+      "mean_input_tokens": 435166.8,
+      "mean_output_tokens": 4077.7,
+      "mean_turns": 14.89,
+      "model": "claude-haiku-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 9,
+      "skill": "rf-browser",
+      "task_hash": "39ebb74ec3c1c1437cb481c44db5f8b675fccaf568b6efd283ef35a3fa05fa11",
+      "task_id": "narrow-browser-login-01"
+    },
+    "narrow-selenium-login-01|treatment": {
+      "arm": "treatment",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.012018,
+      "mean_duration_s": 49.44,
+      "mean_input_tokens": 395911.6,
+      "mean_output_tokens": 3815.6,
+      "mean_turns": 14.0,
+      "model": "claude-haiku-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 9,
+      "skill": "rf-selenium",
+      "task_hash": "be9eb9928105e45b54cccad2cc788513817dd077f238df9121b4c76dc54125fa",
+      "task_id": "narrow-selenium-login-01"
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "narrow"
+}

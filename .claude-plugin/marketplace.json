@@ -1,0 +1,160 @@
+{
+  "name": "robotframework-plugins",
+  "owner": {
+    "name": "Robot Framework Foundation"
+  },
+  "metadata": {
+    "description": "Robot Framework agent plugins from the Robot Framework Foundation: skills, subagents and hooks for coding agents."
+  },
+  "plugins": [
+    {
+      "name": "rf-agentskills",
+      "source": "./bundles/rf-agentskills",
+      "description": "All Robot Framework plugins in one install (rf-core, rf-web, rf-api, rf-mobile, rf-desktop), as one plugin.",
+      "author": {
+        "name": "manykarim",
+        "email": "manykarim@users.noreply.github.com"
+      },
+      "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+      "repository": "https://github.com/MarketSquare/robotframework-plugins",
+      "license": "Apache-2.0",
+      "keywords": [
+        "robotframework",
+        "testing",
+        "automation",
+        "web-testing",
+        "api-testing",
+        "mobile-testing",
+        "playwright",
+        "selenium",
+        "appium",
+        "requests",
+        "restinstance"
+      ],
+      "category": "testing",
+      "tags": [
+        "robot-framework",
+        "verified"
+      ]
+    },
+    {
+      "name": "rf-api",
+      "source": "./plugins/rf-api",
+      "description": "RequestsLibrary and RESTinstance skills for API tests.",
+      "author": {
+        "name": "manykarim",
+        "email": "manykarim@users.noreply.github.com"
+      },
+      "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+      "repository": "https://github.com/MarketSquare/robotframework-plugins",
+      "license": "Apache-2.0",
+      "keywords": [
+        "robotframework",
+        "testing",
+        "api-testing",
+        "requests",
+        "restinstance"
+      ],
+      "category": "testing",
+      "tags": [
+        "robot-framework",
+        "verified"
+      ]
+    },
+    {
+      "name": "rf-core",
+      "source": "./plugins/rf-core",
+      "description": "Robot Framework syntax, environment setup, Python keyword libraries, test design and debugging subagents, and the validation hooks.",
+      "author": {
+        "name": "manykarim",
+        "email": "manykarim@users.noreply.github.com"
+      },
+      "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+      "repository": "https://github.com/MarketSquare/robotframework-plugins",
+      "license": "Apache-2.0",
+      "keywords": [
+        "robotframework",
+        "testing",
+        "automation",
+        "robocop",
+        "robotcode"
+      ],
+      "category": "testing",
+      "tags": [
+        "robot-framework",
+        "verified"
+      ]
+    },
+    {
+      "name": "rf-desktop",
+      "source": "./plugins/rf-desktop",
+      "description": "PlatynUI skill for desktop UI tests.",
+      "author": {
+        "name": "manykarim",
+        "email": "manykarim@users.noreply.github.com"
+      },
+      "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+      "repository": "https://github.com/MarketSquare/robotframework-plugins",
+      "license": "Apache-2.0",
+      "keywords": [
+        "robotframework",
+        "testing",
+        "desktop-testing",
+        "platynui"
+      ],
+      "category": "testing",
+      "tags": [
+        "robot-framework",
+        "verified"
+      ]
+    },
+    {
+      "name": "rf-mobile",
+      "source": "./plugins/rf-mobile",
+      "description": "AppiumLibrary skill for Android and iOS tests.",
+      "author": {
+        "name": "manykarim",
+        "email": "manykarim@users.noreply.github.com"
+      },
+      "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+      "repository": "https://github.com/MarketSquare/robotframework-plugins",
+      "license": "Apache-2.0",
+      "keywords": [
+        "robotframework",
+        "testing",
+        "mobile-testing",
+        "appium"
+      ],
+      "category": "testing",
+      "tags": [
+        "robot-framework",
+        "verified"
+      ]
+    },
+    {
+      "name": "rf-web",
+      "source": "./plugins/rf-web",
+      "description": "Browser Library and SeleniumLibrary skills for web tests.",
+      "author": {
+        "name": "manykarim",
+        "email": "manykarim@users.noreply.github.com"
+      },
+      "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+      "repository": "https://github.com/MarketSquare/robotframework-plugins",
+      "license": "Apache-2.0",
+      "keywords": [
+        "robotframework",
+        "testing",
+        "web-testing",
+        "playwright",
+        "selenium"
+      ],
+      "category": "testing",
+      "tags": [
+        "robot-framework",
+        "verified"
+      ]
+    }
+  ],
+  "forceRemoveDeletedPlugins": true
+}

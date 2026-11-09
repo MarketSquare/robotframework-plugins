@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MarketSquare/robotframework-plugins/blob/main/schemas/catalog.schema.json",
+  "title": "robotframework-plugins programme manifest (plugins/<name>/catalog.yaml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "summary", "tier", "status", "maintainers", "libraries", "robotframework", "agents"],
+  "properties": {
+    "name": {
+      "description": "Equal to the plugin directory name and the name in .claude-plugin/plugin.json.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "summary": {
+      "description": "One sentence for the catalogue.",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 160
+    },
+    "tier": {"enum": ["verified", "community"]},
+    "status": {"enum": ["active", "deprecated", "removed"]},
+    "maintainers": {
+      "description": "Plugin maintainers. An active plugin needs at least one; scripts/build-catalog.py checks it (plugin-lifecycle, 'Ownership can be handed over').",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["github"],
+        "properties": {
+          "github": {"type": "string", "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$"},
+          "name": {"type": "string"}
+        }
+      }
+    },
+    "libraries": {
+      "description": "Robot Framework libraries the plugin covers. Empty for plugins about Robot Framework itself.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "package", "versions"],
+        "properties": {
+          "name": {"type": "string"},
+          "package": {"description": "PyPI package name, used to detect the library in a project.", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+          "versions": {"description": "Supported version range, PEP 440 specifier.", "type": "string", "minLength": 1}
+        }
+      }
+    },
+    "bundle": {
+      "description": "For a bundle: the plugins of this catalogue whose content it ships, as a copy generated into bundles/<name>/. A bundle has no content of its own.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+    },
+    "robotframework": {"description": "Supported Robot Framework range, PEP 440 specifier.", "type": "string", "minLength": 1},
+    "agents": {
+      "description": "Agents the plugin is tested with.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["claude-code", "copilot-cli", "vscode-copilot", "codex", "cursor", "opencode", "goose", "claude-desktop"]}
+    },
+    "replacement": {"description": "Plugin to use instead, or a sentence when there is none.", "type": "string", "minLength": 1},
+    "deprecated_since": {"description": "Date the plugin was deprecated.", "type": "string", "format": "date", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"enum": ["deprecated", "removed"]}}, "required": ["status"]},
+      "then": {"required": ["replacement", "deprecated_since"]}
+    }
+  ]
+}

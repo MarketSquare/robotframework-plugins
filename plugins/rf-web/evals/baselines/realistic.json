@@ -1,0 +1,43 @@
+{
+  "claude_code_version": "2.1.316 (Claude Code)",
+  "entries": {
+    "realistic-browser-login-01|baseline": {
+      "arm": "baseline",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.048378,
+      "mean_duration_s": 11.09,
+      "mean_input_tokens": 63920.8,
+      "mean_output_tokens": 669.7,
+      "mean_turns": 3.0,
+      "model": "claude-sonnet-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 6,
+      "skill": "rf-browser",
+      "task_hash": "1487dcd2cb2a712432868bb46d5006bd75580edfe803f09acfd5cc4e13ca40e5",
+      "task_id": "realistic-browser-login-01"
+    },
+    "realistic-browser-login-01|treatment": {
+      "arm": "treatment",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.084705,
+      "mean_duration_s": 25.55,
+      "mean_input_tokens": 128715.7,
+      "mean_output_tokens": 1113.7,
+      "mean_turns": 6.83,
+      "model": "claude-sonnet-5-5",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "runs": 6,
+      "skill": "rf-browser",
+      "task_hash": "1487dcd2cb2a712432868bb46d5006bd75580edfe803f09acfd5cc4e13ca40e5",
+      "task_id": "realistic-browser-login-01"
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "realistic"
+}

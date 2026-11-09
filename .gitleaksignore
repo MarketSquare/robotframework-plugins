@@ -1,0 +1,8 @@
+# Gitleaks findings reviewed as false positives (security reviewers approve
+# changes to this file). Format: <commit>:<file>:<rule>:<line>.
+#
+# A placeholder "sk-test-…" API key in a RESTinstance example, in two commits of
+# the history migrated from the rf-agentskills repository. The example file was
+# later removed.
+9c718fa8b0747d1fdc026534b7e8f4868a388962:plugins/rf-agentskills/skills/restinstance/assets/examples/oauth-flow.robot:generic-api-key:115
+a9cae36c560073c7c3d74ecf3c5c1208ff72bb89:skills/robotframework-restinstance-skill/assets/examples/oauth-flow.robot:generic-api-key:115
