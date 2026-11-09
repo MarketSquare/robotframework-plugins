@@ -92,7 +92,8 @@ def select(root: Path, changed: list[str] | None) -> list[str]:
             continue
         if parts[0] != "plugins":
             return plugins
-        if len(parts) > 1 and parts[1] in links:
+        if len(parts) > 1 and (root / "plugins" / parts[1]).is_dir():
+            # Even a plugin without tests of its own: its neighbours' tests run.
             selected.add(parts[1])
         path = "/".join(parts)
         for plugin, targets in links.items():

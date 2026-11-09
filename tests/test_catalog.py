@@ -68,10 +68,12 @@ def test_rf_agentskills_manifest() -> None:
 def test_every_skill_has_one_home() -> None:
     """plugin-split: the nine skills appear once each, in the plugins the table names."""
     homes = {md.parent.name: md.parent.parent.parent.name for md in REPO.glob("plugins/*/skills/*/SKILL.md")}
-    assert homes == {
+    split = {
         "rf-language": "rf-core", "rf-setup": "rf-core", "rf-python-library": "rf-core",
         "rf-browser": "rf-web", "rf-selenium": "rf-web", "rf-requests": "rf-api", "rf-restinstance": "rf-api",
         "rf-appium": "rf-mobile", "rf-platynui": "rf-desktop"}
+    # Other plugins (a community plugin, the template in CI) may add skills.
+    assert {k: homes.get(k) for k in split} == split
     assert {f.stem for f in REPO.glob("plugins/*/agents/*.md")} == {
         "rf-test-architect", "rf-debug-expert", "rf-migration-guide"}
     assert {f.parent.parent.name for f in REPO.glob("plugins/*/agents/*.md")} == {"rf-core"}
@@ -233,8 +235,10 @@ def test_one_marketplace_points_the_bundle_at_its_copy() -> None:
 def test_bundle_copies_match_the_plugins() -> None:
     copies = REPO / bc.BUNDLES_REL / "rf-agentskills"
     assert not list(copies.rglob("*")) or not [p for p in copies.rglob("*") if p.is_symlink()]
+    bundled = bc.load_plugins(REPO)
+    members = next(p for p in bundled if p.name == "rf-agentskills").bundled
     assert sorted(d.name for d in (copies / "skills").iterdir()) == sorted(
-        md.parent.name for md in REPO.glob("plugins/*/skills/*/SKILL.md"))
+        md.parent.name for m in members for md in (REPO / "plugins" / m).glob("skills/*/SKILL.md"))
     assert (copies / "hooks" / "hooks.json").read_bytes() == (REPO / "plugins/rf-core/hooks/hooks.json").read_bytes()
     for rel in bc.BUNDLE_OWN:
         assert (copies / rel).read_bytes() == (REPO / "plugins/rf-agentskills" / rel).read_bytes(), rel
@@ -437,3 +441,15 @@ def test_last_maintainer_leaves(scratch: Path) -> None:
     (d / "catalog.yaml").write_text(text.replace(
         "status: active", 'status: deprecated\ndeprecated_since: "2026-11-09"\nreplacement: rf-agentskills'))
     assert bc.lifecycle_problems(scratch, bc.load_plugins(scratch), {"plugins": []}, _dt.date(2026, 11, 9)) == []
+
+
+def test_feedback_form_lists_the_listed_plugins(tmp_path: Path) -> None:
+    """adoption-reporting: the feedback form's dropdown is generated from the catalogue."""
+    root = _full_scratch(tmp_path)
+    form = root / bc.FEEDBACK_FORM_REL
+    form.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(REPO / bc.FEEDBACK_FORM_REL, form)
+    _add_plugin(root, "rf-example", FIXTURES / "valid-community.yaml")
+    assert bc.main(["--check", "--root", str(root)]) == 1
+    assert bc.main(["--root", str(root)]) == 0
+    assert "        - rf-example\n" in form.read_text()

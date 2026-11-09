@@ -1,0 +1,14 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+# Rename the folder to plugins/<name>/ and set name to the same <name>.
+name: example
+summary: Example skill that shows the layout of a plugin; replace with what yours covers.
+tier: community
+status: active
+maintainers:
+  - github: your-github-handle
+    name: Your Name
+# The libraries the skills cover, with the versions you checked them against.
+libraries: []
+robotframework: ">=7.0"
+agents:
+  - claude-code

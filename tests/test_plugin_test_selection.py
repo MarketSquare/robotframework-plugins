@@ -113,3 +113,17 @@ def test_security_cli(content_tree: Path, tmp_path: Path, capsys):
 
 def test_the_real_repository_security_selection():
     assert sel.select_security(ROOT, ["plugins/rf-core/scripts/validate_robot.mjs"]) == ["rf-agentskills", "rf-core"]
+
+
+def test_plugin_without_tests_runs_its_dependencies_tests(tree: Path):
+    """rf-web has no tests of its own; rf-core's tests check the routes to its skills."""
+    web = tree / "plugins" / "rf-web" / ".claude-plugin"
+    web.mkdir(parents=True)
+    (web / "plugin.json").write_text(json.dumps({"name": "rf-web", "dependencies": [{"name": "rf-agentskills"}]}))
+    (tree / "plugins" / "rf-agentskills" / ".claude-plugin").mkdir()
+    (tree / "plugins" / "rf-agentskills" / ".claude-plugin" / "plugin.json").write_text('{"name": "rf-agentskills"}')
+    assert sel.select(tree, ["plugins/rf-web/skills/rf-browser/SKILL.md"]) == ["rf-agentskills"]
+
+
+def test_the_real_repository_rf_web_change_runs_rf_core_tests():
+    assert "rf-core" in sel.select(ROOT, ["plugins/rf-web/skills/rf-browser/SKILL.md"])

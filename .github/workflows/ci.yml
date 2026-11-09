@@ -150,6 +150,24 @@ jobs:
       - name: Lint repo QA scripts
         run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py scripts/check-plugin-references.py --select E,F,W --ignore E501
 
+  template-plugin:
+    name: Template plugin passes the PR checks
+    # programme-documentation, "Template plugin passes CI": copies
+    # templates/plugin/ to plugins/example/ in a scratch checkout and runs the
+    # PR checks and the tests CI would select for it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install robotframework pytest pytest-asyncio pyyaml "jsonschema>=4.18" "robotcode[all]>=2.8"
+          pip install -e ./installer
+      - name: Copy the template and run the checks
+        run: scripts/check-template.sh "$RUNNER_TEMP/template-check"
+
   validate-plugin:
     name: Validate plugin structure
     runs-on: ubuntu-latest

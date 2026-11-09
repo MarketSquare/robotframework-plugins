@@ -218,6 +218,18 @@ SKILLS = _skills()
 SHIPPED = set(SKILLS)
 
 
+def _tier(plugin: str) -> str:
+    return str((yaml.safe_load((PLUGINS / plugin / "catalog.yaml").read_text(encoding="utf-8")) or {}).get("tier"))
+
+
+#: Skills of verified plugins. Trigger sets and the per-skill contract entries
+#: are verified-tier evidence (plugin-trust-tiers); a community plugin, such
+#: as the template copied to plugins/example, has none. The description rules
+#: apply to every skill, because every installed description shares the
+#: agent's listing budget.
+VERIFIED = {name for name, md in SKILLS.items() if _tier(md.parent.parent.parent.name) == "verified"}
+
+
 def _norm(text: str) -> str:
     return " ".join(text.lower().split())
 
@@ -488,7 +500,7 @@ def _row_problems(name: str, row: list[str], width: int, present: set[str]) -> l
 
 def test_every_shipped_skill_is_covered_by_the_contract() -> None:
     assert SHIPPED, "no skills found"
-    missing = sorted(SHIPPED - set(REQUIRED_ROWS))
+    missing = sorted(VERIFIED - set(REQUIRED_ROWS))
     assert not missing, f"add REQUIRED_ROWS / SIBLINGS entries for {missing}"
     stale = sorted(set(REQUIRED_ROWS) - SHIPPED)
     assert not stale, f"REQUIRED_ROWS names skills that are not shipped: {stale}"
@@ -597,7 +609,7 @@ def test_web_and_api_siblings_cross_linked() -> None:
     assert "rf-requests" in skills_in_table("rf-restinstance")
 
 
-@pytest.mark.parametrize("name", sorted(SKILLS))
+@pytest.mark.parametrize("name", sorted(VERIFIED))
 def test_trigger_set_exists_with_shape(name: str) -> None:
     path = skill_dir(name, REPO).parent.parent / "evals" / "triggers" / f"{name}.yaml"
     assert path.is_file(), f"missing trigger set {path.relative_to(REPO)}"
@@ -624,7 +636,8 @@ def test_trigger_set_exists_with_shape(name: str) -> None:
 
 def test_no_trigger_set_for_unshipped_or_retired_skill() -> None:
     names = {p.stem for p in PLUGINS.glob("*/evals/triggers/*.yaml")}
-    assert names == SHIPPED, (sorted(names - SHIPPED), sorted(SHIPPED - names))
+    assert names <= SHIPPED, sorted(names - SHIPPED)
+    assert VERIFIED <= names, sorted(VERIFIED - names)
 
 
 # ── the checks themselves (spec scenarios) ──────────────────────────────────
