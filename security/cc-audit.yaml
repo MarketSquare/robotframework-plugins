@@ -1,0 +1,4 @@
+# cc-audit configuration for the security gate (scripts/security-scan.sh).
+# cc-audit refuses to run without one; the defaults are what we want.
+severity:
+  default: error

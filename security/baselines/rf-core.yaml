@@ -1,0 +1,76 @@
+# Reviewed security findings for rf-core (spec content-security-scanning,
+# "The gate fails on new findings only"). Only HIGH and CRITICAL findings need an
+# entry; scripts/compare-findings.py reports the rest without failing.
+# Each entry needs a reason, the reviewer (a member of the security reviewers
+# team) and an expiry at most 12 months away. Changes need security-team approval.
+plugin: rf-core
+entries:
+- scanner: skillspector
+  rule: RA1
+  file: plugins/rf-core/agents/rf-test-architect.md
+  fingerprint: ee4fea7b80b4c345
+  severity: HIGH
+  reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
+  reviewed_by: ''
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: MP3
+  file: plugins/rf-core/scripts/_pending_errors.mjs
+  fingerprint: ca1c4f72abaed318
+  severity: HIGH
+  reason: 'False positive: the Stop hook adds and deletes keys in its own per-session pending-errors state, not
+    in agent memory.'
+  reviewed_by: ''
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: MP3
+  file: plugins/rf-core/scripts/report_pending_errors.mjs
+  fingerprint: 232cba3b2c1a3baf
+  severity: HIGH
+  reason: 'False positive: the Stop hook adds and deletes keys in its own per-session pending-errors state, not
+    in agent memory.'
+  reviewed_by: ''
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: E2
+  file: plugins/rf-core/skills/rf-python-library/scripts/check_library.py
+  fingerprint: be60e0d23265d37c
+  severity: HIGH
+  reason: 'False positive: check_library.py copies os.environ to start its own worker subprocess with two extra
+    variables; nothing is sent anywhere.'
+  reviewed_by: ''
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: PIPELINE_TAINT_FLOW
+  file: plugins/rf-core/skills/rf-setup/references/ci.md
+  fingerprint: 0c64aaea2e292f8e
+  severity: HIGH
+  reason: 'Documentation decision (design D8): rf-setup tells the user how to install uv with Astral''s official
+    install script; it is an instruction for a person, not code the plugin runs.'
+  reviewed_by: ''
+  expires: '2027-11-08'
+- scanner: cisco
+  rule: PIPELINE_TAINT_FLOW
+  file: plugins/rf-core/skills/rf-setup/references/uv.md
+  fingerprint: f18e04d52b265b7b
+  severity: HIGH
+  reason: 'Documentation decision (design D8): rf-setup tells the user how to install uv with Astral''s official
+    install script; it is an instruction for a person, not code the plugin runs.'
+  reviewed_by: ''
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: RA1
+  file: plugins/rf-core/variants/codex/agents/rf-test-architect.toml
+  fingerprint: f61399a3bab46902
+  severity: HIGH
+  reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
+  reviewed_by: ''
+  expires: '2027-11-08'
+- scanner: skillspector
+  rule: RA1
+  file: plugins/rf-core/variants/opencode/agents/rf-test-architect.md
+  fingerprint: 3da47d920f300a73
+  severity: HIGH
+  reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
+  reviewed_by: ''
+  expires: '2027-11-08'

@@ -1,0 +1,16 @@
+# Reviewed security findings for rf-api (spec content-security-scanning,
+# "The gate fails on new findings only"). Only HIGH and CRITICAL findings need an
+# entry; scripts/compare-findings.py reports the rest without failing.
+# Each entry needs a reason, the reviewer (a member of the security reviewers
+# team) and an expiry at most 12 months away. Changes need security-team approval.
+plugin: rf-api
+entries:
+- scanner: skillspector
+  rule: TM1
+  file: plugins/rf-api/skills/rf-restinstance/assets/examples/basic-rest.robot
+  fingerprint: 2148e67050d1026c
+  severity: HIGH
+  reason: 'False positive: documentation example, not a tool call: a RESTinstance example test that sends DELETE
+    /users/2 to the example API.'
+  reviewed_by: ''
+  expires: '2027-11-08'
