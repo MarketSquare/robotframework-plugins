@@ -51,5 +51,5 @@ The README and `SECURITY.md` SHALL state that passing the automated checks and t
 `CONTRIBUTING.md` SHALL explain, in at most one screen, why a plugin and the installer have unrelated version numbers, with the version table as the example, and SHALL name the one command a plugin author runs to bump their plugin.
 
 #### Scenario: Version question answered
-- **WHEN** a contributor asks why the installer is `2026.12.0` and `rf-agentskills` is `3.1.0`
+- **WHEN** a contributor asks why the installer is `2026.12.0`, `rf-core` is `1.0.0` and the `rf-agentskills` bundle is `4.0.0`
 - **THEN** the "Versions" section of `CONTRIBUTING.md` answers it, and names `scripts/bump-version.sh <plugin> <major|minor|patch>`

@@ -47,16 +47,16 @@ It SHALL point OpenCode, Goose and Claude Desktop users to the installer.
 
 #### Scenario: Pinning example uses a plugin tag
 - **WHEN** a reader looks up how to pin a release
-- **THEN** the example uses a tag of the form `rf-agentskills--v<version>`, and a note says the old `v<version>` tags still work for releases up to 3.0.0
+- **THEN** the example uses a tag of the form `<plugin>--v<version>`, for example `rf-core--v1.0.0`, and a note says the old `v<version>` tags still work for `rf-agentskills` releases up to 3.0.0
 
 ### Requirement: Releases keep the marketplace installable at a tag
 
 Every plugin release SHALL be tagged `<plugin>--v<version>`, on a commit whose `plugins/<plugin>/.claude-plugin/plugin.json` carries `<version>`, so that a marketplace pinned to the tag installs exactly that release of the plugin and a plugin dependency's version range can resolve against the tags. The tags `v1.1.0`, `v1.2.0` and `v3.0.0` from before the move SHALL stay unchanged; no new tag of the form `v<version>` SHALL be created.
 
 #### Scenario: Pinned install
-- **WHEN** a user adds the marketplace pinned to `rf-agentskills--v3.1.0`
-- **THEN** the installed `rf-agentskills` plugin reports version `3.1.0`
+- **WHEN** a user adds the marketplace pinned to `rf-core--v1.0.0`
+- **THEN** the installed `rf-core` plugin reports version `1.0.0`
 
 #### Scenario: Tag and manifest disagree
-- **WHEN** the release workflow runs for a tag `rf-agentskills--v3.2.0` on a commit whose `plugin.json` says `3.1.0`
+- **WHEN** the release workflow runs for a tag `rf-web--v1.1.0` on a commit whose `plugins/rf-web/.claude-plugin/plugin.json` says `1.0.0`
 - **THEN** the workflow fails before publishing anything and names both versions

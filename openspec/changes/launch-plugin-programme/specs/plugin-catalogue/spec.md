@@ -77,34 +77,34 @@ Removing or renaming a plugin SHALL add an entry to the top-level `renames` map:
 
 Each plugin's content SHALL have one source, `plugins/<name>/`: its skills, subagents, hooks, scripts and generated variants. Tests of a plugin's content SHALL live in `plugins/<name>/tests/`, and its `rf-skill-eval` tasks and baselines in `plugins/<name>/evals/`. The repository root SHALL NOT hold a second copy of any plugin's skills, and no step SHALL sync skills from the root into a plugin. Root `eval/`, `tests/` and `scripts/` SHALL hold only the shared harness, repository-wide checks and tooling. In other specs, a skill path `skills/<skill>/` means `plugins/<plugin>/skills/<skill>/`.
 
-On a PR, CI SHALL run the shared tests and the tests and evals of every plugin the PR changes. On `main` and in the nightly job, CI SHALL run all of them.
+On a PR, CI SHALL run the shared tests and the tests and evals of every plugin the PR changes, and the tests of the plugins those depend on or that depend on them (`rf-core`'s tests check the routes to technology skills). On `main` and in the nightly job, CI SHALL run all of them.
 
 #### Scenario: No root skills copy
 - **WHEN** the repository tree is listed
 - **THEN** there is no root `skills/` directory and no `scripts/sync-skills.sh`
 
 #### Scenario: PR runs only the changed plugin's tests
-- **WHEN** a PR changes only files under `plugins/rf-agentskills/`, and the catalogue holds a second plugin
-- **THEN** CI runs the shared tests and the tests of `rf-agentskills`, and not the tests of the second plugin
+- **WHEN** a PR changes only files under `plugins/rf-mobile/`
+- **THEN** CI runs the shared tests and the tests of `rf-mobile` and of `rf-core`, which it depends on, and not the tests of `rf-web`
 
 ### Requirement: Names are unique across the catalogue
 
 Every skill name and every subagent name SHALL be unique across all `active` and `deprecated` plugins, and so SHALL every path the installer writes a plugin's hook scripts to. The catalogue check SHALL fail on a duplicate and name both plugins.
 
 #### Scenario: Duplicate skill name
-- **WHEN** a PR adds `plugins/rf-web-extra/skills/rf-browser/` while `rf-agentskills` ships `rf-browser`
-- **THEN** the catalogue check fails and names `rf-browser`, `rf-agentskills` and `rf-web-extra`
+- **WHEN** a PR adds `plugins/rf-web-extra/skills/rf-browser/` while `rf-web` ships `rf-browser`
+- **THEN** the catalogue check fails and names `rf-browser`, `rf-web` and `rf-web-extra`
 
 ### Requirement: Shared files have one owner
 
-A file used by more than one plugin SHALL live in one plugin, and the other plugins SHALL link to it with a relative symlink that stays inside the repository. Symlinks that point outside the repository SHALL fail the catalogue check. The installer's build hook SHALL copy a linked file's content, as Claude Code does. The security gate SHALL treat a change to a shared file as a change to every plugin that links to it.
+A file used by more than one plugin SHALL live in one plugin. Every other plugin that needs it SHALL carry a copy that `scripts/build-catalog.py` generates and its `--check` keeps in step, as it does for the `rf-agentskills` bundle. A plugin SHALL NOT contain a symlink, because Codex drops symlinks when it installs a plugin (split-rf-agentskills design D5); the catalogue check SHALL fail on one and name it. The security gate SHALL treat a change to a shared file as a change to every plugin that carries a copy.
 
-#### Scenario: Link outside the repository
-- **WHEN** a plugin contains a symlink whose target resolves outside the repository
+#### Scenario: Symlink in a plugin
+- **WHEN** a plugin contains a symlink, whether it points inside or outside the repository
 - **THEN** the catalogue check fails and names the link
 
 #### Scenario: Shared hook change scans both plugins
-- **WHEN** a PR changes a hook script that a second plugin links to
+- **WHEN** a PR changes a hook script that a second plugin carries a copy of
 - **THEN** the security gate scans both plugins
 
 ### Requirement: Each installer release states what it bundles

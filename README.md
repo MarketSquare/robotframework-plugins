@@ -34,8 +34,23 @@ The Python installer bundles these plugin versions:
 
 There are two ways to install, and both work at **user scope** (every project on your machine) or **project scope** (one repository, shared with your team):
 
-- **Plugin marketplace**: Claude Code, GitHub Copilot CLI, VS Code (Copilot), OpenAI Codex and Cursor all read this repository's `.claude-plugin/marketplace.json`. Add the marketplace `MarketSquare/robotframework-plugins` and install the plugin `rf-agentskills`. Updates arrive through the agent.
+- **Plugin marketplace**: Claude Code, GitHub Copilot CLI, VS Code (Copilot), OpenAI Codex and Cursor all read this repository's `.claude-plugin/marketplace.json`. Add the marketplace `MarketSquare/robotframework-plugins` and install `rf-core` plus the technology plugins you need, or the `rf-agentskills` bundle (see below). Updates arrive through the agent.
 - **Python installer** (`robotframework-plugins`): copies the files into each agent's own folders. Use it for OpenCode, Goose and Claude Desktop, which have no plugin marketplace, or wherever you prefer plain files. It can also write the marketplace settings for you (`--mode plugin`).
+
+### Which plugins
+
+| Plugin | What it adds |
+|---|---|
+| `rf-core` | Robot Framework syntax (`rf-language`), environment setup (`rf-setup`), Python keyword libraries (`rf-python-library`); the `rf-test-architect`, `rf-debug-expert` and `rf-migration-guide` subagents; all hooks. Every other plugin needs it. |
+| `rf-web` | Browser Library (`rf-browser`) and SeleniumLibrary (`rf-selenium`) |
+| `rf-api` | RequestsLibrary (`rf-requests`) and RESTinstance (`rf-restinstance`) |
+| `rf-mobile` | AppiumLibrary (`rf-appium`) |
+| `rf-desktop` | PlatynUI (`rf-platynui`) |
+| `rf-agentskills` | A bundle: a copy of all five, in one install, as before 4.0.0 |
+
+Install `rf-core` plus the plugins for the libraries you test with, for example `rf-core` and `rf-web` for a Browser project. Claude Code installs `rf-core` with any technology plugin. Copilot CLI and Codex don't install plugin dependencies, so install `rf-core` there too. The Python installer picks the plugins from the libraries your `pyproject.toml` or `requirements*.txt` declares.
+
+Install either the `rf-agentskills` bundle or separate plugins, not both, or each skill appears twice. Skill names are the same everywhere; only their prefix differs. With the bundle, skills keep the prefix they had up to 3.0.0 (`/rf-agentskills:rf-browser`). With separate plugins, each skill carries its plugin's prefix (`/rf-web:rf-browser`, `/rf-core:rf-language`), so update project instructions that name a prefixed skill when you switch.
 
 ### Plugin marketplace, per agent
 
@@ -55,40 +70,44 @@ The plugin does not set a default main agent. The three subagents are available 
 {
   "extraKnownMarketplaces": {
     "robotframework-plugins": {
-      "source": { "source": "github", "repo": "MarketSquare/robotframework-plugins", "ref": "v3.0.0" }
+      "source": { "source": "github", "repo": "MarketSquare/robotframework-plugins" }
     }
   },
   "enabledPlugins": {
-    "rf-agentskills@robotframework-plugins": true
+    "rf-core@robotframework-plugins": true,
+    "rf-web@robotframework-plugins": true
   }
 }
 ```
 
-Leave out `ref` to follow `main`, or use `stable` for the latest release. Each content release is tagged `v<version>`, and a tag always installs exactly that version.
+Enable `rf-agentskills@robotframework-plugins` instead to get everything. Add `"ref"` to the source to pin the marketplace to a tag, or use `stable` for the latest release. Each plugin release is tagged `<plugin>--v<version>` (for example `rf-core--v1.0.0`); the older `v<version>` tags install `rf-agentskills` up to 3.0.0.
 
 #### Claude Code
 
 ```bash
-claude plugin marketplace add MarketSquare/robotframework-plugins       # pin: ...plugins#v3.0.0
-claude plugin install rf-agentskills@robotframework-plugins          # --scope user (default) | project | local
+claude plugin marketplace add MarketSquare/robotframework-plugins
+claude plugin install rf-web@robotframework-plugins                  # brings rf-core; --scope user (default) | project | local
+# or everything at once: claude plugin install rf-agentskills@robotframework-plugins
 # recommended companion: the robotcode plugin
 claude plugin marketplace add robotcodedev/robotframework-agent-plugins
 claude plugin install robotcode@robotframework-agent-plugins
 ```
 
-In a session, `/plugin marketplace add …` and `/plugin install …` do the same. `--scope project` writes the committed `.claude/settings.json` above. To try the in-tree plugin without a marketplace: `claude --plugin-dir ./plugins/rf-agentskills`.
+In a session, `/plugin marketplace add …` and `/plugin install …` do the same. `--scope project` writes the committed `.claude/settings.json` above. To try the in-tree plugins without a marketplace: `claude --plugin-dir ./plugins/rf-core --plugin-dir ./plugins/rf-web`.
 
 #### GitHub Copilot CLI
 
 ```bash
 copilot plugin marketplace add MarketSquare/robotframework-plugins
-copilot plugin install rf-agentskills@robotframework-plugins
+copilot plugin install rf-core@robotframework-plugins               # Copilot CLI doesn't install dependencies
+copilot plugin install rf-web@robotframework-plugins
+# or everything at once: copilot plugin install rf-agentskills@robotframework-plugins
 # recommended companion: the robotcode plugin
 copilot plugin marketplace add robotcodedev/robotframework-agent-plugins
 copilot plugin install robotcode@robotframework-agent-plugins
 ```
 
-That is user scope. For project scope, commit `.claude/settings.json` (or `.github/copilot/settings.json` with the same keys): Copilot CLI loads the plugin in that repository without an install step. Pin a release with its `ref` there.
+That is user scope. For project scope, commit `.claude/settings.json` (or `.github/copilot/settings.json` with the same keys) and list `rf-core` there too: Copilot CLI loads the plugins in that repository without an install step. Pin a release with its `ref` there.
 
 Copilot CLI passes only a hook's `decision`/`reason` to the model. So the model sees Robot Framework **validation errors** after an edit ("The edit was applied, but …"), but not the advisory context the other agents get: deprecation and formatting warnings, the skill hint on prompts, error hints after `robot` runs, and the session environment report.
 
@@ -104,7 +123,7 @@ Plugins and hooks are preview features. In your **user** settings, enable them a
 }
 ```
 
-Pin with `"MarketSquare/robotframework-plugins#v3.0.0"`. Then install `rf-agentskills` from that marketplace in the Extensions view. For project scope, the committed `.claude/settings.json` recommends the plugin to everyone who opens the workspace (`chat.plugins.marketplaces` itself is a user-only setting). VS Code asks before running hook commands unless your chat approval mode allows them. The [RobotCode extension](https://marketplace.visualstudio.com/items?itemName=d-biehl.robotcode) already bundles the `robotcode` plugin for Copilot Chat, so it needs no separate install.
+Pin with `"MarketSquare/robotframework-plugins#rf-core--v1.0.0"`. Then install `rf-core` and the technology plugins you need (or the `rf-agentskills` bundle) from that marketplace in the Extensions view. For project scope, the committed `.claude/settings.json` recommends the plugin to everyone who opens the workspace (`chat.plugins.marketplaces` itself is a user-only setting). VS Code asks before running hook commands unless your chat approval mode allows them. The [RobotCode extension](https://marketplace.visualstudio.com/items?itemName=d-biehl.robotcode) already bundles the `robotcode` plugin for Copilot Chat, so it needs no separate install.
 
 VS Code 1.142 has two agent harnesses, with different gaps:
 
@@ -114,8 +133,10 @@ VS Code 1.142 has two agent harnesses, with different gaps:
 #### OpenAI Codex
 
 ```bash
-codex plugin marketplace add MarketSquare/robotframework-plugins        # pin: --ref v3.0.0
-codex plugin add rf-agentskills@robotframework-plugins
+codex plugin marketplace add MarketSquare/robotframework-plugins        # pin: --ref rf-core--v1.0.0
+codex plugin add rf-core@robotframework-plugins                         # Codex doesn't install dependencies
+codex plugin add rf-web@robotframework-plugins
+# or everything at once: codex plugin add rf-agentskills@robotframework-plugins
 # recommended companion: the robotcode plugin
 codex plugin marketplace add robotcodedev/robotframework-agent-plugins
 codex plugin add robotcode@robotframework-agent-plugins
@@ -124,15 +145,15 @@ codex plugin add robotcode@robotframework-agent-plugins
 Then, once, run `/hooks` in a Codex session and trust the plugin's hooks; Codex runs none of them before that. Codex plugins cannot ship subagents, so install the three TOML subagents with the installer:
 
 ```bash
-uvx robotframework-plugins install --agent codex --mode plugin            # writes .codex/agents/*.toml, prints the two commands
+uvx robotframework-plugins install --agent codex --mode plugin            # writes .codex/agents/*.toml, prints the commands
 uvx robotframework-plugins install --agent codex --mode plugin --yes      # also runs them
 ```
 
-Codex has no committed project-scope plugin file: every user runs the two `codex plugin` commands once. The subagents can be committed in `.codex/agents/`.
+Codex has no committed project-scope plugin file: every user runs the `codex plugin` commands once. The subagents can be committed in `.codex/agents/`.
 
 #### Cursor
 
-Add the marketplace by its git URL, `https://github.com/MarketSquare/robotframework-plugins` (Customize → Plugins, or `cursor-agent plugin marketplace add …`), install `rf-agentskills` and choose project or user scope. Cursor keeps marketplaces on your Cursor account. It also imports the plugin when it is installed in Claude Code or enabled in `.claude/settings.json` (Settings → Third-Party Imports). Add `https://github.com/robotcodedev/robotframework-agent-plugins` the same way for the `robotcode` plugin.
+Add the marketplace by its git URL, `https://github.com/MarketSquare/robotframework-plugins` (Customize → Plugins, or `cursor-agent plugin marketplace add …`), install `rf-core` and the technology plugins you need (or `rf-agentskills`) and choose project or user scope. Cursor keeps marketplaces on your Cursor account. It also imports the plugin when it is installed in Claude Code or enabled in `.claude/settings.json` (Settings → Third-Party Imports). Add `https://github.com/robotcodedev/robotframework-agent-plugins` the same way for the `robotcode` plugin.
 
 ### Python installer (`rf-agentskills`)
 
@@ -189,32 +210,32 @@ This works for any agent that reads SKILL.md files from a project-local director
 
 This repo ships two release scopes — see **[`RELEASING.md`](RELEASING.md)** for the policy:
 
-- **Content** (the marketplace plugin / skills tarballs) — currently `v3.0.0`, tagged `v*`; a tag is the ref you pin a marketplace to.
-- **Tooling** (`robotframework-plugins` Python installer) — calendar versions, currently `2026.12.0`, tagged `robotframework-plugins-v*`.
+- **Plugins** (the marketplace plugins and the skills tarballs): each plugin has its own version, tagged `<plugin>--v<version>`, for example `rf-core--v1.0.0`; a tag is the ref you pin a marketplace to. The table under "Catalogue" lists the versions an installer release bundles. The older `v<version>` tags are `rf-agentskills` releases up to 3.0.0.
+- **Tooling** (`robotframework-plugins` Python installer): calendar versions, currently `2026.12.0`, tagged `robotframework-plugins-v*`.
 
-The two channels are versioned independently. `robotframework-plugins version` prints both:
+The two are versioned independently. `robotframework-plugins version` prints both:
 
 ```console
 $ robotframework-plugins version
 robotframework-plugins 2026.12.0
-bundled content: 3.0.0  (from rf-agentskills plugin manifest)
+bundled plugins: rf-agentskills 4.0.0, rf-api 1.0.0, rf-core 1.0.0, rf-desktop 1.0.0, rf-mobile 1.0.0, rf-web 1.0.0
 ```
 
 ## What You Get
 
 ### 9 Skills
 
-| Skill | Type | Command | Description |
+| Skill | Type | Command (with the `rf-agentskills` bundle: `/rf-agentskills:<skill>`) | Description |
 |-------|------|---------|-------------|
-| Browser Library | library-reference | `/rf-agentskills:rf-browser` | Web UI tests with Browser Library (Playwright); the default when no web library is chosen yet |
-| SeleniumLibrary | library-reference | `/rf-agentskills:rf-selenium` | Web UI tests with SeleniumLibrary (WebDriver, Selenium Grid) for suites that import `SeleniumLibrary` |
-| AppiumLibrary | library-reference | `/rf-agentskills:rf-appium` | Mobile app tests (Android/iOS native, hybrid, mobile web) with AppiumLibrary |
-| RequestsLibrary | library-reference | `/rf-agentskills:rf-requests` | HTTP/REST API tests with RequestsLibrary; the default when no API library is named |
-| RESTinstance | library-reference | `/rf-agentskills:rf-restinstance` | REST API tests with RESTinstance (`Library    REST`): JSON Schema / OpenAPI-driven assertions |
-| PlatynUI (preview) | library-reference | `/rf-agentskills:rf-platynui` | Native desktop UI testing (Windows UIA, Linux AT-SPI2) via PlatynUI.BareMetal |
-| Robot Framework language | language-guide + script | `/rf-agentskills:rf-language` | Write and review tests (keyword-driven, data-driven, BDD), suites, `__init__.robot`, tags, user keywords, `.resource` and variable files in modern, version-gated syntax; `rf_conventions` script detects the project's conventions (requires robotframework). Not for Python keyword libraries |
-| Python keyword libraries | library-guide + script | `/rf-agentskills:rf-python-library` | Write and fix keyword libraries and listeners in Python: `@library`/`@keyword`, scope by state lifetime (TEST/SUITE/GLOBAL), type-hint conversion and custom converters, failures and logging, dynamic/hybrid APIs, listener API v3, libdoc; `check_library` script finds "contains no keywords", leaked imports, lost signatures and state kept in `TEST` scope before tests run (requires robotframework, Python 3.10+) |
-| Setup | setup-guide | `/rf-agentskills:rf-setup` | Install Robot Framework and libraries with uv, venv + pip or Poetry; fix environment errors (`ModuleNotFoundError`, wrong interpreter); project layout, CI |
+| Browser Library | library-reference | `/rf-web:rf-browser` | Web UI tests with Browser Library (Playwright); the default when no web library is chosen yet |
+| SeleniumLibrary | library-reference | `/rf-web:rf-selenium` | Web UI tests with SeleniumLibrary (WebDriver, Selenium Grid) for suites that import `SeleniumLibrary` |
+| AppiumLibrary | library-reference | `/rf-mobile:rf-appium` | Mobile app tests (Android/iOS native, hybrid, mobile web) with AppiumLibrary |
+| RequestsLibrary | library-reference | `/rf-api:rf-requests` | HTTP/REST API tests with RequestsLibrary; the default when no API library is named |
+| RESTinstance | library-reference | `/rf-api:rf-restinstance` | REST API tests with RESTinstance (`Library    REST`): JSON Schema / OpenAPI-driven assertions |
+| PlatynUI (preview) | library-reference | `/rf-desktop:rf-platynui` | Native desktop UI testing (Windows UIA, Linux AT-SPI2) via PlatynUI.BareMetal |
+| Robot Framework language | language-guide + script | `/rf-core:rf-language` | Write and review tests (keyword-driven, data-driven, BDD), suites, `__init__.robot`, tags, user keywords, `.resource` and variable files in modern, version-gated syntax; `rf_conventions` script detects the project's conventions (requires robotframework). Not for Python keyword libraries |
+| Python keyword libraries | library-guide + script | `/rf-core:rf-python-library` | Write and fix keyword libraries and listeners in Python: `@library`/`@keyword`, scope by state lifetime (TEST/SUITE/GLOBAL), type-hint conversion and custom converters, failures and logging, dynamic/hybrid APIs, listener API v3, libdoc; `check_library` script finds "contains no keywords", leaked imports, lost signatures and state kept in `TEST` scope before tests run (requires robotframework, Python 3.10+) |
+| Setup | setup-guide | `/rf-core:rf-setup` | Install Robot Framework and libraries with uv, venv + pip or Poetry; fix environment errors (`ModuleNotFoundError`, wrong interpreter); project layout, CI |
 
 #### Renamed in 2.0
 
@@ -258,7 +279,7 @@ These overlapped with the RobotCode project's `robotcode` plugin and with `robot
 
 ### Automated Hooks
 
-- **Post-save validation**: Checks every written `.robot`/`.resource` file with `robotcode analyze code` (project environment first): syntax, argument and import errors are fed back to the agent; unknown keywords and variables are reported, and block only if still unresolved when the agent finishes; Robocop adds advice: deprecated syntax (`[Return]`, `Run Keyword If`, `Force Tags`, …) is reported as a **non-blocking warning** (`RF_AGENTSKILLS_DEPRECATION_CHECK=warn|off`); an opt-in per-file dry run (`RF_AGENTSKILLS_FILE_DRYRUN=1`). See `plugins/rf-agentskills/hooks/README.md`.
+- **Post-save validation**: Checks every written `.robot`/`.resource` file with `robotcode analyze code` (project environment first): syntax, argument and import errors are fed back to the agent; unknown keywords and variables are reported, and block only if still unresolved when the agent finishes; Robocop adds advice: deprecated syntax (`[Return]`, `Run Keyword If`, `Force Tags`, …) is reported as a **non-blocking warning** (`RF_AGENTSKILLS_DEPRECATION_CHECK=warn|off`); an opt-in per-file dry run (`RF_AGENTSKILLS_FILE_DRYRUN=1`). See `plugins/rf-core/hooks/README.md`.
 - **Skill routing**: Routes RF-related prompts to the appropriate skill (short routing text, ≤ 450 characters)
 - **Environment check**: Checks for Robot Framework, robotcode (≥ 2.8) and the RF packages at session start (install advice via rf-setup)
 - **Test reminder**: Reminds you to run tests when the session ends

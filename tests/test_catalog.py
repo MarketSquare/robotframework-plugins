@@ -297,27 +297,22 @@ def test_deprecated_plugin_names_count_removed_do_not(tmp_path: Path) -> None:
     assert bc.name_problems(bc.load_plugins(root)) == []
 
 
-def test_link_outside_the_repository(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_symlinks_in_a_plugin_fail(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Codex drops symlinks: plugins carry none, inside or outside the repository."""
     root = _full_scratch(tmp_path)
     outside = tmp_path / "outside.mjs"
     outside.write_text("")
     scripts = root / "plugins" / "rf-core" / "scripts"
     (scripts / "escape.mjs").symlink_to(Path("../../../../outside.mjs"))
     (scripts / "absolute.mjs").symlink_to(outside)
-    assert bc.main(["--check", "--root", str(root)]) == 1
-    err = capsys.readouterr().err
-    assert "plugins/rf-core/scripts/escape.mjs: symlink points outside the repository" in err
-    assert "plugins/rf-core/scripts/absolute.mjs: symlink target" in err
-
-
-def test_link_inside_the_repository_passes(tmp_path: Path) -> None:
-    root = _full_scratch(tmp_path)
-    owner = root / "plugins" / "rf-core" / "scripts"
-    (owner / "shared.mjs").write_text("")
     d = _add_plugin(root, "rf-example", FIXTURES / "valid-community.yaml")
     (d / "scripts").mkdir()
-    (d / "scripts" / "shared.mjs").symlink_to(Path("../../rf-core/scripts/shared.mjs"))
-    assert bc.symlink_problems(root, bc.load_plugins(root)) == []
+    (d / "scripts" / "shared.mjs").symlink_to(Path("../../rf-core/scripts/_hook_input.mjs"))
+    assert bc.main(["--check", "--root", str(root)]) == 1
+    err = capsys.readouterr().err
+    for rel in ("plugins/rf-core/scripts/escape.mjs", "plugins/rf-core/scripts/absolute.mjs",
+                "plugins/rf-example/scripts/shared.mjs"):
+        assert f"{rel}: plugins can't contain symlinks" in err, rel
 
 
 @pytest.mark.parametrize(

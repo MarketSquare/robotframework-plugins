@@ -19,10 +19,11 @@ def test_cli_version(capsys) -> None:
     # from __version__ so the assertion follows future bumps.
     assert "rf-agentskills" in out
     assert __version__ in out
-    # Bundled content version is surfaced from the staged plugin
-    # manifest — kept independent from the installer version on
-    # purpose (see RELEASING.md for the versioning policy).
-    assert "bundled content" in out
+    # Each bundled plugin's version, independent of the installer version
+    # on purpose (see RELEASING.md for the versioning policy).
+    line = next(ln for ln in out.splitlines() if ln.startswith("bundled plugins:"))
+    for plugin in ("rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop", "rf-agentskills"):
+        assert f"{plugin} " in line, plugin
 
 
 def test_cli_targets_runs(capsys) -> None:

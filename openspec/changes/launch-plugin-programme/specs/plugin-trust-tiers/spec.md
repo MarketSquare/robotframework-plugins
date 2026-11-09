@@ -38,7 +38,7 @@ A plugin SHALL have tier `verified` only when it meets every community criterion
 `.github/CODEOWNERS` SHALL map each `plugins/<name>/` to that plugin's maintainers. A change to a plugin SHALL require approval by one of its code owners. A change to a `verified` plugin SHALL also require approval by a Foundation reviewer. A change to security-relevant content (see `content-security-scanning`) SHALL require approval by the security reviewers team. CI SHALL fail when CODEOWNERS and the `maintainers` in `catalog.yaml` disagree.
 
 #### Scenario: Hook change needs the security team
-- **WHEN** a PR edits `plugins/rf-agentskills/hooks/hooks.json`
+- **WHEN** a PR edits `plugins/rf-core/hooks/hooks.json`
 - **THEN** merging requires an approval from the security reviewers team as well as a plugin owner
 
 #### Scenario: CODEOWNERS drift

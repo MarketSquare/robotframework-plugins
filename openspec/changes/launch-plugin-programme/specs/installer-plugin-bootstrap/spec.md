@@ -26,5 +26,5 @@ In plugin mode the installer SHALL also do the following.
 - **OpenCode, Goose and Claude Desktop:** keep the file-copy install, since they have no plugin marketplace.
 
 #### Scenario: Codex in plugin mode
-- **WHEN** `robotframework-plugins install --mode plugin --agent codex` runs without `--yes`
-- **THEN** it writes `.codex/agents/*.toml` and prints the `codex plugin marketplace add MarketSquare/robotframework-plugins` and `codex plugin add rf-agentskills@robotframework-plugins` commands without running them
+- **WHEN** `robotframework-plugins install --mode plugin --agent codex` runs without `--yes` in a project that declares no library
+- **THEN** it writes `.codex/agents/*.toml` and prints `codex plugin marketplace add MarketSquare/robotframework-plugins` and one `codex plugin add <plugin>@robotframework-plugins` per selected plugin (`rf-core`, `rf-web`, `rf-api`, `rf-mobile`, `rf-desktop`) without running them

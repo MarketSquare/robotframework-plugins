@@ -19,8 +19,7 @@ Copilot CLI and Codex don't install dependencies at all, and Codex drops
 symlinks (split-rf-agentskills design D5).
 
 Besides the manifests, the check fails when two listed plugins ship the same
-skill, subagent or hook install path, when a symlink in a plugin is absolute
-or leaves the repository, and (with ``--base``) when an existing ``renames``
+skill, subagent or hook install path, when a plugin contains a symlink, and (with ``--base``) when an existing ``renames``
 entry of the marketplace was deleted or changed.
 
 ``--root`` points at another tree (tests use scratch copies).
@@ -204,23 +203,17 @@ def name_problems(plugins: list[Plugin]) -> list[str]:
 
 
 def symlink_problems(root: Path, plugins: list[Plugin]) -> list[str]:
-    """Shared files are relative symlinks that stay inside the repository."""
+    """Plugins contain no symlinks: Codex drops them when it installs a plugin,
+    so a shared file is a generated copy instead (launch D15, split D5)."""
     problems = []
-    top = root.resolve()
     for p in plugins:
         for dirpath, dirnames, filenames in os.walk(p.path):
             for name in sorted(dirnames + filenames):
                 link = Path(dirpath) / name
-                if not link.is_symlink():
-                    continue
-                rel = link.relative_to(root).as_posix()
-                target = os.readlink(link)
-                if os.path.isabs(target):
-                    problems.append(f"{rel}: symlink target {target!r} is absolute; use a relative path")
-                    continue
-                resolved = (link.parent / target).resolve()
-                if resolved != top and top not in resolved.parents:
-                    problems.append(f"{rel}: symlink points outside the repository ({target})")
+                if link.is_symlink():
+                    rel = link.relative_to(root).as_posix()
+                    problems.append(f"{rel}: plugins can't contain symlinks ({os.readlink(link)}); "
+                                    "Codex drops them, so ship a generated copy")
     return problems
 
 

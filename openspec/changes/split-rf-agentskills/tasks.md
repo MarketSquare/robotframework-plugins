@@ -40,6 +40,6 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 
 ## 7. Launch plan and docs
 
-- [ ] 7.1 Re-check D10 against `launch-plugin-programme` as it stands when this change is applied (the non-goal, D16, task order, 10.2 and the `package` field were edited when this change was proposed), and update any of its spec deltas that name `rf-agentskills` as the only plugin where that is now false. Verify that `openspec validate --strict` passes for both changes.
-- [ ] 7.2 Update the README catalogue and install sections, `docs/catalog.md` and the version table for six plugins, with the prefix-change note. Verify the docs voice check and the catalogue `--check`.
+- [x] 7.1 Re-check D10 against `launch-plugin-programme` as it stands when this change is applied (the non-goal, D16, task order, 10.2 and the `package` field were edited when this change was proposed), and update any of its spec deltas that name `rf-agentskills` as the only plugin where that is now false. Verify that `openspec validate --strict` passes for both changes.
+- [x] 7.2 *(The voice check is launch task 9.1 and doesn't exist yet: checked by hand for its banned phrases and exclamation marks.)* Update the README catalogue and install sections, `docs/catalog.md` and the version table for six plugins, with the prefix-change note. Verify the docs voice check and the catalogue `--check`.
 - [ ] 7.3 Verify end to end in isolated homes, before release: fresh install of `rf-core` + `rf-web` on Claude Code, Copilot CLI and Codex from the marketplace; `uvx robotframework-plugins install --agent claude-code --yes` in a Browser project; and an upgrade from `rf-agentskills` 0.8.0.

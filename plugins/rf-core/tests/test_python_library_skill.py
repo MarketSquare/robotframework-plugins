@@ -470,5 +470,5 @@ def test_rf_setup_layout_points_here() -> None:
 
 def test_readme_lists_the_skill() -> None:
     readme = _text(ROOT / "README.md")
-    assert "/rf-agentskills:rf-python-library" in readme
+    assert "/rf-core:rf-python-library" in readme
     assert "check_library.py" in readme

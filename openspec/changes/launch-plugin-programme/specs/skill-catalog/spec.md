@@ -5,7 +5,7 @@
 Every distribution channel SHALL be built from the plugin's own `plugins/<name>/` tree: the installer's bundled assets, the release tarballs and the Claude Desktop ZIPs. A build SHALL contain no skill directory, subagent or helper script that the plugin tree does not have. The drift check SHALL fail when a generated Codex or OpenCode variant is missing, stale, or has no source subagent.
 
 #### Scenario: Sync removes a retired skill's copies
-- **WHEN** a skill directory is deleted from `plugins/rf-agentskills/skills/` and the installer and release packages are built
+- **WHEN** a skill directory is deleted from `plugins/<plugin>/skills/` and the installer and release packages are built
 - **THEN** none of them contains that skill or its scripts
 
 #### Scenario: Drift check catches an orphan

@@ -14,7 +14,7 @@ Each skill SHALL have exactly one identifier of the form `rf-<topic>`, unique ac
 
 #### Scenario: Plugin skill is namespaced by the plugin
 - **WHEN** the Claude Code plugin is loaded
-- **THEN** each skill is addressable as `<plugin>:<name>`, for example `rf-agentskills:rf-browser`, where `<name>` is the same identifier used by the standalone channels
+- **THEN** each skill is addressable as `<plugin>:<name>`, for example `rf-web:rf-browser` (or `rf-agentskills:rf-browser` through the bundle), where `<name>` is the same identifier used by the standalone channels
 
 ### Requirement: Skills declare runtime compatibility, license and metadata
 
@@ -33,7 +33,7 @@ Every skill SHALL declare `license: Apache-2.0`, a `compatibility` field that st
 - **THEN** `compatibility` names `robotcode[all]>=2.8` in the project environment
 
 #### Scenario: Version stays in step with the bundle
-- **WHEN** `scripts/bump-version.sh rf-agentskills minor` runs
+- **WHEN** `scripts/bump-version.sh rf-core minor` runs
 - **THEN** the plugin's `plugin.json` and every one of its skills' `metadata.version` carry the new value, and the validator fails if any skill disagrees with its plugin
 
 ### Requirement: Skill validation runs in CI for all channels
@@ -41,7 +41,7 @@ Every skill SHALL declare `license: Apache-2.0`, a `compatibility` field that st
 The repository SHALL provide a skill validator that can run offline with no third-party dependencies and enforces the frontmatter and name/directory rules for every plugin's skills and the channels built from them. CI MUST run the validator on every push and pull request, and a violation MUST fail the build.
 
 #### Scenario: CI fails on a mismatched directory
-- **WHEN** a pull request adds `plugins/rf-agentskills/skills/rf-foo/SKILL.md` with `name: rf-bar`
+- **WHEN** a pull request adds `plugins/rf-web/skills/rf-foo/SKILL.md` with `name: rf-bar`
 - **THEN** the CI skill-validation job fails and reports the mismatch
 
 #### Scenario: Validator is exercised by tests
@@ -54,4 +54,4 @@ The repository SHALL provide a skill validator that can run offline with no thir
 
 **Reason**: Root `skills/` and the sync step are removed; each plugin's `plugins/<name>/skills/` is the only source (`plugin-catalogue`, "Each plugin owns its sources, tests and evals").
 
-**Migration**: Edit the skill under `plugins/rf-agentskills/skills/`. The drift check now covers only the generated Codex and OpenCode variants.
+**Migration**: Edit the skill under `plugins/<plugin>/skills/`. The drift check now covers only the generated Codex and OpenCode variants.
