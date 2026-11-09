@@ -941,6 +941,13 @@ def _partial_install(result: TriggerEvalResult, staged_plugins: list[str], root:
     return render_cross_technology(rows, staged_plugins)
 
 
+def _staged_label(staged_plugins: list[str], variant_root: Path | None) -> str:
+    """What the trigger run stages, for its first output line."""
+    if staged_plugins:
+        return "staged " + ", ".join(staged_plugins)
+    return str(variant_root) if variant_root is not None else "shipped plugins"
+
+
 def _staged(names: list[str], root: Path) -> tuple[Path, str]:
     """``--stage``: the named plugins merged (a partial install) and its variant id."""
     known = content_plugins(root / "plugins")
@@ -1057,7 +1064,7 @@ def trigger(
         console.print(f"[red]trigger fixture missing:[/red] {fixture}")
         raise typer.Exit(code=2)
     console.print(
-        f"[cyan]variant[/cyan] {variant_id} ({variant_root or 'shipped plugin'}), "
+        f"[cyan]variant[/cyan] {variant_id} ({_staged_label(staged_plugins, variant_root)}), "
         f"concurrency {concurrency}, listing budget "
         f"{listing_budget if listing_budget is not None else 'default'}"
     )
