@@ -14,8 +14,10 @@ Each subagent SHALL contain a routing table. The table maps the kinds of work th
 - keyword name and argument lookup SHALL route to `robotcode doc keywords` / `robotcode doc keyword`;
 - reading results SHALL route to `robotcode results`;
 - step debugging SHALL route to `robotcode robot-debug -bl "<longname>"`;
-- library-specific behavior SHALL route to the matching library skill;
+- library-specific behavior, and migration from one library to another, SHALL route to the matching library skill, naming its plugin;
 - environment problems SHALL route to `rf-setup`.
+
+When a routed library skill is not available, the subagent SHALL name the plugin to install and SHALL NOT continue from memory for library-specific details.
 
 #### Scenario: Test architect delegates design details
 - **WHEN** `rf-test-architect` has decided the project layout and must write test suites and shared keywords
@@ -26,25 +28,31 @@ Each subagent SHALL contain a routing table. The table maps the kinds of work th
 - **THEN** its routing table sends that failure class to `rf-python-library`
 
 #### Scenario: Every routed skill exists
-- **WHEN** the subagent lint test compares the skill identifiers named in all subagent files with the skill directories of the plugin channel
-- **THEN** every named skill exists, and no retired or merged-away name appears (`rf-keyword-builder`, `rf-testcase-builder`, `rf-resource-architect`, `rf-libdoc-search`, `rf-libdoc-explain`, `rf-libdoc`, `rf-results`, `rf-robotcode`, `rf-keyword-consultant`, and any `robotframework-*` identifier)
+- **WHEN** the subagent lint test compares the skill identifiers named in all subagent files with the skill directories of every catalogue plugin
+- **THEN** every named skill exists, each one outside `rf-core` is named with its plugin, and no retired or merged-away name appears (`rf-keyword-builder`, `rf-testcase-builder`, `rf-resource-architect`, `rf-libdoc-search`, `rf-libdoc-explain`, `rf-libdoc`, `rf-results`, `rf-robotcode`, `rf-keyword-consultant`, and any `robotframework-*` identifier)
 
+#### Scenario: Missing library skill
+- **WHEN** only `rf-core` is installed and `rf-migration-guide` is asked to move a suite from SeleniumLibrary to Browser
+- **THEN** it says that the steps come from `rf-browser` in the `rf-web` plugin and suggests installing that plugin, before changing any library-specific code
 ### Requirement: Subagents do not duplicate skill content
 
-Subagent files SHALL NOT contain keyword catalogs, standard-library quick references, RF syntax tables, robotcode command references or long code examples that a routed skill or the robotcode plugin already provides. Each subagent body SHALL stay within 120 lines. A subagent MAY keep content that no skill owns, such as library-selection criteria, library-to-library migration tables, or a failure taxonomy. It SHALL mark that content as the subagent's own.
+Subagent files SHALL NOT contain keyword catalogs, standard-library quick references, RF syntax tables, robotcode command references, library-to-library migration tables or long code examples that a routed skill or the robotcode plugin already provides. Library-to-library migration tables SHALL live in the target library's skill, for example SeleniumLibrary to Browser in `rf-browser`. Each subagent body SHALL stay within 120 lines. A subagent MAY keep content that no skill owns, such as library-selection criteria or a failure taxonomy. It SHALL mark that content as the subagent's own.
 
 #### Scenario: Debug expert keeps only its own method
 - **WHEN** `rf-debug-expert.md` is read
 - **THEN** it contains its failure taxonomy, flakiness table and report format, marked as agent-owned, and no copy of the robotcode `results` or `robot-debug` option reference
 
 #### Scenario: Keyword consultant has no catalog
-- **WHEN** `plugins/rf-agentskills/agents/` and the generated variants are listed
+- **WHEN** `plugins/rf-core/agents/` and the generated variants are listed
 - **THEN** no `rf-keyword-consultant` file exists, so no cross-library keyword map or standard-library keyword list is shipped as a subagent
 
 #### Scenario: Size budget is enforced
 - **WHEN** the subagent lint test counts the lines of each subagent body (excluding frontmatter)
 - **THEN** every body has 120 lines or fewer
 
+#### Scenario: Migration tables live in library skills
+- **WHEN** `rf-migration-guide.md` is searched for a SeleniumLibrary-to-Browser or RequestsLibrary-to-RESTinstance keyword table
+- **THEN** none is found, and `rf-browser` and `rf-restinstance` each ship the table as a reference
 ### Requirement: Subagent examples use valid modern syntax
 
 Any Robot Framework snippet in a subagent file SHALL be valid for RF 7 and SHALL NOT use constructs that Robocop's `DEPR` rules report: `[Return]`, `Run Keyword If`/`Unless`, `Force Tags`/`Default Tags`, `WITH NAME`, `Exit For Loop`/`Continue For Loop` keywords, `Return From Keyword`, singular section headers, `Set Test/Suite/Global Variable`. The exception is the "old" column of an explicit legacy→modern mapping table. Typed user-keyword arguments SHALL use the `${name: type}` form and state that it needs RF 7.3 or later.
