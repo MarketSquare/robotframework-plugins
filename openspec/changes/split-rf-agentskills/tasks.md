@@ -23,8 +23,8 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 
 - [ ] 4.1 Qualify every reference to a technology skill in `rf-core` (skills, subagents, hook text) with its plugin, and add the "suggest installing the plugin" line to the three subagents. Regenerate the Codex and OpenCode variants. Verify the "Every routed skill exists" and "Missing library skill" scenarios, and the variant drift check.
 - [ ] 4.2 Write the cross-plugin reference lint and add it to CI. Verify the "Lint finds an unqualified reference" fixture.
-- [ ] 4.3 Rewrite the context-injection text to route library work generically and name only `rf-core` skills and the technology plugins, within 450 characters. Verify the modified `rf-session-context-hooks` scenarios and the budget test.
-- [ ] 4.4 Make the `SessionStart` report name the plugin and its per-agent install command for each detected library. Verify the "Browser found" and "Nothing to suggest" scenarios, and that the hook still exits 0 on malformed input.
+- [x] 4.3 Rewrite the context-injection text to route library work generically and name only `rf-core` skills and the technology plugins, within 450 characters. Verify the modified `rf-session-context-hooks` scenarios and the budget test.
+- [x] 4.4 Make the `SessionStart` report name the plugin and its per-agent install command for each detected library. Verify the "Browser found" and "Nothing to suggest" scenarios, and that the hook still exits 0 on malformed input.
 
 ## 5. Installer
 

@@ -321,12 +321,17 @@ def _default_selection(args: argparse.Namespace, catalog: list[dict], selection:
     install takes rf-core plus what the project declares (spec plugin-split)."""
     opts = _opts_from_args(args)
     previous = _upgrade_selection(_manifest_path(opts), selection, opts.scope, catalog)
-    if previous:
-        console.print(f"[dim]plugins:[/dim] {', '.join(previous)} (upgrade: they cover what is installed; "
-                      "narrow with --plugins)")
-        return previous
     project = opts.project_dir if opts.project_dir is not None else Path.cwd()
     found = _detect.detect(project, catalog)
+    if previous:
+        # Keep everything installed; add the plugins for libraries the project
+        # declares since (the SessionStart report points users here).
+        added = [n for n in found.plugins if found.detected and n not in previous]
+        chosen = [p["name"] for p in catalog if p["name"] in previous or p["name"] in added]
+        note = f"; adds {', '.join(added)} for the project's libraries" if added else ""
+        console.print(f"[dim]plugins:[/dim] {', '.join(chosen)} (upgrade: they cover what is installed{note}; "
+                      "narrow with --plugins)")
+        return chosen
     if found.detected:
         why = "; ".join(f"{name}: {', '.join(f'{pkg} ({src})' for pkg, src in pkgs)}"
                         for name, pkgs in found.reasons.items())

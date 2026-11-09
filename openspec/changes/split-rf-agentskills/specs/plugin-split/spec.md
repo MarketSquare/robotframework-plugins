@@ -80,7 +80,7 @@ Without `--plugins`, and when the target has no earlier install, `robotframework
 
 ### Requirement: Upgrades from rf-agentskills 3.x keep file-mode installs intact
 
-An installer upgrade over a file-mode install made by `rf-agentskills` 0.8.0 or earlier SHALL, without `--plugins`, select every plugin that ships a skill the earlier install holds, so nothing the user had disappears. It SHALL leave the nine skill folders and three subagent files at their paths, record each file under the plugin that now ships it, move the hook and helper scripts from the `rf-agentskills-files` folder to the `rf-core-files` folder, rewrite the hook commands to the new paths, and remove the old folder. User-modified files SHALL be kept and reported, as for any upgrade.
+An installer upgrade over a file-mode install made by `rf-agentskills` 0.8.0 or earlier SHALL, without `--plugins`, select every plugin that ships a skill the earlier install holds, so nothing the user had disappears. It SHALL also add the verified plugins for the libraries the project now declares, so the command the `SessionStart` report suggests adds a missing plugin without removing others. It SHALL leave the nine skill folders and three subagent files at their paths, record each file under the plugin that now ships it, move the hook and helper scripts from the `rf-agentskills-files` folder to the `rf-core-files` folder, rewrite the hook commands to the new paths, and remove the old folder. User-modified files SHALL be kept and reported, as for any upgrade.
 
 #### Scenario: Claude Code file-mode upgrade
 - **WHEN** a project with a file-mode install of all nine skills from `rf-agentskills` 0.8.0 runs `robotframework-plugins install --agent claude-code --yes`

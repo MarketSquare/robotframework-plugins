@@ -31,10 +31,10 @@ if (!prompt) process.exit(0);
 //   - File extensions: .robot, .resource
 //   - Library names: SeleniumLibrary, Browser Library, AppiumLibrary,
 //     RequestsLibrary, RESTinstance, PlatynUI
-//   - rf-agentskills skill ids (one identifier in every channel): rf-setup,
-//     rf-language, rf-python-library, rf-browser, rf-selenium, rf-appium,
-//     rf-requests, rf-restinstance, rf-platynui
-//   - rf-agentskills subagent ids: rf-test-architect, rf-debug-expert,
+//   - skill ids of every Robot Framework plugin (rf-core and the technology
+//     plugins): rf-setup, rf-language, rf-python-library, rf-browser,
+//     rf-selenium, rf-appium, rf-requests, rf-restinstance, rf-platynui
+//   - rf-core subagent ids: rf-test-architect, rf-debug-expert,
 //     rf-migration-guide
 //   - Tooling: libdoc, robotidy, robocop, rfbrowser, robotcode,
 //     robot-debug, robot.toml
@@ -51,13 +51,15 @@ if (!RF_REGEX.test(prompt)) process.exit(0);
 
 // Routing text (<= 450 characters, ~80 tokens). Skill descriptions are already in
 // the agent's context and subagents are listed by the Task tool; what the model
-// lacks is which skill to load when. Names only shipped skills (tests check it).
+// lacks is which skill to load when. Names only rf-core skills and the
+// technology plugins (tests check it): a library skill may not be installed,
+// so library work routes generically and to installing its plugin.
 const CONTEXT = [
-  "Robot Framework context detected. Load the matching rf-agentskills skill before writing RF: ",
+  "Robot Framework context detected. Load the matching skill before writing RF: ",
   "tests, suites, keywords, resources, variables -> rf-language; ",
-  "Python libraries/listeners -> rf-python-library; ",
-  "library usage -> rf-<library> (defaults: rf-browser web, rf-requests API); installs -> rf-setup. ",
-  "Check keywords with `robotcode doc keyword`, not memory; results: `robotcode results`, not output.xml. ",
+  "Python libraries/listeners -> rf-python-library; installs -> rf-setup; ",
+  "a library -> its own skill; if missing, suggest its plugin (rf-web, rf-api, rf-mobile, rf-desktop). ",
+  "Keywords: `robotcode doc keyword`, not memory; results: `robotcode results`, not output.xml. ",
   "Write RF 7 syntax: RETURN, VAR, IF, Test Tags.",
 ].join("");
 

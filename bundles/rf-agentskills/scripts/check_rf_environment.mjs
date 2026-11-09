@@ -11,7 +11,8 @@
 // a missing, empty or malformed event produces no output. Install advice follows the rf-setup skill (project environment,
 // `uv add …`); it never recommends `pip install` or `rfbrowser init`.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   PROBE_TIMEOUT_MS,
   findInterpreterWith,
@@ -23,6 +24,43 @@ import {
 } from "./_python_env.mjs";
 
 const ROBOTCODE_MIN = "2.8";
+const MARKETPLACE = "robotframework-plugins";
+
+// Libraries a technology plugin covers (detection signals only; the install
+// steps live in each library's skill). Import name, label, plugin, skill.
+const LIBRARIES = [
+  ["Browser", "Browser Library", "rf-web", "rf-browser"],
+  ["SeleniumLibrary", "SeleniumLibrary", "rf-web", "rf-selenium"],
+  ["RequestsLibrary", "RequestsLibrary", "rf-api", "rf-requests"],
+  ["REST", "RESTinstance", "rf-api", "rf-restinstance"],
+  ["AppiumLibrary", "AppiumLibrary", "rf-mobile", "rf-appium"],
+  ["PlatynUI", "PlatynUI", "rf-desktop", "rf-platynui"],
+];
+
+// Whether the skill is already there: in this plugin tree (the rf-agentskills
+// bundle, or a file-mode install's support folder next to the skills), or in
+// a sibling plugin of the same marketplace cache. Best effort; unknown = no.
+function skillPresent(plugin, skill) {
+  const root = process.env.CLAUDE_PLUGIN_ROOT;
+  if (!root) return false;
+  const candidates = [
+    join(root, "skills", skill),
+    join(root, "..", "skills", skill),
+    join(root, "..", plugin, "skills", skill),
+    join(root, "..", "..", plugin),
+  ];
+  return candidates.some((p) => existsSync(p));
+}
+
+// The command that installs a plugin in the agent running this hook, judged by
+// where the agent put the plugin; a file-mode install gets the installer.
+function installCommand(plugin) {
+  const root = (process.env.CLAUDE_PLUGIN_ROOT ?? "").replace(/\\/g, "/");
+  if (root.includes("/.copilot/")) return `copilot plugin install ${plugin}@${MARKETPLACE}`;
+  if (root.includes("/.codex/")) return `codex plugin add ${plugin}@${MARKETPLACE}`;
+  if (root.includes("/.claude/plugins/")) return `/plugin install ${plugin}@${MARKETPLACE}`;
+  return "uvx robotframework-plugins install (adds the plugins for the libraries the project declares)";
+}
 
 // Missing, empty or malformed event -> no output (the hook never blocks).
 let event = null;
@@ -36,13 +74,6 @@ const cwd = projectRoot(event);
 
 const found = [];
 const missing = [];
-
-function commandExists(cmd) {
-  const probe = process.platform === "win32"
-    ? spawnSync("where", [cmd], { ...spawnOptions(PROBE_TIMEOUT_MS), stdio: "ignore" })
-    : spawnSync("sh", ["-c", `command -v ${cmd}`], { ...spawnOptions(PROBE_TIMEOUT_MS), stdio: "ignore" });
-  return probe.status === 0;
-}
 
 function pythonImportExists(py, importName) {
   if (!py) return false;
@@ -78,7 +109,7 @@ if (rfOk) {
 process.stderr.write(`  Robot Framework version: ${rfVersion}\n`);
 if (py) process.stderr.write(`  Interpreter: ${py}\n`);
 
-process.stderr.write("\nrobotcode (required by rf-agentskills):\n");
+process.stderr.write("\nrobotcode (required by rf-core):\n");
 const rc = findRobotcode(cwd, { withVersion: true });
 const rcOk = rc !== null && versionAtLeast(rc.version, ROBOTCODE_MIN);
 check(rcOk, `robotcode[all]>=${ROBOTCODE_MIN}`);
@@ -103,17 +134,27 @@ process.stderr.write(
         "(it comes with robotcode[all])\n",
 );
 
-process.stderr.write("\nWeb Testing:\n");
-check(pythonImportExists(py, "Browser"), "robotframework-browser (Browser Library)");
-check(pythonImportExists(py, "SeleniumLibrary"), "robotframework-seleniumlibrary");
-
-process.stderr.write("\nAPI Testing:\n");
-check(pythonImportExists(py, "RequestsLibrary"), "robotframework-requests");
-check(pythonImportExists(py, "REST"), "RESTinstance");
-
-process.stderr.write("\nMobile Testing:\n");
-check(pythonImportExists(py, "AppiumLibrary"), "robotframework-appiumlibrary");
-check(commandExists("appium"), "appium");
+// Test libraries: report the ones the project has, and the plugin for each.
+const plugins = new Map();
+for (const [importName, label, plugin, skill] of LIBRARIES) {
+  if (pythonImportExists(py, importName)) {
+    found.push(label);
+    if (!plugins.has(plugin)) plugins.set(plugin, { labels: [], present: true });
+    const entry = plugins.get(plugin);
+    entry.labels.push(label);
+    entry.present = entry.present && skillPresent(plugin, skill);
+  }
+}
+if (plugins.size) {
+  process.stderr.write("\nTest libraries and their plugins:\n");
+  for (const [plugin, { labels, present }] of plugins) {
+    process.stderr.write(
+      present
+        ? `  ${labels.join(", ")}: covered by plugin ${plugin} (installed)\n`
+        : `  ${labels.join(", ")}: covered by plugin ${plugin}, not installed. Install: ${installCommand(plugin)}\n`,
+    );
+  }
+}
 
 process.stderr.write("\n--- Summary ---\n");
 if (found.length) {
@@ -123,12 +164,14 @@ if (missing.length) {
   process.stderr.write(`Not installed: ${missing.join(", ")}\n`);
   process.stderr.write(
     "\nInstall only what the project needs, into the project environment. " +
-      "See the rf-setup skill for the full steps (uv, venv, poetry; Browser needs Node.js):\n",
+      "See the rf-setup skill for the full steps (uv, venv, poetry):\n",
   );
   process.stderr.write("  uv add robotframework                        # core\n");
   process.stderr.write("  uv add --dev \"robotcode[all]>=2.8\"         # required: robotcode CLI + Robocop\n");
-  process.stderr.write("  uv add robotframework-requests               # API (default)\n");
-  process.stderr.write("  uv add \"robotframework-browser[bb]\"          # web (default; see rf-setup)\n");
+  process.stderr.write(
+    "  Test libraries: the library's own skill gives its install steps " +
+      "(plugins rf-web, rf-api, rf-mobile, rf-desktop).\n",
+  );
 } else {
   process.stderr.write("All checked packages are installed.\n");
 }

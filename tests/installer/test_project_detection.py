@@ -97,6 +97,17 @@ def test_upgrade_keeps_what_is_installed(fake_home: Path, tmp_path: Path, capsys
     assert "upgrade" in " ".join(capsys.readouterr().out.split())
 
 
+def test_upgrade_adds_a_newly_declared_library(fake_home: Path, tmp_path: Path) -> None:
+    project = tmp_path / "proj"
+    project.mkdir()
+    prefix = tmp_path / "root"
+    args = ["install", "--agent", "claude-code", "--project", str(project), "--prefix", str(prefix), "--yes"]
+    assert main([*args, "--plugins", "rf-core,rf-api"]) == 0
+    (project / "requirements.txt").write_text("robotframework-browser\n")
+    assert main(args) == 0
+    assert _recorded_plugins(tmp_path) == {"rf-core", "rf-api", "rf-web"}
+
+
 def test_plugin_mode_upgrade_keeps_the_bundle(fake_home: Path, tmp_path: Path) -> None:
     """Settings that enable rf-agentskills keep it enabled: the bundle still installs everything."""
     project = tmp_path / "proj"

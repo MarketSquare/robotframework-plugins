@@ -148,8 +148,12 @@ def test_inject_fires_on_rf_signals(prompt: str) -> None:
     assert rc == 0
     payload = _expect_injection(out)
     ctx = payload["additionalContext"]
-    # The injected context names the rf-agentskills, so callers can spot it.
-    assert "rf-agentskills" in ctx
+    # Library work routes to the technology plugins, never to a skill that
+    # may not be installed (rf-session-context-hooks, split-rf-agentskills).
+    for plugin in ("rf-web", "rf-api", "rf-mobile", "rf-desktop"):
+        assert plugin in ctx, plugin
+    for library_skill in ("rf-browser", "rf-selenium", "rf-requests", "rf-restinstance", "rf-appium", "rf-platynui"):
+        assert library_skill not in ctx, library_skill
     assert "robotcode doc keyword" in ctx and "robotcode results" in ctx
     assert "libdoc-search" not in ctx and "libdoc-explain" not in ctx
     assert "rf-libdoc" not in ctx and "rf-robotcode" not in ctx and "rf-results" not in ctx
@@ -174,15 +178,18 @@ INJECTION_BUDGET = 450
 
 
 def _catalog_names() -> set[str]:
+    """rf-core's skills and subagents (the plugin that ships the hook) and the
+    names of the catalogue plugins (rf-session-context-hooks, "Injection names
+    only shipped skills")."""
     skills = {p.name for p in (PLUGIN_ROOT / "skills").iterdir() if p.is_dir()}
     agents = {p.stem for p in (PLUGIN_ROOT / "agents").glob("*.md")}
-    return skills | agents
+    plugins = {p.name for p in PLUGIN_ROOT.parent.iterdir() if (p / "catalog.yaml").is_file()}
+    return skills | agents | plugins
 
 
 def test_injected_context_names_only_shipped_skills() -> None:
-    """modernize-plugin-agents-and-hooks D10: every rf-* token in the injected
-    text is a plugin skill dir or agent file (the plugin name and the
-    ``rf-<library>`` placeholder excepted); no retired name appears."""
+    """Every rf-* token in the injected text is an rf-core skill dir or agent
+    file, or a catalogue plugin; no retired name appears."""
     import re
 
     out, _err, rc = _run(INJECT_SCRIPT, {"prompt": "Write a Robot Framework login test"})
@@ -190,7 +197,7 @@ def test_injected_context_names_only_shipped_skills() -> None:
     ctx = _expect_injection(out)["additionalContext"]
     for retired in RETIRED_SKILLS:
         assert retired not in ctx
-    tokens = set(re.findall(r"\brf-[a-z][a-z-]*[a-z]\b", ctx)) - {"rf-agentskills"}
+    tokens = set(re.findall(r"\brf-[a-z][a-z-]*[a-z]\b", ctx))
     assert tokens, ctx
     assert tokens <= _catalog_names(), tokens - _catalog_names()
     assert "robotframework-" not in ctx
@@ -293,14 +300,14 @@ def test_subagents_route_language_work_to_rf_language() -> None:
 
 
 def test_injected_context_states_skill_boundaries() -> None:
-    """The routing text keeps the description boundaries (sharpen-skill-descriptions
-    D2, user decision 1): rf-browser / rf-requests are the defaults, installs go to
-    rf-setup, library usage goes to the matching library skill."""
+    """The routing text keeps the boundaries: installs go to rf-setup; library
+    usage goes to the library's own skill without naming it, since that skill
+    ships in a technology plugin that may not be installed (split-rf-agentskills
+    D3). The Browser and RequestsLibrary defaults live in the skill descriptions."""
     out, _err, rc = _run(INJECT_SCRIPT, {"prompt": "Write a Robot Framework login test"})
     assert rc == 0
     ctx = _expect_injection(out)["additionalContext"]
-    assert "library usage -> rf-<library>" in ctx
-    assert "defaults: rf-browser web, rf-requests API" in ctx
+    assert "a library -> its own skill; if missing, suggest its plugin (rf-web, rf-api, rf-mobile, rf-desktop)" in ctx
     assert "installs -> rf-setup" in ctx
 
 
@@ -1193,6 +1200,83 @@ def test_check_rf_environment_uses_project_venv(tmp_path: Path) -> None:
     _out, err, rc = _run(CHECK_ENV_SCRIPT, {"cwd": str(tmp_path)}, env=env)
     assert rc == 0
     assert f"Interpreter: {venv_py}" in err
+
+
+def _fake_venv(project: Path, importable: set[str]) -> None:
+    """``<project>/.venv/bin/python`` that imports only ``importable`` (POSIX shim)."""
+    import stat
+    py = project / ".venv" / "bin" / "python"
+    py.parent.mkdir(parents=True)
+    cases = " ".join(f'"import {m}"' for m in sorted(importable))
+    py.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = "-c" ]; then\n'
+        f'  for ok in {cases}; do [ "$2" = "$ok" ] && exit 0; done\n'
+        '  case "$2" in *robot.version*) echo 7.3; exit 0;; esac\n'
+        "fi\nexit 1\n",
+        encoding="utf-8",
+    )
+    py.chmod(py.stat().st_mode | stat.S_IEXEC)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="fake POSIX python shim")
+def test_check_rf_environment_names_the_plugin_of_a_found_library(tmp_path: Path) -> None:
+    """Browser found: the report says rf-web covers it, with Claude Code's install command."""
+    _fake_venv(tmp_path, {"robot", "Browser"})
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    env["CLAUDE_PLUGIN_ROOT"] = str(tmp_path / "home" / ".claude" / "plugins" / "cache" / "robotframework-plugins"
+                                    / "rf-core" / "1.0.0")
+    _out, err, rc = _run(CHECK_ENV_SCRIPT, {"cwd": str(tmp_path)}, env=env)
+    assert rc == 0
+    assert "Browser Library: covered by plugin rf-web, not installed." in err
+    assert "/plugin install rf-web@robotframework-plugins" in err
+    # One line names the plugin (the "Not installed" hint lists all four generically).
+    assert len([ln for ln in err.splitlines() if "rf-web" in ln and "(plugins rf-web," not in ln]) == 1
+    for other in ("rf-api@", "rf-mobile@", "rf-desktop@"):
+        assert other not in err
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="fake POSIX python shim")
+@pytest.mark.parametrize(
+    ("cache", "command"),
+    [
+        (".copilot/installed-plugins/robotframework-plugins/rf-core", "copilot plugin install rf-api@robotframework-plugins"),
+        (".codex/plugins/cache/robotframework-plugins/rf-core/1.0.0", "codex plugin add rf-api@robotframework-plugins"),
+        (".claude/rf-core-files", "uvx robotframework-plugins install"),
+    ],
+)
+def test_check_rf_environment_install_command_per_agent(tmp_path: Path, cache: str, command: str) -> None:
+    _fake_venv(tmp_path, {"robot", "RequestsLibrary"})
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    env["CLAUDE_PLUGIN_ROOT"] = str(tmp_path / "home" / cache)
+    _out, err, rc = _run(CHECK_ENV_SCRIPT, {"cwd": str(tmp_path)}, env=env)
+    assert rc == 0 and command in err, err
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="fake POSIX python shim")
+def test_check_rf_environment_installed_plugin_needs_no_suggestion(tmp_path: Path) -> None:
+    """The bundle (or a sibling rf-web) already has the skill: no install command."""
+    _fake_venv(tmp_path, {"robot", "Browser"})
+    bundle = tmp_path / "cache" / "robotframework-plugins" / "rf-agentskills" / "4.0.0"
+    (bundle / "skills" / "rf-browser").mkdir(parents=True)
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    env["CLAUDE_PLUGIN_ROOT"] = str(bundle)
+    _out, err, rc = _run(CHECK_ENV_SCRIPT, {"cwd": str(tmp_path)}, env=env)
+    assert rc == 0
+    assert "Browser Library: covered by plugin rf-web (installed)" in err
+    assert "plugin install" not in err
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="fake POSIX python shim")
+def test_check_rf_environment_nothing_to_suggest(tmp_path: Path) -> None:
+    """Robot Framework and no library a plugin covers: no technology plugin is named."""
+    _fake_venv(tmp_path, {"robot"})
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    env["CLAUDE_PLUGIN_ROOT"] = str(tmp_path / ".claude" / "plugins" / "cache" / "m" / "rf-core" / "1.0.0")
+    _out, err, rc = _run(CHECK_ENV_SCRIPT, {"cwd": str(tmp_path)}, env=env)
+    assert rc == 0
+    assert "Test libraries and their plugins" not in err
+    assert "plugin install" not in err and "covered by plugin" not in err
 
 
 # --- validate_robot_project.mjs (Stop tier, opt-in) -----------------------
