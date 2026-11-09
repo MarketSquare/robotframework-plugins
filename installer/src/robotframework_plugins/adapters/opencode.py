@@ -13,9 +13,9 @@ Layout produced:
 * ``<root>/skills/<name>/`` (+ subtree)   — verbatim SKILL.md copy
 * ``<root>/agents/<name>.md``             — the generated OpenCode subagent
                                             variant (``mode: subagent``)
-* ``<root>/plugins/rf-agentskills.js``    — generated JS plugin that runs the
+* ``<root>/plugins/rf-core.js``          — generated JS plugin that runs the
                                             shared hook scripts on OpenCode events
-* ``<root>/rf-agentskills-files/scripts/`` — those hook scripts (the plugin
+* ``<root>/rf-core-files/scripts/``      — those hook scripts (the plugin
                                             resolves them relative to itself)
 
 User scope: ``~/.config/opencode/``. Project scope: ``<project>/.opencode/``.
@@ -120,7 +120,7 @@ class OpenCodeAdapter(AdapterBase):
     def _hook_targets(
         variants: Path, src_root: Path, root: Path, plugin_dst: Path
     ) -> Iterable[InstallTarget]:
-        plugin_js = variants / "plugins" / "rf-agentskills.js"
+        plugin_js = variants / "plugins" / f"{plugin_dst.name.removesuffix('-files')}.js"
         if not plugin_js.is_file():
             return
         yield InstallTarget(
@@ -150,7 +150,7 @@ class OpenCodeAdapter(AdapterBase):
         notes = ["OpenCode picks up skills and subagents on next session."]
         if "hooks" in opts.what:
             notes.append(
-                "Hooks run through plugins/rf-agentskills.js (needs `node` on PATH): "
+                "Hooks run through plugins/rf-core.js (needs `node` on PATH): "
                 ".robot/.resource validation after edits, Robot Framework error hints "
                 "after shell commands, and an environment report in the first tool "
                 "output. The prompt-context and end-of-task reminder hooks have no "

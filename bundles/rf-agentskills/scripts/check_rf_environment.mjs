@@ -9,7 +9,8 @@
 // VIRTUAL_ENV -> <cwd>/.venv -> python_runtime.json -> python3/python. The
 // SessionStart event's `cwd` selects the project (process cwd when it has none);
 // a missing, empty or malformed event produces no output. Install advice follows the rf-setup skill (project environment,
-// `uv add …`); it never recommends `pip install` or `rfbrowser init`.
+// `uv add …`); it never recommends `pip install`, and leaves library post-install steps to
+// the library's own skill.
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";

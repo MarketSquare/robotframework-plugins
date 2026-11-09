@@ -338,7 +338,7 @@ def test_opencode_e2e_hook_plugin_round_trip(
     rc = main(["install", "--agent", "opencode", "--prefix", str(install_prefix)])
     assert rc == 0
     assert not (install_prefix / "opencode.json").exists()  # no MCP config
-    assert (install_prefix / "plugins" / "rf-agentskills.js").is_file()
+    assert (install_prefix / "plugins" / "rf-core.js").is_file()
     scripts = install_prefix / "rf-core-files" / "scripts"
     for name in ("validate_robot.mjs", "_hook_input.mjs", "_python_env.mjs", "rf_error_hints.mjs",
                  "check_rf_environment.mjs", "python_runtime.json"):

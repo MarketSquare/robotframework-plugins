@@ -9,7 +9,7 @@
 
 ## Drivers and Selenium Manager
 
-Selenium ≥ 4.6 ships Selenium Manager. On the first `Open Browser` it finds the installed browser, downloads the matching driver (chromedriver, geckodriver, msedgedriver) and caches it in `~/.cache/selenium` (`SE_CACHE_PATH` moves the cache, for example into a CI cache directory). Nothing goes on `PATH` and no helper library is needed. Offline or locked-down machines: see rf-setup.
+Selenium ≥ 4.6 ships Selenium Manager. On the first `Open Browser` it finds the installed browser, downloads the matching driver (chromedriver, geckodriver, msedgedriver) and caches it in `~/.cache/selenium` (`SE_CACHE_PATH` moves the cache, for example into a CI cache directory). Nothing goes on `PATH` and no helper library is needed. Offline or locked-down machines: see rf-setup (plugin rf-core).
 
 ## Browser names
 
@@ -100,4 +100,4 @@ steps:
   - run: uv run robot --variable BROWSER:headlesschrome tests/
 ```
 
-Other CI systems (GitLab services, Jenkins) follow the same shape; see rf-setup for CI setup.
+Other CI systems (GitLab services, Jenkins) follow the same shape; see rf-setup (plugin rf-core) for CI setup.

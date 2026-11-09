@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Each section starts from the error text or symptom, then gives the cause and the fix. Environment problems (wrong interpreter, library not importable, `robot` not found, PEP 668 errors) are covered by **rf-setup**.
+Each section starts from the error text or symptom, then gives the cause and the fix. Environment problems (wrong interpreter, library not importable, `robot` not found, PEP 668 errors) are covered by **rf-setup** (plugin rf-core).
 
 - strict mode violation: selector resolved to N elements
 - TimeoutError … waiting for locator

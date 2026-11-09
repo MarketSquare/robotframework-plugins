@@ -22,16 +22,16 @@ Load this skill first, before exploring the project or answering from memory, wh
 - writing or fixing a SeleniumLibrary test: browser options, `id:`/`css:`/`xpath:` locators, explicit waits, hover menus, frames, windows, alerts, JavaScript;
 - a WebDriver exception in a robot run (element not found, click intercepted, stale element), or the user mentions SeleniumLibrary, WebDriver, chromedriver or Selenium Grid.
 
-Not this skill: Browser Library/Playwright suites, or new web tests with no library chosen, use `rf-browser`; installing SeleniumLibrary or a driver uses `rf-setup`.
+Not this skill: Browser Library/Playwright suites, or new web tests with no library chosen, use `rf-browser`; installing SeleniumLibrary or a driver uses `rf-setup` (plugin `rf-core`).
 
 ## Installation
 
-Install into the project environment (see **rf-setup** for uv/venv/Poetry, CI and troubleshooting; follow the project's existing tool):
+Install into the project environment, with the tool the project already uses. Full steps and verification: `references/install.md`. For a new environment, Poetry and venv + pip forms, and troubleshooting, see `rf-setup` (plugin `rf-core`).
 
 ```bash
 uv add robotframework-seleniumlibrary
 ```
-A real browser (Chrome, Firefox, Edge) must be installed; Selenium Manager (bundled with Selenium ≥ 4.6) fetches the matching driver on first use. No driver downloads or PATH setup. Offline/air-gapped machines: see rf-setup.
+A real browser (Chrome, Firefox, Edge) must be installed; Selenium Manager (bundled with Selenium ≥ 4.6) fetches the matching driver on first use. No driver downloads or PATH setup. Offline or air-gapped machines: see `references/install.md`.
 
 ## Import and defaults
 
@@ -102,6 +102,7 @@ Keyword names and arguments: `robotcode doc keywords SeleniumLibrary "wait until
 
 | Read | When |
 |---|---|
+| `references/install.md` | installing the library, its post-install steps, verifying the install, or a failed post-install step |
 | `references/browser-setup.md` | you need browser options, window size, Selenium Grid (`remote_url`), `Create Webdriver`, or CI flags |
 | `references/waiting-strategies.md` | a test is flaky, you need a count or custom wait, or you tune timeouts |
 | `references/locators.md` | a locator does not match, or you need chaining, `Add Location Strategy` or WebElement arguments |
@@ -116,7 +117,7 @@ Examples in `assets/examples/`: `basic-web-test.robot` (navigation, forms, asser
 | Need | Skill |
 |------|-------|
 | Web UI tests with Browser Library (Playwright) | `rf-browser` |
-| Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
+| Install Robot Framework or a library, fix the environment | `rf-setup` (plugin `rf-core`) |
+| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` (plugin `rf-core`) |
 
 For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Organised by the message you see. Environment problems (Node.js, Appium server or driver install, Android SDK, Xcode) belong to rf-setup.
+Organised by the message you see. Environment problems (Node.js, Appium server or driver install, Android SDK, Xcode) belong to rf-setup (plugin rf-core).
 
 - Connection refused or "Max retries exceeded"
 - "The requested resource could not be found" on session start

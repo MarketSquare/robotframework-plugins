@@ -26,11 +26,11 @@ uv run robotcode discover info                          # Python, RF and robotco
 **Cause:** Debian/Ubuntu split `venv`/`ensurepip` into a separate OS package.
 **Fix:** `sudo apt install python3.12-venv`, or use uv (`uv venv --python 3.12`, or `uv python install 3.12` then create the venv with that interpreter).
 
-## `rfbrowser` not found / Browser not initialised
+## A library's post-install step failed
 
-**Symptom:** `rfbrowser: command not found`, or tests fail with `Could not connect to the playwright process`, `Executable doesn't exist at …/chromium…`, or `Browser library … node dependencies are not installed`.
-**Cause:** `rfbrowser` lives in the project env's scripts folder and isn't on PATH; or the post-install step was never run for this environment (a fresh `.venv` has no browsers).
-**Fix:** run it through the env: `uv run rfbrowser install chromium` (with `[bb]`) or `uv run rfbrowser init chromium` (with Node). Fallback: `uv run python -m Browser.entry install chromium`. With Node 26/npm 12, approve the pending post-install scripts (`npm approve-scripts --allow-scripts-pending`) and run init again.
+**Symptom:** the Python package imports, but the library can't start: for example `rfbrowser: command not found`, missing browser binaries, or the Appium server or drivers are missing.
+**Cause:** a post-install step outside the Python package never ran for this environment.
+**Fix:** follow `references/install.md` of the library's skill (Browser: `rf-browser`, plugin `rf-web`; Appium: `rf-appium`, plugin `rf-mobile`). Run every console script through the environment (`uv run …`).
 
 ## Python too old for a library
 

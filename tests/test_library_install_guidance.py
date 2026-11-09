@@ -90,7 +90,7 @@ def setup_install_commands() -> dict[str, list[str]]:
         if len(cells) != 4 or not cells[1].startswith("`uv add"):
             continue
         cmd = cells[1].strip("`")
-        skill = cells[3].strip("`")
+        skill = re.search(r"`(rf-[a-z-]+)`", cells[3]).group(1)
         table.setdefault(skill, []).append(cmd)
     return table
 
@@ -143,6 +143,46 @@ def test_setup_table_parsed():
     table = setup_install_commands()
     for key in LIBRARY_KEYS:
         assert table.get(f"rf-{key}"), f"rf-setup Step 4 has no row for rf-{key}"
+
+
+def test_setup_table_names_skill_and_plugin():
+    """setup-skill: one row per library, naming its skill and that skill's plugin."""
+    body = section(SETUP_SKILL_MD.read_text(encoding="utf-8"), r"Step 4")
+    rows = [ln for ln in body.splitlines() if ln.startswith("| ") and "`uv add" in ln]
+    assert len(rows) == len(LIBRARY_KEYS), rows
+    for key in LIBRARY_KEYS:
+        skill = f"rf-{key}"
+        (row,) = [r for r in rows if f"`{skill}`" in r]
+        plugin = skill_dir(skill).parent.parent.name
+        assert f"`{skill}` (plugin `{plugin}`)" in row, row
+    browser = next(r for r in rows if "`rf-browser`" in r)
+    assert "rfbrowser install" in browser and "rfbrowser init" in browser and "Node.js" in browser
+
+
+@pytest.mark.parametrize("key", LIBRARY_KEYS)
+def test_library_skill_has_install_reference(key):
+    """library-skill-install-guidance: the full steps live in references/install.md,
+    linked from the Installation block, which names rf-setup and its plugin."""
+    d = skill_dir(f"rf-{key}")
+    install = d / "references" / "install.md"
+    assert install.is_file(), install
+    body = section((d / "SKILL.md").read_text(encoding="utf-8"), r"Installation")
+    assert "`references/install.md`" in body
+    assert "`rf-setup` (plugin `rf-core`)" in body
+    assert "`rf-setup` (plugin `rf-core`)" in install.read_text(encoding="utf-8")
+
+
+def test_browser_install_reference_has_both_paths():
+    """setup-skill "Browser has both install paths": the rf-browser reference."""
+    text = (skill_dir("rf-browser") / "references" / "install.md").read_text(encoding="utf-8")
+    assert 'uv add "robotframework-browser[bb]"' in text and "rfbrowser install" in text
+    assert "uv add robotframework-browser" in text and "rfbrowser init" in text
+    assert "Node 22, 24 or 26 LTS" in text and "Browser.entry" in text
+
+
+def test_appium_install_reference_has_the_drivers():
+    text = (skill_dir("rf-appium") / "references" / "install.md").read_text(encoding="utf-8")
+    assert "appium driver install uiautomator2" in text and "appium driver install xcuitest" in text
 
 
 @pytest.mark.parametrize("chan,key", PARAMS)

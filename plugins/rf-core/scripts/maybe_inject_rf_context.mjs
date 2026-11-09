@@ -31,9 +31,9 @@ if (!prompt) process.exit(0);
 //   - File extensions: .robot, .resource
 //   - Library names: SeleniumLibrary, Browser Library, AppiumLibrary,
 //     RequestsLibrary, RESTinstance, PlatynUI
-//   - skill ids of every Robot Framework plugin (rf-core and the technology
-//     plugins): rf-setup, rf-language, rf-python-library, rf-browser,
-//     rf-selenium, rf-appium, rf-requests, rf-restinstance, rf-platynui
+//   - skill ids: rf-setup, rf-language, rf-python-library (rf-core);
+//     rf-browser, rf-selenium (rf-web); rf-requests, rf-restinstance (rf-api);
+//     rf-appium (rf-mobile); rf-platynui (rf-desktop)
 //   - rf-core subagent ids: rf-test-architect, rf-debug-expert,
 //     rf-migration-guide
 //   - Tooling: libdoc, robotidy, robocop, rfbrowser, robotcode,

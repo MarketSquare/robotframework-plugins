@@ -15,20 +15,20 @@ Routing. Load a skill before you write the part it owns; do not write from memor
 
 ### Web library selection
 
-Choose **Browser** (`rf-browser`, the default for new web tests) when the project needs
+Choose **Browser** (`rf-browser` in plugin `rf-web`, the default for new web tests) when the project needs
 Playwright features: auto-waiting, network interception, shadow DOM or iframes through
 selectors, several browser contexts, or the built-in assertion engine.
 
-Choose **SeleniumLibrary** (`rf-selenium`) when the team already runs Selenium or a
+Choose **SeleniumLibrary** (`rf-selenium` in plugin `rf-web`) when the team already runs Selenium or a
 WebDriver grid / cloud service, depends on Selenium plugins, or must keep existing
 SeleniumLibrary suites.
 
 ### API library selection
 
-Choose **RequestsLibrary** (`rf-requests`, the default for API tests) for explicit HTTP
+Choose **RequestsLibrary** (`rf-requests` in plugin `rf-api`, the default for API tests) for explicit HTTP
 control: sessions, form data, file uploads, XML, and assertions on the response object.
 
-Choose **RESTinstance** (`rf-restinstance`) when JSON Schema or OpenAPI contract checks
+Choose **RESTinstance** (`rf-restinstance` in plugin `rf-api`) when JSON Schema or OpenAPI contract checks
 are central and typed field assertions (`Integer`, `String`) fit the responses.
 
 ### Project layout
@@ -51,7 +51,7 @@ python-path belong to `rf-setup`.
 
 1. Test cases read as business steps ("User Can Complete Purchase").
 2. Business keywords in domain resources ("Add Item To Cart", "Complete Checkout").
-3. Technical keywords wrap library calls ("Click", "Fill Text", "POST On Session").
+3. Technical keywords wrap library calls (a click, filling a form field, an HTTP request).
 
 ## Routing
 
@@ -60,11 +60,14 @@ python-path belong to `rf-setup`.
 | Suites, test cases, `__init__.robot`, tags, templates, user keywords, resource and variable files | `rf-language` |
 | Project keyword libraries and listeners in Python (`libraries/*.py`), checked with its library checker | `rf-python-library` |
 | Installing RF and libraries, project layout mechanics, `robot.toml`, python-path | `rf-setup` |
-| Web tests with Browser / SeleniumLibrary | `rf-browser` / `rf-selenium` |
-| API tests with RequestsLibrary / RESTinstance | `rf-requests` / `rf-restinstance` |
-| Mobile and desktop tests | `rf-appium` / `rf-platynui` |
+| Web tests with Browser / SeleniumLibrary | `rf-browser` / `rf-selenium` (plugin `rf-web`) |
+| API tests with RequestsLibrary / RESTinstance | `rf-requests` / `rf-restinstance` (plugin `rf-api`) |
+| Mobile tests | `rf-appium` (plugin `rf-mobile`) |
+| Desktop tests | `rf-platynui` (plugin `rf-desktop`) |
 | Keyword names and arguments | `robotcode doc keyword <Library> "<Keyword>"` |
 | Running, reading results, stepping through a test | `robotcode robot -bl`, `robotcode results`, `robotcode robot-debug` (robotcode plugin) |
+
+A library skill ships in a technology plugin that may not be installed. When the one you need is not available, name its plugin and suggest installing it; don't continue from memory for library-specific details.
 
 ## Workflow
 

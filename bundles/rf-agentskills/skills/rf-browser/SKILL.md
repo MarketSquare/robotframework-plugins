@@ -21,11 +21,11 @@ Load this skill first, before exploring the project or answering from memory, wh
 - a click or selector times out (`TimeoutError: locator.click`), or the user mentions Browser Library, Playwright or rfbrowser, even if they only say "browser lib";
 - a new web test with no library chosen yet: Browser Library is the default.
 
-Not this skill: suites that import SeleniumLibrary or run on WebDriver/Selenium Grid use `rf-selenium`; installing the library or errors in its Node.js `rfbrowser init` step use `rf-setup`.
+Not this skill: suites that import SeleniumLibrary or run on WebDriver/Selenium Grid use `rf-selenium`; installing the library or errors in its Node.js `rfbrowser init` step use `rf-setup` (plugin `rf-core`).
 
 ## Installation
 
-Install into the project environment (see **rf-setup** for uv/venv/Poetry, CI and troubleshooting; follow the project's existing tool):
+Install into the project environment, with the tool the project already uses. Full steps and verification: `references/install.md`. For a new environment, Poetry and venv + pip forms, and troubleshooting, see `rf-setup` (plugin `rf-core`).
 
 ```bash
 uv add "robotframework-browser[bb]"
@@ -109,6 +109,8 @@ Prefer, in order: test ids (`[data-testid="save"]`), accessible roles (`role=but
 
 | Read | When |
 |---|---|
+| `references/install.md` | installing the library, its post-install steps, verifying the install, or a failed post-install step |
+| `references/migrate-from-selenium.md` | a suite moves from SeleniumLibrary to Browser: the keyword map |
 | `references/locators.md` | a selector is ambiguous, brittle, or needs chaining, `nth=`, `:has()` or role selectors |
 | `references/assertion-engine.md` | you need an operator other than `==`/`contains`, `validate`, or custom wait logic |
 | `references/browser-context-page.md` | several browsers, contexts or users; popups and tabs; video/tracing; closing levels |
@@ -124,7 +126,7 @@ Examples in `assets/examples/`: `basic-web-test.robot`, `form-handling.robot`, `
 | Need | Skill |
 |------|-------|
 | Web UI tests with SeleniumLibrary (WebDriver) | `rf-selenium` |
-| Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
+| Install Robot Framework or a library, fix the environment | `rf-setup` (plugin `rf-core`) |
+| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` (plugin `rf-core`) |
 
 For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

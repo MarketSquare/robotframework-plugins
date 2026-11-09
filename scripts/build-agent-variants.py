@@ -9,7 +9,7 @@ Two need their own formats, generated from the canonical sources in
             developer_instructions) - Codex plugins cannot ship subagents.
 * OpenCode: ``variants/opencode/agents/<name>.md`` (``mode: subagent``, and a
             ``permission`` block mapped from the Claude ``tools`` list) and
-            ``variants/opencode/plugins/rf-agentskills.js``, a JS plugin that
+            ``variants/opencode/plugins/rf-core.js``, a JS plugin that
             runs the same hook scripts on OpenCode events.
 
 Usage::
@@ -104,7 +104,7 @@ def opencode_agent(md: Path) -> str:
     )
 
 
-def opencode_plugin(hooks_json: Path) -> str:
+def opencode_plugin(hooks_json: Path, support_dir: str) -> str:
     hooks = json.loads(hooks_json.read_text(encoding="utf-8"))["hooks"]
     ported: dict[str, str] = {}
     not_ported: list[str] = []
@@ -127,6 +127,7 @@ def opencode_plugin(hooks_json: Path) -> str:
         .replace("__SHELL_SCRIPT__", ported.get("shell", ""))
         .replace("__SESSION_SCRIPT__", ported.get("session", ""))
         .replace("__NOT_PORTED__", "\n".join(f"//   {x}" for x in sorted(not_ported)) or "//   (none)")
+        .replace("__SUPPORT_DIR__", support_dir)
     )
 
 
@@ -136,7 +137,9 @@ def build(plugin: Path) -> dict[str, str]:
     for md in sorted((plugin / "agents").glob("*.md")):
         out[f"variants/codex/agents/{md.stem}.toml"] = codex_agent(md)
         out[f"variants/opencode/agents/{md.name}"] = opencode_agent(md)
-    out["variants/opencode/plugins/rf-agentskills.js"] = opencode_plugin(plugin / "hooks" / "hooks.json")
+    # Named after the plugin; it runs the scripts from <root>/<plugin>-files/.
+    out[f"variants/opencode/plugins/{plugin.name}.js"] = opencode_plugin(plugin / "hooks" / "hooks.json",
+                                                                       f"{plugin.name}-files")
     return out
 
 

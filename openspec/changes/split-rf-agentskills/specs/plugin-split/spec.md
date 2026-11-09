@@ -60,7 +60,7 @@ Every technology plugin SHALL declare `rf-core` as a dependency in its `plugin.j
 
 ### Requirement: Content names the plugin of a skill it does not ship
 
-Text in a plugin that names a skill shipped by another plugin SHALL also name that plugin, for example "`rf-browser` (plugin `rf-web`)". Where `rf-core` text routes work to a technology skill, it SHALL tell the agent to suggest installing the plugin when the skill is not available, instead of answering from memory.
+Text in a plugin that names a skill shipped by another plugin SHALL also name that plugin, for example "`rf-browser` (plugin `rf-web`)". A skill's frontmatter `description` is exempt, because the listing budget limits it and agents list each skill with its plugin prefix; so are changelogs, which record history. Where `rf-core` text routes work to a technology skill, it SHALL tell the agent to suggest installing the plugin when the skill is not available, instead of answering from memory.
 
 #### Scenario: Lint finds an unqualified reference
 - **WHEN** a file under `plugins/rf-core/` names `rf-appium` without naming `rf-mobile`

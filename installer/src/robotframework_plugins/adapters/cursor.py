@@ -25,7 +25,7 @@ who installed Cursor without any other agent still get the bundle.
               top-level ``"hooks"`` key — Cursor's expected shape.
 
 Plugin-co-located hook scripts are staged under
-``<root>/rf-agentskills-files/`` (same trick the Claude Code adapter
+``<root>/<plugin>-files/`` (same trick the Claude Code adapter
 uses) so the post-substitution ``${CLAUDE_PLUGIN_ROOT}`` references in
 SKILL bodies and hook commands resolve to absolute paths.
 
@@ -44,6 +44,8 @@ from typing import Iterable
 from .. import _assets
 from .. import transforms as _x
 from ._base import (
+    needs_support_dir,
+    legacy_markers,
     MARKETPLACE_REPO,
     plugin_id,
     AdapterBase,
@@ -169,8 +171,8 @@ class CursorAdapter(AdapterBase):
 
         # 3. Plugin-co-located files: scripts/, hooks/.
         #    Same pattern as Claude Code — staged under
-        #    <root>/rf-agentskills-files/ so substituted paths resolve.
-        if {"hooks", "skills"} & what:
+        #    <root>/<plugin>-files/ so substituted paths resolve.
+        if {"hooks", "skills"} & what and needs_support_dir(src_root):
             for category in ("scripts", "hooks"):
                 cat_src = src_root / category
                 if not cat_src.is_dir():
@@ -275,7 +277,7 @@ class CursorAdapter(AdapterBase):
         marker = plugin_root_abs
 
         def apply() -> list[str]:
-            return _x.merge_hooks_block(hooks_path, cursor_events, marker=marker)
+            return _x.merge_hooks_block(hooks_path, cursor_events, marker=marker, legacy_markers=legacy_markers(plugin_root_abs))
 
         def revert() -> None:
             _x.remove_owned_hook_entries(

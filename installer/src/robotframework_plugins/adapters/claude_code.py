@@ -9,7 +9,7 @@ Claude Code reads:
                 (or project ``.claude/settings.json``)
 
 Plus a co-located copy of the plugin's ``scripts/`` (hook scripts) and
-the skills' scripts under ``~/.claude/rf-agentskills-files/`` so
+the skills' scripts under ``~/.claude/<plugin>-files/`` so
 ``${CLAUDE_PLUGIN_ROOT}`` references in hook commands resolve to a stable,
 post-substitution path (the Stop hook runs ``skills/rf-results/scripts``).
 
@@ -31,6 +31,8 @@ from typing import Iterable
 from .. import _assets
 from .. import transforms as _x
 from ._base import (
+    needs_support_dir,
+    legacy_markers,
     plugin_id,
     AdapterBase,
     ConfigMergeOp,
@@ -180,7 +182,7 @@ class ClaudeCodeAdapter(AdapterBase):
 
         # 3. Plugin-co-located files: scripts/, hooks/, plus
         #    the .claude-plugin/ manifest. These live under
-        #    <root>/rf-agentskills-files/ so the substituted
+        #    <root>/<plugin>-files/ so the substituted
         #    ${CLAUDE_PLUGIN_ROOT} paths in skills/agents/hooks resolve.
         #
         #    Staging the .claude-plugin/plugin.json manifest makes the
@@ -188,7 +190,7 @@ class ClaudeCodeAdapter(AdapterBase):
         #    validate <plugin_dst>` succeeds, and a sufficiently bold
         #    user could `claude plugin install <local-path>` against
         #    it as an alternative entry point.
-        if {"hooks", "skills"} & what:
+        if {"hooks", "skills"} & what and needs_support_dir(src_root):
             for category in ("scripts", "hooks", ".claude-plugin"):
                 cat_src = src_root / category
                 if not cat_src.is_dir():
@@ -292,7 +294,7 @@ class ClaudeCodeAdapter(AdapterBase):
             # Granular, ownership-aware: append our matcher-groups per
             # event without clobbering hooks added by the user or other
             # tools (the old whole-`hooks`-key replace destroyed them).
-            return _x.merge_hooks_block(settings_path, hooks_value, marker=marker)
+            return _x.merge_hooks_block(settings_path, hooks_value, marker=marker, legacy_markers=legacy_markers(plugin_root_abs))
 
         def revert() -> None:
             _x.remove_owned_hook_entries(

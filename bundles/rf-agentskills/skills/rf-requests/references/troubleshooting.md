@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Find the failure message, then read the cause and fix. Environment problems (library not importable, wrong interpreter) belong to the rf-setup skill.
+Find the failure message, then read the cause and fix. Environment problems (library not importable, wrong interpreter) belong to the rf-setup (plugin rf-core) skill.
 
 - [HTTPError: 4xx/5xx Client/Server Error for url](#httperror-4xx5xx-clientserver-error-for-url)
 - [Url: … Expected status: X != Y](#url--expected-status-x--y)

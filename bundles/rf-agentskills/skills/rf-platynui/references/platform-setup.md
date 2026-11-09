@@ -4,7 +4,7 @@
 
 | What | Command | Build | Requirements |
 |------|---------|-------|--------------|
-| **RF library (new_core)** | `uv add robotframework-PlatynUI==0.12.0.dev330`  **or**  `uv add --prerelease allow robotframework-PlatynUI` (into the project env; see rf-setup) | Prebuilt wheel (bundles `platynui-native` `_native.abi3.so`) | **Python 3.12+**. No Rust, no git. |
+| **RF library (new_core)** | `uv add robotframework-PlatynUI==0.12.0.dev330`  **or**  `uv add --prerelease allow robotframework-PlatynUI` (into the project env; see rf-setup (plugin rf-core)) | Prebuilt wheel (bundles `platynui-native` `_native.abi3.so`) | **Python 3.12+**. No Rust, no git. |
 | CLI | `uv tool install --prerelease allow platynui-cli` | Prebuilt wheel | Python 3.12+ |
 | Inspector | `uv tool install --prerelease allow platynui-inspector` | Prebuilt wheel | Python 3.12+, a display |
 | Mock-enabled native build | `uv run maturin develop -m packages/native/Cargo.toml --features mock-provider` | **Source build** | **Rust 1.95+** (2024 edition), Cargo, system libs |

@@ -18,10 +18,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
-      # Only when the project uses robotframework-browser[bb].
-      # With plain robotframework-browser + Node.js use: uv run rfbrowser init chromium
-      - name: Install Playwright browser
-        run: uv run rfbrowser install chromium --with-deps
+      # Add each test library's post-install step here, as its skill's
+      # references/install.md gives it (Browser: rf-browser, plugin rf-web).
 
       - name: Run tests
         run: uv run robot --outputdir results tests

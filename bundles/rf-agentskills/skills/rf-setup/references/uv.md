@@ -10,8 +10,8 @@ Install uv (once per machine): `curl -LsSf https://astral.sh/uv/install.sh | sh`
 mkdir my-tests && cd my-tests
 uv init --bare --python 3.12
 uv python pin 3.12
-uv add robotframework robotframework-requests
-uv add --dev "robotcode[all]>=2.8"   # robotcode CLI + Robocop, required by rf-agentskills
+uv add robotframework
+uv add --dev "robotcode[all]>=2.8"   # robotcode CLI + Robocop, required by rf-core
 mkdir -p tests resources results
 uv run robot --version
 ```
@@ -54,7 +54,7 @@ dev = [
 uv run robot --outputdir results tests
 uv run robot -i smoke tests
 uv run robotcode robot                # with robot.toml profiles
-uv run rfbrowser install chromium     # any console script from an installed package
+uv run robocop --version              # any console script from an installed package
 ```
 
 Or activate the venv once per shell (`source .venv/bin/activate`, Windows: `.venv\Scripts\activate`) and call `robot` directly.
@@ -81,7 +81,7 @@ uv remove robotframework-seleniumlibrary
 uv tree                                            # dependency tree
 ```
 
-After upgrading Browser, re-run `uv run rfbrowser install chromium` (or `rfbrowser init`).
+After upgrading a library with a post-install step, run that step again (its skill's `references/install.md`).
 
 ## Adopting uv in an existing requirements.txt project
 

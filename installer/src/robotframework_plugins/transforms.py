@@ -470,6 +470,7 @@ def merge_hooks_block(
     *,
     marker: str,
     top_key: str = "hooks",
+    legacy_markers: tuple[str, ...] = (),
 ) -> list[str]:
     """Granularly merge rf-agentskills hook entries into ``path``.
 
@@ -484,6 +485,10 @@ def merge_hooks_block(
       groups are appended — so a re-install never duplicates or strands
       stale entries.
 
+    ``legacy_markers`` are install dirs of earlier layouts (``rf-agentskills-files``
+    before the plugin split): their groups are dropped from every event, so an
+    upgrade leaves no hook pointing at scripts that are gone.
+
     Returns the list of event names rf-agentskills contributed to (recorded
     in the manifest so uninstall knows which events to clean).
     """
@@ -491,6 +496,15 @@ def merge_hooks_block(
     block = data.get(top_key)
     if not isinstance(block, dict):
         block = {}
+    for event in list(block):
+        groups = block[event]
+        if not isinstance(groups, list):
+            continue
+        kept = [g for g in groups if not any(_hook_group_owned(g, m) for m in legacy_markers)]
+        if kept:
+            block[event] = kept
+        else:
+            block.pop(event)
 
     touched: list[str] = []
     for event, groups in events_value.items():

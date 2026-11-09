@@ -15,22 +15,22 @@ Prerequisite: `launch-plugin-programme` task groups 1–3 are done (history merg
 
 ## 3. Move library-specific content out of core
 
-- [ ] 3.1 Move each library's post-install steps from `rf-setup` into `references/install.md` of its library skill, and update each library skill's install block. Reduce `rf-setup`'s library section to the one-row-per-library table naming skill and plugin. Update `test_library_install_guidance.py` and `test_setup_skill.py`. Verify the modified `library-skill-install-guidance` and `setup-skill` scenarios.
-- [ ] 3.2 Move the SeleniumLibrary→Browser table into `rf-browser/references/migrate-from-selenium.md` and the RequestsLibrary→RESTinstance table into `rf-restinstance/references/migrate-from-requests.md`, and change `rf-migration-guide` to route library moves to them. Verify the "Migration tables live in library skills" scenario and that the subagent body stays within 120 lines.
-- [ ] 3.3 Verify the "Library-specific content outside core" scenario with a test that searches `plugins/rf-core/`.
+- [x] 3.1 Move each library's post-install steps from `rf-setup` into `references/install.md` of its library skill, and update each library skill's install block. Reduce `rf-setup`'s library section to the one-row-per-library table naming skill and plugin. Update `test_library_install_guidance.py` and `test_setup_skill.py`. Verify the modified `library-skill-install-guidance` and `setup-skill` scenarios.
+- [x] 3.2 Move the SeleniumLibrary→Browser table into `rf-browser/references/migrate-from-selenium.md` and the RequestsLibrary→RESTinstance table into `rf-restinstance/references/migrate-from-requests.md`, and change `rf-migration-guide` to route library moves to them. Verify the "Migration tables live in library skills" scenario and that the subagent body stays within 120 lines.
+- [x] 3.3 Verify the "Library-specific content outside core" scenario with a test that searches `plugins/rf-core/`.
 
 ## 4. Cross-plugin references
 
-- [ ] 4.1 Qualify every reference to a technology skill in `rf-core` (skills, subagents, hook text) with its plugin, and add the "suggest installing the plugin" line to the three subagents. Regenerate the Codex and OpenCode variants. Verify the "Every routed skill exists" and "Missing library skill" scenarios, and the variant drift check.
-- [ ] 4.2 Write the cross-plugin reference lint and add it to CI. Verify the "Lint finds an unqualified reference" fixture.
+- [x] 4.1 Qualify every reference to a technology skill in `rf-core` (skills, subagents, hook text) with its plugin, and add the "suggest installing the plugin" line to the three subagents. Regenerate the Codex and OpenCode variants. Verify the "Every routed skill exists" and "Missing library skill" scenarios, and the variant drift check.
+- [x] 4.2 Write the cross-plugin reference lint and add it to CI. Verify the "Lint finds an unqualified reference" fixture.
 - [x] 4.3 Rewrite the context-injection text to route library work generically and name only `rf-core` skills and the technology plugins, within 450 characters. Verify the modified `rf-session-context-hooks` scenarios and the budget test.
 - [x] 4.4 Make the `SessionStart` report name the plugin and its per-agent install command for each detected library. Verify the "Browser found" and "Nothing to suggest" scenarios, and that the hook still exits 0 on malformed input.
 
 ## 5. Installer
 
 - [x] 5.1 Add project detection: read `pyproject.toml` (PEP 621, Poetry, dependency groups) and `requirements*.txt`, and match against `catalog.yaml` packages. Apply the fresh-install and upgrade defaults, `--plugins all`, wizard preselection, and the printed reason. Verify the "Browser project" and "Nothing detected" scenarios.
-- [ ] 5.2 Change the file-mode layout to `<root>/<plugin>-files/`, record files per plugin, and on upgrade move `rf-agentskills-files/`, rewrite hook commands and keep user-modified files. Verify the "Claude Code file-mode upgrade" and "Narrowing is explicit" scenarios for Claude Code, Codex, Cursor and OpenCode.
-- [ ] 5.3 Check plugin mode with the split: `enabledPlugins` gets one entry per selected plugin, and migrated old settings enable the bundle. Verify the launch change's "Old marketplace entry migrated" scenario still passes, plus a new test with `--plugins rf-core,rf-web`.
+- [x] 5.2 Change the file-mode layout to `<root>/<plugin>-files/`, record files per plugin, and on upgrade move `rf-agentskills-files/`, rewrite hook commands and keep user-modified files. Verify the "Claude Code file-mode upgrade" and "Narrowing is explicit" scenarios for Claude Code, Codex, Cursor and OpenCode.
+- [x] 5.3 Check plugin mode with the split: `enabledPlugins` gets one entry per selected plugin, and migrated old settings enable the bundle. Verify the launch change's "Old marketplace entry migrated" scenario still passes, plus a new test with `--plugins rf-core,rf-web`.
 
 ## 6. Evals
 

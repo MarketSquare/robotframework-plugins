@@ -27,7 +27,7 @@ Not this skill: suites that import RequestsLibrary, or generic API tests with no
 
 ## Installation
 
-Install into the project environment (see **rf-setup** for uv/venv/Poetry, CI and troubleshooting; follow the project's existing tool):
+Install into the project environment, with the tool the project already uses. Full steps and verification: `references/install.md`. For a new environment, Poetry and venv + pip forms, and troubleshooting, see `rf-setup` (plugin `rf-core`).
 
 ```bash
 uv add RESTinstance
@@ -99,6 +99,8 @@ Paths start at the last instance: `response status`, `response body user name`, 
 
 | Read | When |
 |---|---|
+| references/install.md | installing the library, its post-install steps, verifying the install, or a failed post-install step |
+| references/migrate-from-requests.md | a suite moves from RequestsLibrary to RESTinstance: the keyword map |
 | references/json-handling.md | Writing field paths, JSONPath, validation arguments, or chaining values between requests |
 | references/schema-validation.md | Using schema files, learning schemas with `Output Schema`, expectations, or an OpenAPI `spec=` |
 | references/authentication.md | Adding tokens, API keys, basic/digest auth or client certificates |
@@ -111,7 +113,7 @@ Examples in `assets/examples/`: `basic-rest.robot` (requests, paths, chaining, n
 | Need | Skill |
 |------|-------|
 | API tests with RequestsLibrary | `rf-requests` |
-| Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
+| Install Robot Framework or a library, fix the environment | `rf-setup` (plugin `rf-core`) |
+| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` (plugin `rf-core`) |
 
 For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

@@ -20,8 +20,8 @@ jobs:
           enable-cache: true
       - name: Install dependencies
         run: uv sync --locked            # Python version from .python-version
-      - name: Install Playwright browser (Browser[bb] only; with plain Browser + Node use `rfbrowser init chromium`)
-        run: uv run rfbrowser install chromium --with-deps
+      # Add the post-install step of each test library here, as its skill's
+      # references/install.md gives it (for example the Browser browsers).
       - name: Run tests
         run: uv run robot --outputdir results tests
       - name: Upload results
@@ -35,7 +35,7 @@ jobs:
 Notes:
 
 - `uv sync --locked` fails when `uv.lock` is out of date. That's what you want in CI.
-- Browser binaries live inside `.venv`, so they must be installed in every job (the uv cache doesn't cover them). `--with-deps` also installs the Linux system libraries Chromium needs. Drop the step when Browser isn't used.
+- Files a library's post-install step puts inside `.venv` (such as browser binaries) must be installed in every job: the uv cache doesn't cover them. The library's skill gives the CI step.
 - Headed browsers in CI need a virtual display: `xvfb-run -a uv run robot …` (Ubuntu runners have `xvfb`), or run headless.
 - Robot's exit code is the number of failed tests, so a failing test fails the step. `if: always()` still uploads the results.
 - With robotcode in the dev group, `uv run robotcode -p ci robot` uses a `ci` profile from `robot.toml`, and `uv run robotcode analyze code --output-format github` adds annotations to the PR. A job that only runs tests can install `robotcode[runner]` instead of `[all]`.
@@ -58,4 +58,4 @@ On CI runners the job's fresh Python is already isolated, so plain `python -m pi
 
 ## Other CI systems
 
-The steps are the same everywhere: install uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`), `uv sync --locked`, library post-install, `uv run robot …`, archive `results/`. For containers, the Browser project publishes images with browsers preinstalled (`ghcr.io/marketsquare/robotframework-browser/rfbrowser-stable`).
+The steps are the same everywhere: install uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`), `uv sync --locked`, library post-install, `uv run robot …`, archive `results/`.

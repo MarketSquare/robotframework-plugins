@@ -234,6 +234,17 @@ def support_dir_name(plugin: str) -> str:
     return f"{plugin}-files"
 
 
+#: Support folders of earlier layouts: before the plugin split, rf-agentskills
+#: held every hook script in ``rf-agentskills-files``.
+LEGACY_SUPPORT_DIRS = ("rf-agentskills-files",)
+
+
+def legacy_markers(plugin_root_abs: str) -> tuple[str, ...]:
+    """Hook ownership markers of the legacy support folders next to ``plugin_root_abs``."""
+    parent = plugin_root_abs.replace("\\", "/").rsplit("/", 1)[0]
+    return tuple(f"{parent}/{d}" for d in LEGACY_SUPPORT_DIRS if not plugin_root_abs.endswith(d))
+
+
 #: Test hook: a local checkout to use as the marketplace instead of GitHub.
 MARKETPLACE_DIR_ENV = "RF_AGENTSKILLS_MARKETPLACE_DIR"
 
@@ -366,6 +377,13 @@ def marketplace_settings_merges(
         op("enabledPlugins", {plugin_id(p): True for p in plugins},
            "enabled plugin(s) " + ", ".join(plugin_id(p) for p in plugins)),
     ]
+
+
+def needs_support_dir(src_root: Path) -> bool:
+    """A plugin needs a ``<plugin>-files`` folder only for hook scripts, hooks
+    or skill scripts; the technology plugins have none (split-rf-agentskills D7)."""
+    return ((src_root / "scripts").is_dir() or (src_root / "hooks" / "hooks.json").is_file()
+            or bool(skill_script_files(src_root)))
 
 
 def skill_script_files(src_root: Path) -> list[Path]:

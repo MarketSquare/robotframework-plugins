@@ -11,6 +11,7 @@ The split: the content now lives in five plugins, `rf-core`, `rf-web`, `rf-api`,
 
 - **Install only what you test.** Install `rf-core` plus the technology plugins you need instead of this bundle. Their skills carry their own prefix, for example `rf-web:rf-browser` instead of `rf-agentskills:rf-browser`.
 - **Not both.** With the bundle and a technology plugin installed, each of its skills appears twice.
+- **Content changes**, the same as in the five plugins (see their changelogs): each library skill now has `references/install.md` with its install steps, which used to be in `rf-setup`. The SeleniumLibrary → Browser and RequestsLibrary → RESTinstance keyword maps moved from `rf-migration-guide` to `rf-browser` and `rf-restinstance`.
 - **Why a copy and not plugin dependencies:** Claude Code doesn't install the dependencies that an update adds, so a 3.0.0 install would have lost every skill on update. Copilot CLI and Codex don't install plugin dependencies at all.
 
 ## 3.0.0 (2026-11-07)

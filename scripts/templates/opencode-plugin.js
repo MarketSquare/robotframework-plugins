@@ -2,7 +2,7 @@
 // __GENERATED_NOTE__
 //
 // OpenCode has no Claude-style hooks.json; plugins are JS modules. This one runs
-// the same hook scripts as the other agents, from ../rf-agentskills-files/scripts/
+// the same hook scripts as the other agents, from ../__SUPPORT_DIR__/scripts/
 // next to this file (the installer puts both there, project or user scope):
 //
 //   tool.execute.after  edits of .robot/.resource files -> __EDIT_SCRIPT__;
@@ -18,7 +18,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const SCRIPTS = fileURLToPath(new URL("../rf-agentskills-files/scripts/", import.meta.url));
+const SCRIPTS = fileURLToPath(new URL("../__SUPPORT_DIR__/scripts/", import.meta.url));
 const EDIT_SCRIPT = "__EDIT_SCRIPT__";
 const SHELL_SCRIPT = "__SHELL_SCRIPT__";
 const SESSION_SCRIPT = "__SESSION_SCRIPT__";

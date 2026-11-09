@@ -160,7 +160,7 @@ def test_companion_table_names_language_skill() -> None:
 
 def test_troubleshooting_covers_required_problems() -> None:
     text = (REFERENCES / "troubleshooting.md").read_text(encoding="utf-8").lower()
-    for topic in ("wrong interpreter", "externally-managed-environment", "rfbrowser",
+    for topic in ("wrong interpreter", "externally-managed-environment", "post-install step",
                   "python too old", "powershell"):
         assert topic in text, f"troubleshooting lacks {topic!r}"
 
@@ -171,10 +171,14 @@ def test_venv_activation_for_all_shells() -> None:
         assert cmd in text, f"venv-pip.md lacks {cmd!r}"
 
 
-def test_browser_documents_both_install_paths() -> None:
+def test_library_steps_live_in_the_library_skills() -> None:
+    """setup-skill: rf-setup keeps a library-to-plugin table, not the recipes."""
     text = (REFERENCES / "libraries.md").read_text(encoding="utf-8")
-    assert "robotframework-browser[bb]" in text and "rfbrowser install" in text
-    assert "rfbrowser init" in text and "Browser.entry" in text
+    for recipe in ("rfbrowser install", "rfbrowser init", "Browser.entry", "appium driver install", "npm install -g"):
+        assert recipe not in text, recipe
+    assert "references/install.md" in text
+    for skill, plugin in (("rf-browser", "rf-web"), ("rf-appium", "rf-mobile"), ("rf-platynui", "rf-desktop")):
+        assert f"`{skill}` (plugin `{plugin}`)" in text
 
 
 def test_every_other_skill_links_to_setup() -> None:

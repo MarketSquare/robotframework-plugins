@@ -1,4 +1,4 @@
-# rf-agentskills hooks
+# rf-core hooks
 
 This plugin defines six Claude Code lifecycle hook scripts across four
 events. Two (`SessionStart`, `PostToolUse`) run unconditionally; four
@@ -38,7 +38,7 @@ check silently. `scripts/_python_env.mjs`, `scripts/_hook_input.mjs` and
 
 Two scripts validate the Robot Framework files the agent writes, at two
 different points in the lifecycle. They need **robotcode** in the project
-environment — the documented prerequisite of rf-agentskills — and degrade to a
+environment — the documented prerequisite of rf-core — and degrade to a
 silent no-op when it isn't installed. `robotcode[all]` also brings Robocop,
 which the advisory tiers use:
 
@@ -284,10 +284,10 @@ Robot Framework signal. Non-RF sessions are unaffected.
   - Robot Framework libraries: `SeleniumLibrary`, `BrowserLibrary`,
     `AppiumLibrary`, `RequestsLibrary`, `RESTinstance`, `PlatynUI`, plus
     space-separated forms (`Browser Library`, etc.)
-  - rf-agentskills skill ids: `rf-language`, `rf-python-library`,
-    `rf-setup` and the library skills `rf-browser`, `rf-selenium`, `rf-appium`, `rf-requests`,
-    `rf-restinstance`, `rf-platynui`
-  - rf-agentskills subagent ids: `rf-test-architect`, `rf-debug-expert`,
+  - skill ids: `rf-language`, `rf-python-library`, `rf-setup` (rf-core);
+    `rf-browser`, `rf-selenium` (rf-web); `rf-requests`, `rf-restinstance` (rf-api);
+    `rf-appium` (rf-mobile); `rf-platynui` (rf-desktop)
+  - rf-core subagent ids: `rf-test-architect`, `rf-debug-expert`,
     `rf-migration-guide`
   - RF section headers pasted into the prompt: `*** Settings ***`,
     `*** Variables ***`, `*** Test Cases ***`, `*** Tasks ***`,
@@ -299,8 +299,9 @@ Robot Framework signal. Non-RF sessions are unaffected.
   "UserPromptSubmit", "additionalContext": "..."}}` with a routing text of
   at most 450 characters (about 80 tokens): tests, suites, keywords,
   resources and variables → `rf-language`; Python libraries and listeners →
-  `rf-python-library`; library usage → the library skill (defaults
-  `rf-browser` for web, `rf-requests` for API); installs → `rf-setup`;
+  `rf-python-library`; installs → `rf-setup`; library usage → the
+  library's own skill, unnamed, and, when it is missing, a suggestion to
+  install its plugin (`rf-web`, `rf-api`, `rf-mobile`, `rf-desktop`);
   keyword names and arguments → `robotcode doc keyword`, not memory; run
   results → `robotcode results`, not `output.xml`; and a closing reminder to write RF 7 syntax (`RETURN`, `VAR`,
   `IF`, `Test Tags`). Skill descriptions and subagents are already listed
@@ -322,7 +323,7 @@ names the robotcode plugin as the recommended companion — whether Robocop is
 available (deprecation and formatting advice), and which library packages are
 importable. For missing packages it shows project-environment commands
 (`uv add …`, `uv add --dev "robotcode[all]"`) and points to the rf-setup skill; it never
-recommends `pip install` or `rfbrowser init`. A missing, empty or malformed
+recommends `pip install` or a library's post-install step. A missing, empty or malformed
 event produces no output; it always exits 0.
 
 ## How `maybe_remind_robot_tests.mjs` decides
@@ -381,7 +382,7 @@ The `rf-skill-eval` harness includes two paired tasks for the
 conditional injection:
 
 - `eval/tasks/narrow/narrow-rf-injection-positive-01.yaml` — RF
-  prompt, expects the agent to leverage an rf-agentskills lookup.
+  prompt, expects the agent to leverage a robotcode lookup.
 - `eval/tasks/narrow/narrow-non-rf-control-01.yaml` — non-RF prompt,
   expects the agent to write a plain JSON file with no rf tooling.
 

@@ -58,7 +58,7 @@ poetry env info --path
 ```bash
 poetry run robot --outputdir results tests
 poetry run robotcode discover info
-poetry run rfbrowser install chromium
+poetry run robocop --version
 eval $(poetry env activate)          # Poetry 2: activate in the current shell (`poetry shell` is now a plugin)
 ```
 

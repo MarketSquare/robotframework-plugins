@@ -11,7 +11,7 @@ metadata:
 # AppiumLibrary Skill
 
 AppiumLibrary drives native, hybrid and mobile-web apps on Android and iOS through an Appium 2+ server.
-Desktop apps belong to rf-platynui; desktop browsers to rf-browser or rf-selenium.
+Desktop apps belong to rf-platynui (plugin rf-desktop); desktop browsers to rf-browser (plugin rf-web) or rf-selenium.
 Verified against AppiumLibrary 3.2.1, Robot Framework 7.4.
 
 ## When to use
@@ -21,11 +21,11 @@ Load this skill first, before exploring the project or answering from memory, wh
 - writing or fixing a mobile test: Open Application capabilities (UiAutomator2, XCUITest), locators such as `accessibility_id`, waits, gestures and scrolling, the on-screen keyboard, WEBVIEW contexts in hybrid apps;
 - an element cannot be located on a device, or the user mentions Appium, an .apk/.ipa, an emulator or a simulator, even if they only say "our app" or "mobile test".
 
-Not this skill: native desktop apps use `rf-platynui`; desktop browsers use `rf-browser` or `rf-selenium`; installing the Appium server and drivers uses `rf-setup`.
+Not this skill: native desktop apps use `rf-platynui` (plugin `rf-desktop`); desktop browsers use `rf-browser` (plugin `rf-web`) or `rf-selenium`; installing the Appium server and drivers uses `rf-setup` (plugin `rf-core`).
 
 ## Installation
 
-Install into the project environment (see **rf-setup** for uv/venv/Poetry, CI and troubleshooting; follow the project's existing tool):
+Install into the project environment, with the tool the project already uses. Full steps and verification: `references/install.md`. For a new environment, Poetry and venv + pip forms, and troubleshooting, see `rf-setup` (plugin `rf-core`).
 
 ```bash
 uv add robotframework-appiumlibrary
@@ -37,7 +37,7 @@ npm install -g appium
 appium driver install uiautomator2    # Android
 appium driver install xcuitest        # iOS
 ```
-Android SDK/JDK and Xcode prerequisites: see rf-setup.
+Android SDK, JDK and Xcode prerequisites, and checking the drivers: `references/install.md`.
 
 ## Import and defaults
 
@@ -114,6 +114,7 @@ Open Android App
 
 | Read | When |
 |---|---|
+| `references/install.md` | installing the library, its post-install steps, verifying the install, or a failed post-install step |
 | `references/capabilities.md` | iOS, installed apps, mobile browsers, cloud grids, reset and timeout capabilities |
 | `references/locators-mobile.md` | Choosing or debugging a locator (UiAutomator, predicate, class chain, XPath) |
 | `references/gestures-touch.md` | Scrolling to an element, swipes, long press, pinch/zoom, drag and drop |
@@ -126,8 +127,8 @@ Examples in `assets/examples/`: `android-basic.robot`, `ios-basic.robot`, `gestu
 
 | Need | Skill |
 |------|-------|
-| Native desktop tests with PlatynUI | `rf-platynui` |
-| Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
+| Native desktop tests with PlatynUI | `rf-platynui` (plugin `rf-desktop`) |
+| Install Robot Framework or a library, fix the environment | `rf-setup` (plugin `rf-core`) |
+| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` (plugin `rf-core`) |
 
 For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

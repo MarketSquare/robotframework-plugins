@@ -81,7 +81,8 @@ VARIABLE_DIRS = ("variables", "resources/variables", "vars")
 VARFILE_EXT = (".py", ".yaml", ".yml", ".json")
 BDD = re.compile(r"^(given|when|then|and|but)\s", re.I)
 CONTROL_NODES = ("For", "While", "If", "Try")
-WEB_LIBRARIES = {"Browser": "rf-browser", "SeleniumLibrary": "rf-selenium"}
+# The library skill and its plugin (the skill may not be installed).
+WEB_LIBRARIES = {"Browser": "rf-browser (plugin rf-web)", "SeleniumLibrary": "rf-selenium (plugin rf-web)"}
 
 #: Version gate: (feature key, minimum version). Mirrors the SKILL.md table.
 FEATURES: List[Tuple[str, Tuple[int, int]]] = [

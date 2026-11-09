@@ -74,7 +74,7 @@ uv lock --upgrade-package selenium && uv sync   # newer Selenium Manager
 rm -rf ~/.cache/selenium                         # drop cached drivers; fetched again on the next Open Browser
 ```
 
-Remove any old `chromedriver` from `PATH` so Selenium Manager's driver is used. Selenium Manager cannot download drivers without network access: see rf-setup for offline setup.
+Remove any old `chromedriver` from `PATH` so Selenium Manager's driver is used. Selenium Manager cannot download drivers without network access: see rf-setup (plugin rf-core) for offline setup.
 
 ## Chrome fails to start in CI or a container
 

@@ -19,7 +19,7 @@ its bundled `.system` skills live) but the public spec is ``.agents``:
                 ``post_install`` tells the user how.
 
 Plus a co-located copy of the plugin's ``scripts/`` (hook scripts) and
-the skills' scripts under ``<root>/rf-agentskills-files/`` — same staging
+the skills' scripts under ``<root>/<plugin>-files/`` — same staging
 strategy as the Claude Code adapter — so ``${CLAUDE_PLUGIN_ROOT}``
 references in hook commands resolve to a stable, post-substitution path.
 
@@ -39,6 +39,7 @@ from typing import Iterable
 from .. import _assets
 from .. import transforms as _x
 from ._base import (
+    needs_support_dir,
     MARKETPLACE_REPO,
     plugin_id,
     AdapterBase,
@@ -209,9 +210,9 @@ class CodexAdapter(AdapterBase):
                 )
 
         # 4. Plugin-co-located files: scripts/, hooks/. These live under
-        #    <root>/rf-agentskills-files/ so the substituted
+        #    <root>/<plugin>-files/ so the substituted
         #    ${CLAUDE_PLUGIN_ROOT} paths in skills / agents / hooks resolve.
-        if {"hooks", "skills", "agents"} & what:
+        if {"hooks", "skills", "agents"} & what and needs_support_dir(src_root):
             for category in ("scripts", "hooks"):
                 cat_src = src_root / category
                 if not cat_src.is_dir():

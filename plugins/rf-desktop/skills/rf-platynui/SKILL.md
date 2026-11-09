@@ -18,7 +18,7 @@ Load this skill first, before exploring the project or answering from memory, wh
 - platynui-cli or the inspector to build locators;
 - a desktop test cannot find a button, menu or dialog, or the user automates Calculator, Notepad or a Qt/GTK/WPF/WinForms app, even if they only say "desktop app".
 
-Not this skill: mobile apps use `rf-appium`; web browsers use `rf-browser` or `rf-selenium`; installing PlatynUI pre-releases uses `rf-setup`.
+Not this skill: mobile apps use `rf-appium` (plugin `rf-mobile`); web browsers use `rf-browser` (plugin `rf-web`) or `rf-selenium`; installing PlatynUI pre-releases uses `rf-setup` (plugin `rf-core`).
 
 ## Quick Reference
 
@@ -28,7 +28,7 @@ PlatynUI is cross-platform **native desktop** UI automation for Robot Framework.
 
 ## Installation
 
-Install into the project environment (see **rf-setup** for uv/venv/Poetry, CI and troubleshooting; follow the project's existing tool):
+Install into the project environment, with the tool the project already uses. Full steps and verification: `references/install.md`. For a new environment, Poetry and venv + pip forms, and troubleshooting, see `rf-setup` (plugin `rf-core`).
 
 **Get the version with the right pin — this is the #1 mistake:**
 
@@ -248,6 +248,7 @@ platynui-cli highlight "//control:Button[@Name='OK']"  # visually confirm on scr
 
 | Need | Reference File |
 |------|----------------|
+| Installing the pre-release, verifying it, or a failed install | `references/install.md` |
 | Full keyword signatures, args, return types | `references/keywords-reference.md` |
 | XPath syntax, namespaces, roles, axes, locator best practices | `references/locators-and-queries.md` |
 | `platynui-cli` subcommands + the inspector | `references/cli-and-inspector.md` |
@@ -258,8 +259,8 @@ platynui-cli highlight "//control:Button[@Name='OK']"  # visually confirm on scr
 
 | Need | Skill |
 |------|-------|
-| Mobile app tests with AppiumLibrary | `rf-appium` |
-| Install Robot Framework or a library, fix the environment | `rf-setup` |
-| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
+| Mobile app tests with AppiumLibrary | `rf-appium` (plugin `rf-mobile`) |
+| Install Robot Framework or a library, fix the environment | `rf-setup` (plugin `rf-core`) |
+| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` (plugin `rf-core`) |
 
 For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`). Look up PlatynUI keywords with `robotcode doc keywords PlatynUI.BareMetal "<text>"` and `robotcode doc keyword PlatynUI.BareMetal "<Keyword>"`, and check changed files with `robotcode analyze code <files>`.

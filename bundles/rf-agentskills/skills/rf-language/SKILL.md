@@ -11,7 +11,7 @@ metadata:
 # Robot Framework Language
 
 Write and review Robot Framework code in `.robot` and `.resource` files: test cases and suites, user keywords, resource files and variables, in modern syntax that fits the project's Robot Framework version.
-Python keyword libraries and listeners belong to rf-python-library; library keywords, locators and waits belong to the library skills (rf-browser, rf-requests, …).
+Python keyword libraries and listeners belong to rf-python-library; library keywords, locators and waits belong to the library skills (for example rf-browser in plugin rf-web, rf-requests in plugin rf-api).
 Verified against Robot Framework 7.4.2.
 
 ## When to use
@@ -24,7 +24,7 @@ Load this skill first, before opening the .robot and .resource files or answerin
 - selecting tests by tag on the robot command line;
 - `Multiple keywords with name '...'` and import scope between `__init__.robot` and child suites.
 
-Not this skill: Python keyword libraries or listeners use `rf-python-library`; library keywords use `rf-browser`, `rf-requests` or another library skill. Running, discovering, keyword lookup, result reading and debugging with the robotcode CLI are covered by the `robotcode` skill of the robotcode plugin.
+Not this skill: Python keyword libraries or listeners use `rf-python-library`; library keywords use `rf-browser` (plugin `rf-web`), `rf-requests` (plugin `rf-api`) or another library skill. Running, discovering, keyword lookup, result reading and debugging with the robotcode CLI are covered by the `robotcode` skill of the robotcode plugin.
 
 ## Version gate
 
@@ -305,8 +305,8 @@ Examples in `assets/examples/` (run `robot --dryrun tests` from that folder):
 
 | Need | Skill |
 |------|-------|
-| Web UI tests with Browser Library (Playwright) | `rf-browser` |
-| API tests with RequestsLibrary | `rf-requests` |
+| Web UI tests with Browser Library (Playwright) | `rf-browser` (plugin `rf-web`) |
+| API tests with RequestsLibrary | `rf-requests` (plugin `rf-api`) |
 | Install Robot Framework or a library, fix the environment | `rf-setup` |
 | Write or fix a Python keyword library or listener | `rf-python-library` |
 

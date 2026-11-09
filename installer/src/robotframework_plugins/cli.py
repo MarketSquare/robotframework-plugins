@@ -1095,6 +1095,19 @@ def _remove_stale(
     return removed, kept
 
 
+def _removed_skills(removed: Sequence[str], written: Sequence[_m.FileEntry]) -> list[str]:
+    """Skill folders this run removed entirely (none of their files was written),
+    e.g. after narrowing with ``--plugins``."""
+    def skill_of(path: str) -> str | None:
+        parts = Path(path).parts
+        if _m.support_dir_index(parts) is not None or "skills" not in parts[:-1]:
+            return None
+        i = len(parts) - 1 - parts[::-1].index("skills")
+        return parts[i + 1] if i + 1 < len(parts) - 1 else None
+    kept = {skill_of(e.path) for e in written}
+    return sorted({s for s in map(skill_of, removed) if s and s not in kept})
+
+
 def _install_root(adapter: Adapter, opts: InstallOptions) -> Path | None:
     getter = getattr(adapter, "install_root", None)
     if getter is None:
@@ -1251,6 +1264,9 @@ def _execute_plan(
     table.add_row("files", f"{len(files_written)} written")
     table.add_row("merges", f"{len(config_merges)} performed")
     table.add_row("stale", f"{len(stale_removed)} removed (no longer shipped)")
+    gone = _removed_skills(stale_removed, files_written)
+    if gone:
+        table.add_row("removed", "skills " + ", ".join(gone))
     for path in retired_configs:
         table.add_row("retired", f"{RETIRED_MCP_SERVER} MCP server removed from {path}")
     console.print(table)

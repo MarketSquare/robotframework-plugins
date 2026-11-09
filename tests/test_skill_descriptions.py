@@ -34,11 +34,12 @@ import re
 from pathlib import Path
 
 import pytest
-from _plugins import skill_dir, skill_mds
+from _plugins import plugin_of, skill_dir, skill_mds
 import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 PLUGINS = REPO / "plugins"
+PLUGIN_NAMES = {p.name for p in PLUGINS.iterdir() if (p / "catalog.yaml").is_file()}
 
 # ── compact contract constants (tune-skill-descriptions D11/D12) ────────────
 #
@@ -403,7 +404,7 @@ def when_to_use_problems(name: str, text: str) -> list[str]:
         if term.lower() not in block.lower():
             probs.append(f"{name}: '## When to use' should mention {term!r}")
     for token in re.findall(r"\brf-[a-z0-9-]+\b", block):
-        if token not in SHIPPED:
+        if token not in SHIPPED and token not in PLUGIN_NAMES:
             probs.append(f"{name}: '## When to use' names {token!r}, which is not a shipped skill")
     return probs
 
@@ -463,11 +464,18 @@ def _row_problems(name: str, row: list[str], width: int, present: set[str]) -> l
     catalogue_skill = CATALOGUE[key][1]
     primary = SKILL_TOKEN_RE.search(catalogue_skill)
     assert primary
-    if width == 2 and last != catalogue_skill:
+    # A skill from another plugin is named with its plugin (split-rf-agentskills).
+    owner = plugin_of(primary.group(1), REPO)
+    qualified = f"{catalogue_skill} (plugin `{owner}`)"
+    if width == 2 and last not in (catalogue_skill, qualified):
         probs.append(f"{name}: row {need!r} skill cell {last!r} != catalogue {catalogue_skill!r}")
+    if width == 2 and owner != plugin_of(name, REPO) and last != qualified:
+        probs.append(f"{name}: row {need!r} names a skill of plugin {owner} without the plugin: {last!r}")
     if width != 2 and f"`{primary.group(1)}`" not in last:
         probs.append(f"{name}: row {need!r} last column must name `{primary.group(1)}`")
     for token in (tok for cell in row[1:] for tok in SKILL_TOKEN_RE.findall(cell)):
+        if token in PLUGIN_NAMES:
+            continue
         if token not in SHIPPED:
             probs.append(f"{name}: Companion Skills names {token!r}, which is not a shipped skill")
         elif token == name and width == 2:
@@ -804,8 +812,9 @@ def test_stale_companion_rows_rejected() -> None:
 def test_robotcode_is_not_a_companion_row() -> None:
     """The robotcode plugin's skill is named in prose, never as a table row (robotcode-prerequisite)."""
     head = "# X\n\n## Companion Skills\n\n| Need | Skill |\n|---|---|\n"
-    rows = ("| Install Robot Framework or a library, fix the environment | `rf-setup` |\n"
-            "| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |\n")
+    rows = ("| Install Robot Framework or a library, fix the environment | `rf-setup` (plugin `rf-core`) |\n"
+            "| Write tests, suites, user keywords, resources and variables in Robot Framework syntax | "
+            "`rf-language` (plugin `rf-core`) |\n")
     prose = "\nFor robotcode CLI work, use the `robotcode` skill of the robotcode plugin.\n"
     assert companion_problems("rf-appium", head + rows + prose) == []
     bad = head + rows + "| Discover, run, debug and statically check with the robotcode CLI | `robotcode` |\n"

@@ -4,10 +4,10 @@
 
 | Use a tool environment for | Keep in the project environment |
 |---|---|
-| `rf-agentskills` (this skill bundle's installer) | `robotframework` |
+| `robotframework-plugins` (the installer for these skills) | `robotframework` |
 | `uv` itself (`pipx install uv`) | Every test library (Browser, SeleniumLibrary, RequestsLibrary, …) |
-| `platynui-cli`, `platynui-inspector` (optional PlatynUI tools) | `robotcode[all]` (it imports your libraries for `doc`, `discover`, `analyze`; never `uvx robotcode`) |
-| One-off commands: `uvx rf-agentskills install` | `robocop` (comes with `robotcode[all]`; uses the project's RF version) |
+| optional CLIs a library skill names (it gives the command) | `robotcode[all]` (it imports your libraries for `doc`, `discover`, `analyze`; never `uvx robotcode`) |
+| One-off commands: `uvx robotframework-plugins install` | `robocop` (comes with `robotcode[all]`; uses the project's RF version) |
 
 Why: a library installed with `pipx install robotframework-browser` lives in `~/.local/pipx/venvs/robotframework-browser/`. Your project's `robot` can't import it, so you get `No module named 'Browser'` or `Importing library 'Browser' failed`.
 
@@ -15,19 +15,19 @@ Why: a library installed with `pipx install robotframework-browser` lives in `~/
 
 ```bash
 # uv
-uv tool install rf-agentskills          # persistent, on PATH
-uvx rf-agentskills install              # run once without installing
-uv tool upgrade rf-agentskills
+uv tool install robotframework-plugins  # persistent, on PATH
+uvx robotframework-plugins install      # run once without installing
+uv tool upgrade robotframework-plugins
 uv tool list
 
 # pipx
-pipx install rf-agentskills
-pipx run rf-agentskills install
-pipx upgrade rf-agentskills
+pipx install robotframework-plugins
+pipx run robotframework-plugins install
+pipx upgrade robotframework-plugins
 ```
 
-Pre-release tools need an opt-in: `uv tool install --prerelease allow platynui-cli`, `pipx install --pip-args=--pre <tool>`.
+Pre-release tools need an opt-in: `uv tool install --prerelease allow <tool>`, `pipx install --pip-args=--pre <tool>`.
 
-## Hooks and the rf-agentskills installer
+## Hooks and the installer
 
-The rf-agentskills hooks (validation, environment check) run Python. The installer records the interpreter it was installed with in `python_runtime.json`, and the hooks prefer it. If hooks report "robotframework not installed" although the project has it, the hooks are using a different interpreter than the project. Install `robotcode[all]` into the project env (see the robotcode step in SKILL.md), or rerun the installer from inside the project env: `uv run rf-agentskills install` after `uv add --dev rf-agentskills`.
+The rf-core hooks (validation, environment check) run Python. The installer records the interpreter it was installed with in `python_runtime.json`, and the hooks prefer it. If hooks report "robotframework not installed" although the project has it, the hooks are using a different interpreter than the project. Install `robotcode[all]` into the project env (see the robotcode step in SKILL.md), or rerun the installer from inside the project env: `uv run robotframework-plugins install` after `uv add --dev robotframework-plugins`.

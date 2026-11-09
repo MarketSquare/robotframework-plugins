@@ -1,6 +1,6 @@
 # RESTinstance Troubleshooting
 
-Error message → cause → fix. For installation and import problems (`No module named 'REST'`, Python version) use rf-setup.
+Error message → cause → fix. For installation and import problems (`No module named 'REST'`, Python version) use rf-setup (plugin rf-core).
 
 - No instances: No requests made
 - Expected property '…' was not found

@@ -2,7 +2,7 @@
 name: rf-setup
 description: "Use first, before reading pyproject.toml, to install or fix Robot Framework and libraries (uv, pip, venv)."
 license: Apache-2.0
-compatibility: Requires one of uv (preferred), Python 3.10+ with venv and pip, or Poetry 1.8+; network access to PyPI. Installs robotcode[all]>=2.8 into the project environment, which the other rf-agentskills skills and hooks require.
+compatibility: Requires one of uv (preferred), Python 3.10+ with venv and pip, or Poetry 1.8+; network access to PyPI. Installs robotcode[all]>=2.8 into the project environment, which the other Robot Framework skills and the rf-core hooks require.
 metadata:
   author: manykarim
   version: "1.0.0"
@@ -15,15 +15,15 @@ metadata:
 Load this skill first, before reading pyproject.toml or answering from memory, when Robot Framework, a test library or its tooling has to be installed, added as a dependency or repaired:
 
 - the project's tool: uv by default, venv + pip, or Poetry; Python version floors;
-- `rfbrowser init`, the Appium server and drivers, PlatynUI pre-releases;
+- which package a test library needs, and which skill and plugin give its post-install steps;
 - a new Robot Framework project or CI setup;
 - `ModuleNotFoundError` / No module named '...', `robot: command not found` after installing, externally-managed-environment, a wrong interpreter.
 
-Not this skill: when the user asks for a test to be written or fixed, use the library skills (`rf-browser`, `rf-selenium`, `rf-requests`, ...), even if the library is not installed yet.
+Not this skill: when the user asks for a test to be written or fixed, use the library skills (for example `rf-browser` in plugin `rf-web`, `rf-requests` in plugin `rf-api`), even if the library is not installed yet.
 
 ## Quick Reference
 
-Install Robot Framework **into the project's own environment**, never into the system Python, and verify it before writing tests. Every other rf-agentskills skill assumes this setup works.
+Install Robot Framework **into the project's own environment**, never into the system Python, and verify it before writing tests. Every other Robot Framework skill assumes this setup works.
 
 Recipes verified on 2026-09-26 with uv 0.9.26, Poetry 2.4.1, pip 26, Python 3.12, Robot Framework 7.5.
 
@@ -42,7 +42,7 @@ Don't switch a project to another tool unless the user asks. Converting `require
 
 ## Step 2: Pick the Python version
 
-**Recommend Python 3.12.** It satisfies every library covered by rf-agentskills. Floors checked on PyPI on 2026-09-26:
+**Recommend Python 3.12.** It satisfies every library the plugins of this marketplace cover. Floors checked on PyPI on 2026-09-26:
 
 | Package | Python |
 |---|---|
@@ -58,7 +58,7 @@ On Debian/Ubuntu, `python3.12 -m venv` needs the `python3.12-venv` package. uv a
 ```bash
 uv init --bare --python 3.12          # pyproject.toml only; --python avoids requires-python >= newest
 uv python pin 3.12                    # writes .python-version; without it uv may pick a newer Python
-uv add robotframework robotframework-requests          # test libraries
+uv add robotframework                 # then the test libraries, Step 4
 uv add --dev "robotcode[all]>=2.8"    # required: robotcode CLI (+ Robocop), see below
 uv run robot --version                # "Robot Framework 7.5 (Python 3.12…)"; exit code 251 is normal here
 uv run robotcode --version            # "robotcode, version 2.8.…"
@@ -70,7 +70,7 @@ venv + pip and Poetry equivalents: `references/venv-pip.md`, `references/poetry.
 
 ## Required: robotcode in the project environment
 
-The other rf-agentskills skills and the validation hooks run the robotcode CLI (`robotcode doc`, `robotcode analyze code`, `robotcode results`, `robotcode robot-debug`). Install it in every new or repaired setup, right after Robot Framework, with the tool the project uses:
+The other Robot Framework skills and the rf-core validation hooks run the robotcode CLI (`robotcode doc`, `robotcode analyze code`, `robotcode results`, `robotcode robot-debug`). Install it in every new or repaired setup, right after Robot Framework, with the tool the project uses:
 
 | Tool | Command |
 |---|---|
@@ -82,26 +82,27 @@ The other rf-agentskills skills and the validation hooks run the robotcode CLI (
 - **Why ≥ 2.8:** `robotcode doc` (keyword lookup) first ships in 2.8. For an older install, run the same command again: it raises the lower bound and upgrades robotcode.
 - **CI that only runs tests** can install `robotcode[runner]` instead.
 - Verify with `uv run robotcode --version` and `uv run robotcode discover info` (the Python and Robot Framework it reports must be the project's).
-- For how to drive robotcode (running, discovery, keyword docs, results, debugging), install the robotcode plugin from `robotcodedev/robotframework-agent-plugins` next to rf-agentskills.
+- For how to drive robotcode (running, discovery, keyword docs, results, debugging), install the robotcode plugin from `robotcodedev/robotframework-agent-plugins` next to rf-core.
 
-## Step 4: Add libraries and their post-install steps
+## Step 4: Add libraries
 
-| Library | Install (uv form) | Extra step | Usage skill |
+One row per library a plugin of this marketplace covers. The library's skill has the full post-install steps and their verification, in its own `install.md` reference. If that skill isn't available, suggest installing its plugin instead of answering from memory.
+
+| Library | Install (uv form) | After installing | Skill (plugin) |
 |---|---|---|---|
-| Browser (Playwright) | `uv add "robotframework-browser[bb]"` | `uv run rfbrowser install chromium` (no Node.js needed) | `rf-browser` |
-| Browser with Node.js | `uv add robotframework-browser` | Node 22/24/26 LTS, then `uv run rfbrowser init chromium` | `rf-browser` |
-| SeleniumLibrary | `uv add robotframework-seleniumlibrary` | A browser installed; Selenium Manager fetches the driver | `rf-selenium` |
-| AppiumLibrary | `uv add robotframework-appiumlibrary` | `npm i -g appium` + `appium driver install uiautomator2` / `xcuitest` | `rf-appium` |
-| RequestsLibrary | `uv add robotframework-requests` | — | `rf-requests` |
-| RESTinstance | `uv add RESTinstance` | Python ≥ 3.11 | `rf-restinstance` |
-| PlatynUI (preview) | `uv add --prerelease allow robotframework-PlatynUI` | Python ≥ 3.12; a plain install gets the old 0.9.2 | `rf-platynui` |
+| Browser (Playwright) | `uv add "robotframework-browser[bb]"` | `[bb]` BrowserBatteries with `rfbrowser install`, or Node.js LTS with plain `robotframework-browser` and `rfbrowser init` | `rf-browser` (plugin `rf-web`) |
+| SeleniumLibrary | `uv add robotframework-seleniumlibrary` | A browser; Selenium Manager resolves the driver | `rf-selenium` (plugin `rf-web`) |
+| AppiumLibrary | `uv add robotframework-appiumlibrary` | Appium server and platform drivers via npm | `rf-appium` (plugin `rf-mobile`) |
+| RequestsLibrary | `uv add robotframework-requests` | Nothing | `rf-requests` (plugin `rf-api`) |
+| RESTinstance | `uv add RESTinstance` | Python ≥ 3.11 | `rf-restinstance` (plugin `rf-api`) |
+| PlatynUI (preview) | `uv add --prerelease allow robotframework-PlatynUI` | Pre-release install; Python ≥ 3.12 | `rf-platynui` (plugin `rf-desktop`) |
 
-Details, pip/Poetry forms and verification per library: `references/libraries.md`.
+Poetry and pip forms, robotcode, and other packages: `references/libraries.md`.
 
 ## ⚠️ Never install test libraries globally
 
 - No `sudo pip install`, no `pip install --break-system-packages`, no `pip install --user` for project dependencies.
-- **Don't use `pipx`, `uvx` or `uv tool` for test libraries or robotcode.** Those create isolated environments that `robot` in the project can't import from. They are only for standalone CLIs such as `rf-agentskills` (see `references/cli-tools.md`).
+- **Don't use `pipx`, `uvx` or `uv tool` for test libraries or robotcode.** Those create isolated environments that `robot` in the project can't import from. They are only for standalone CLIs such as `robotframework-plugins` (see `references/cli-tools.md`).
 - Run tools through the project environment: `uv run …`, `poetry run …`, or `.venv/bin/python -m …` / an activated venv.
 
 ## Step 5: Verify before handing over
@@ -135,10 +136,10 @@ Details and example files: `references/project-layout.md`, `assets/examples/`.
 | venv + pip: create, activate (bash/PowerShell/cmd), requirements, pin | `references/venv-pip.md` |
 | Poetry: non-package mode, groups, run, install from lock | `references/poetry.md` |
 | Standalone CLIs with `uv tool` / `uvx` / `pipx` | `references/cli-tools.md` |
-| Per-library install, post-install and verification | `references/libraries.md` |
+| Poetry/pip forms, robotcode, other packages; where each library's install steps live | `references/libraries.md` |
 | Folder structure, `robot.toml`, `.gitignore` | `references/project-layout.md` |
 | GitHub Actions and other CI | `references/ci.md` |
-| Errors: wrong interpreter, PEP 668, `rfbrowser` not found, old Python, PowerShell policy | `references/troubleshooting.md` |
+| Errors: wrong interpreter, PEP 668, old Python, PowerShell policy | `references/troubleshooting.md` |
 
 Examples in `assets/examples/`: `pyproject.uv.toml`, `pyproject.poetry.toml`, `requirements.txt`, `robot.toml`, `gitignore.txt`, `smoke.robot`, `github-actions-robot.yml`.
 
@@ -146,12 +147,12 @@ Examples in `assets/examples/`: `pyproject.uv.toml`, `pyproject.poetry.toml`, `r
 
 | Need | Skill |
 |------|-------|
-| Web UI tests with Browser Library (Playwright) | `rf-browser` |
-| Web UI tests with SeleniumLibrary (WebDriver) | `rf-selenium` |
-| Mobile app tests with AppiumLibrary | `rf-appium` |
-| API tests with RequestsLibrary | `rf-requests` |
-| API tests with RESTinstance / JSON Schema | `rf-restinstance` |
-| Native desktop tests with PlatynUI | `rf-platynui` |
+| Web UI tests with Browser Library (Playwright) | `rf-browser` (plugin `rf-web`) |
+| Web UI tests with SeleniumLibrary (WebDriver) | `rf-selenium` (plugin `rf-web`) |
+| Mobile app tests with AppiumLibrary | `rf-appium` (plugin `rf-mobile`) |
+| API tests with RequestsLibrary | `rf-requests` (plugin `rf-api`) |
+| API tests with RESTinstance / JSON Schema | `rf-restinstance` (plugin `rf-api`) |
+| Native desktop tests with PlatynUI | `rf-platynui` (plugin `rf-desktop`) |
 | Write tests, suites, user keywords, resources and variables in Robot Framework syntax | `rf-language` |
 | Write or fix a Python keyword library or listener | `rf-python-library` |
 

@@ -94,7 +94,7 @@ def test_generator_check_fails_after_a_hand_edit(tmp_path: Path) -> None:
 
 
 def test_plugin_lists_unported_hooks() -> None:
-    js = (VARIANTS / "opencode" / "plugins" / "rf-agentskills.js").read_text(encoding="utf-8")
+    js = (VARIANTS / "opencode" / "plugins" / "rf-core.js").read_text(encoding="utf-8")
     assert "UserPromptSubmit * -> maybe_inject_rf_context.mjs" in js
     assert 'const EDIT_SCRIPT = "validate_robot.mjs"' in js
     assert 'const SHELL_SCRIPT = "rf_error_hints.mjs"' in js
@@ -108,12 +108,12 @@ def _module_importable(module: str) -> bool:
 
 
 def _install_layout(tmp_path: Path) -> Path:
-    """<root>/plugins/rf-agentskills.js + <root>/rf-agentskills-files/scripts/ (installer layout)."""
+    """<root>/plugins/rf-core.js + <root>/rf-core-files/scripts/ (installer layout)."""
     root = tmp_path / ".opencode"
     (root / "plugins").mkdir(parents=True)
-    shutil.copy(VARIANTS / "opencode" / "plugins" / "rf-agentskills.js", root / "plugins" / "rf-agentskills.js")
-    shutil.copytree(PLUGIN / "scripts", root / "rf-agentskills-files" / "scripts")
-    return root / "plugins" / "rf-agentskills.js"
+    shutil.copy(VARIANTS / "opencode" / "plugins" / "rf-core.js", root / "plugins" / "rf-core.js")
+    shutil.copytree(PLUGIN / "scripts", root / "rf-core-files" / "scripts")
+    return root / "plugins" / "rf-core.js"
 
 
 def _drive(plugin_js: Path, project: Path, steps: list[dict]) -> list[str]:

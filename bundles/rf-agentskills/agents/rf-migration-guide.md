@@ -35,41 +35,11 @@ Without Robocop, say that deterministic verification is unavailable, point to
 `rf-setup` to add `robotcode[all]` (which includes Robocop) as a dev dependency, count legacy
 constructs with the `rf_conventions` report the `rf-language` skill documents, and report the migration status as **unverified**.
 
-## Library migration tables (agent-owned)
+## Library migrations
 
-No skill owns these mappings yet. Verify each replacement with
-`robotcode doc keyword <Library> "<Keyword>"` before you use it; argument orders differ.
+The keyword tables for a library switch live in the target library's skill: SeleniumLibrary → Browser in `rf-browser` (plugin `rf-web`, `references/migrate-from-selenium.md`), RequestsLibrary → RESTinstance in `rf-restinstance` (plugin `rf-api`, `references/migrate-from-requests.md`). Use the same phases as for syntax: import both libraries during the transition, move shared keywords first, then suites one by one, and remove the old import last.
 
-### SeleniumLibrary → Browser (agent-owned)
-
-| SeleniumLibrary | Browser | Note |
-|---|---|---|
-| `Open Browser    ${URL}    chrome` | `New Browser    chromium` + `New Page    ${URL}` | browser → context → page |
-| `Close All Browsers` | `Close Browser    ALL` | |
-| `Input Text` / `Input Password` | `Fill Text` / `Fill Secret` | `Fill Secret` takes `$var` |
-| `Click Element    css=x` | `Click    x` | CSS is the default strategy |
-| `Wait Until Element Is Visible` | usually none (auto-wait), else `Wait For Elements State    x    visible` | |
-| `Wait Until Page Contains    t` | `Get Text    sel    contains    t` | assertion engine |
-| `Select From List By Value` | `Select Options By    sel    value    v` | argument order |
-| `Get Value    id=x` | `Get Property    id=x    value` | |
-| `Execute Javascript` | `Evaluate JavaScript` | |
-| `Select Frame    id=x` | selector `id=x >>> inner` | no frame switching |
-| `Capture Page Screenshot` | `Take Screenshot` | |
-
-Phases: import both libraries during the transition, move shared login and navigation
-keywords first, then suites one by one, and remove the SeleniumLibrary import last.
-
-### RequestsLibrary → RESTinstance (agent-owned)
-
-| RequestsLibrary | RESTinstance | Note |
-|---|---|---|
-| `GET On Session    api    /path` | `GET    /path` | base URL in the library import |
-| `POST On Session    api    /path    json=${data}` | `POST    /path    ${data}` | |
-| `expected_status=200` | `Integer    response status    200` | assertion after the request |
-| `${resp.json()}[key]` | `String    response body key` | typed field assertions |
-| manual schema checks | `Expect Response Body    schema.json` | |
-
-RESTinstance keeps expectations and headers for the whole suite; see `rf-restinstance`.
+When the target library's skill is not available, say which plugin ships it and suggest installing that plugin before you change any library-specific code; don't continue from memory.
 
 ## Routing
 
@@ -78,8 +48,9 @@ RESTinstance keeps expectations and headers for the whole suite; see `rf-restins
 | Legacy → modern syntax table, `rf_conventions` legacy counts | `rf-language` (`references/migration.md`) |
 | Python libraries and listeners to modernize | `rf-python-library` |
 | Keyword existence and arguments of the target library | `robotcode doc keyword <Library> "<Keyword>"` |
-| Browser, SeleniumLibrary, RESTinstance, RequestsLibrary specifics | `rf-browser` / `rf-selenium` / `rf-restinstance` / `rf-requests` |
-| AppiumLibrary 3.x removed keywords | `rf-appium` |
+| Browser, SeleniumLibrary specifics; SeleniumLibrary → Browser table | `rf-browser` / `rf-selenium` (plugin `rf-web`) |
+| RESTinstance, RequestsLibrary specifics; RequestsLibrary → RESTinstance table | `rf-restinstance` / `rf-requests` (plugin `rf-api`) |
+| AppiumLibrary 3.x removed keywords | `rf-appium` (plugin `rf-mobile`) |
 | Installing robotcode (with Robocop) or the new library | `rf-setup` |
 | Reading results after the migrated run | `robotcode results show --failed` (robotcode plugin) |
 

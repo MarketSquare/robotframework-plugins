@@ -72,10 +72,12 @@ temporary measure after the root cause is named.
 |------|-------|
 | Name conflicts, embedded-argument mismatches, `__init__.robot` setup visibility, variable scope | `rf-language` |
 | "contains no keywords", library scope losing state between tests, listener errors | `rf-python-library` |
-| Locators, waits and library-specific errors | `rf-browser` / `rf-selenium` / `rf-appium` / `rf-requests` / `rf-restinstance` / `rf-platynui` |
+| Locators, waits and library-specific errors | `rf-browser` / `rf-selenium` (plugin `rf-web`), `rf-requests` / `rf-restinstance` (plugin `rf-api`), `rf-appium` (plugin `rf-mobile`), `rf-platynui` (plugin `rf-desktop`) |
 | Missing packages, interpreter or environment errors, robotcode missing | `rf-setup` |
 | Keyword names and arguments | `robotcode doc keyword <Library> "<Keyword>"` |
 | Recorded results, stepping through a test | `robotcode results …`, `robotcode robot-debug -bl` (robotcode plugin) |
+
+A library skill ships in a technology plugin that may not be installed. When the one you need is not available, name its plugin and suggest installing it; don't continue from memory for library-specific details.
 
 ## Output format
 

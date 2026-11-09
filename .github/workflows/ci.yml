@@ -148,7 +148,7 @@ jobs:
       - name: Lint skill zip builder
         run: ruff check scripts/build-skill-zips.py scripts/export-skills.py scripts/select-plugin-tests.py --select E,F,W --ignore E501
       - name: Lint repo QA scripts
-        run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py --select E,F,W --ignore E501
+        run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py scripts/check-plugin-references.py --select E,F,W --ignore E501
 
   validate-plugin:
     name: Validate plugin structure
@@ -240,6 +240,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Variants, skill names, symlinks and script command form
         run: bash scripts/check-drift.sh
+      - name: Cross-plugin skill references name their plugin
+        run: python3 scripts/check-plugin-references.py
 
   validate-skills:
     name: Validate SKILL.md frontmatter (agentskills.io)

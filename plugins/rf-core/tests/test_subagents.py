@@ -267,9 +267,11 @@ def test_migration_guide_uses_deterministic_checker() -> None:
     for step in ("Inventory", "Phased plan", "Per-file fixes", "Exit check"):
         assert step in body, step
     assert "zero `DEPR`" in body
-    # Library-migration tables stay, marked as the agent's own.
-    assert "SeleniumLibrary → Browser (agent-owned)" in body
-    assert "RequestsLibrary → RESTinstance (agent-owned)" in body
+    # Library-migration tables moved to the target library skills (split-rf-agentskills D4).
+    assert "(agent-owned)" in body.split("## Library migrations", 1)[0]
+    assert "SeleniumLibrary → Browser (agent-owned)" not in body
+    assert "RequestsLibrary → RESTinstance (agent-owned)" not in body
+    assert "references/migrate-from-selenium.md" in body and "references/migrate-from-requests.md" in body
     # The RF syntax table moved to rf-language.
     assert "Run Keyword Unless    ${cond}" not in body and "Set Global Variable" not in body
 
