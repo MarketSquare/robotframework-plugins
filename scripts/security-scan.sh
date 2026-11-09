@@ -6,6 +6,9 @@
 #
 # Scans only what the plugin ships: its tracked files without the top-level
 # tests/ and evals/ (as the installer build does), copied to <outdir>/tree.
+# A bundle (catalog.yaml with a bundle: list) ships its generated copy in
+# bundles/<name>/; its findings are judged by its member plugins' baselines,
+# mapped onto the copy (design D15), plus its own baseline if it has one.
 # Writes one SARIF file per scanner run, <outdir>/summary.md, and with --draft
 # <outdir>/draft.yaml (baseline entries for the new findings, to review).
 # Exits 1 when the comparison fails. Scanners come from SCANNERS (default
@@ -17,8 +20,11 @@ out=${2:?output directory}
 draft=${3:-}
 root=$(git rev-parse --show-toplevel)
 bin=${SCANNERS:-$root/.scanners/bin}
+[ -d "$root/plugins/$plugin" ] || { echo "security-scan: no plugins/$plugin" >&2; exit 2; }
+members=$(python3 -c 'import sys, yaml; print(" ".join((yaml.safe_load(open(sys.argv[1])) or {}).get("bundle") or []))' \
+  "$root/plugins/$plugin/catalog.yaml")
 src="plugins/$plugin"
-[ -d "$root/$src" ] || { echo "security-scan: no $src" >&2; exit 2; }
+[ -n "$members" ] && src="bundles/$plugin"
 
 mkdir -p "$out"
 out=$(realpath "$out")
@@ -60,5 +66,8 @@ run gitleaks "" "$bin/gitleaks" dir "$src" --no-banner --redact --exit-code 0 \
 cd "$root"
 
 args=(--baseline "security/baselines/$plugin.yaml" --plugin "$plugin" --summary "$out/summary.md" "${sarif[@]}")
+for member in $members; do
+  args+=(--baseline "security/baselines/$member.yaml" --map "plugins/$member/=$src/")
+done
 [ "$draft" = "--draft" ] && args+=(--draft "$out/draft.yaml")
 python3 scripts/compare-findings.py "${args[@]}"

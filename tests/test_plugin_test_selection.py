@@ -75,3 +75,41 @@ def test_cli_writes_the_github_output(tree: Path, tmp_path: Path, capsys):
     assert capsys.readouterr().out.split() == ["rf-agentskills"]
     key, value = out.read_text().strip().split("=", 1)
     assert key == "plugins" and json.loads(value) == ["rf-agentskills"]
+
+
+# --- security gate selection (plugin-catalogue "Shared files have one owner") --
+
+@pytest.fixture
+def content_tree(tmp_path: Path) -> Path:
+    for plugin, folder in (("rf-core", "hooks"), ("rf-web", "skills"), ("rf-docs-only", "docs")):
+        (tmp_path / "plugins" / plugin / folder).mkdir(parents=True)
+    (tmp_path / "plugins" / "rf-all").mkdir()
+    (tmp_path / "plugins" / "rf-all" / "catalog.yaml").write_text("bundle: [rf-core, rf-web]\n")
+    (tmp_path / "bundles" / "rf-all" / "hooks").mkdir(parents=True)
+    return tmp_path
+
+
+def test_shared_hook_change_scans_both_plugins(content_tree: Path):
+    """A hook script whose copy the bundle carries: the gate scans the plugin and the bundle."""
+    assert sel.select_security(content_tree, ["plugins/rf-core/scripts/validate_robot.mjs"]) == ["rf-all", "rf-core"]
+
+
+def test_security_selection_rules(content_tree: Path):
+    assert sel.select_security(content_tree, ["plugins/rf-web/skills/rf-browser/SKILL.md"]) == ["rf-all", "rf-web"]
+    assert sel.select_security(content_tree, ["bundles/rf-all/hooks/hooks.json"]) == ["rf-all"]
+    assert sel.select_security(content_tree, ["plugins/rf-all/catalog.yaml"]) == ["rf-all"]
+    assert sel.select_security(content_tree, ["security/baselines/rf-core.yaml"]) == ["rf-all", "rf-core", "rf-web"]
+    assert sel.select_security(content_tree, None) == ["rf-all", "rf-core", "rf-web"]
+    assert sel.select_security(content_tree, ["plugins/rf-docs-only/docs/x.md"]) == []
+
+
+def test_security_cli(content_tree: Path, tmp_path: Path, capsys):
+    paths = tmp_path / "changed.txt"
+    paths.write_text("plugins/rf-core/hooks/hooks.json\n")
+    out = tmp_path / "gh-output"
+    assert sel.main(["--security", "--paths-file", str(paths), "--github-output", str(out), "--root", str(content_tree)]) == 0
+    assert json.loads(out.read_text().split("=", 1)[1]) == ["rf-all", "rf-core"]
+
+
+def test_the_real_repository_security_selection():
+    assert sel.select_security(ROOT, ["plugins/rf-core/scripts/validate_robot.mjs"]) == ["rf-agentskills", "rf-core"]

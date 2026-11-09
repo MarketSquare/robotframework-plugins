@@ -8,7 +8,7 @@ entries:
 - scanner: skillspector
   rule: RA1
   file: plugins/rf-core/agents/rf-test-architect.md
-  fingerprint: ee4fea7b80b4c345
+  fingerprint: 5943071c8ec4dd62
   severity: HIGH
   reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
   reviewed_by: ''
@@ -16,7 +16,7 @@ entries:
 - scanner: skillspector
   rule: MP3
   file: plugins/rf-core/scripts/_pending_errors.mjs
-  fingerprint: ca1c4f72abaed318
+  fingerprint: 0d1b5f667a01e8bd
   severity: HIGH
   reason: 'False positive: the Stop hook adds and deletes keys in its own per-session pending-errors state, not
     in agent memory.'
@@ -25,7 +25,7 @@ entries:
 - scanner: skillspector
   rule: MP3
   file: plugins/rf-core/scripts/report_pending_errors.mjs
-  fingerprint: 232cba3b2c1a3baf
+  fingerprint: 0d1b5f667a01e8bd
   severity: HIGH
   reason: 'False positive: the Stop hook adds and deletes keys in its own per-session pending-errors state, not
     in agent memory.'
@@ -34,7 +34,7 @@ entries:
 - scanner: skillspector
   rule: E2
   file: plugins/rf-core/skills/rf-python-library/scripts/check_library.py
-  fingerprint: be60e0d23265d37c
+  fingerprint: e1d460a1f5b4b87d
   severity: HIGH
   reason: 'False positive: check_library.py copies os.environ to start its own worker subprocess with two extra
     variables; nothing is sent anywhere.'
@@ -43,7 +43,7 @@ entries:
 - scanner: cisco
   rule: PIPELINE_TAINT_FLOW
   file: plugins/rf-core/skills/rf-setup/references/ci.md
-  fingerprint: 0c64aaea2e292f8e
+  fingerprint: 1168cb2d90a6d9a1
   severity: HIGH
   reason: 'Documentation decision (design D8): rf-setup tells the user how to install uv with Astral''s official
     install script; it is an instruction for a person, not code the plugin runs.'
@@ -52,7 +52,7 @@ entries:
 - scanner: cisco
   rule: PIPELINE_TAINT_FLOW
   file: plugins/rf-core/skills/rf-setup/references/uv.md
-  fingerprint: f18e04d52b265b7b
+  fingerprint: 1168cb2d90a6d9a1
   severity: HIGH
   reason: 'Documentation decision (design D8): rf-setup tells the user how to install uv with Astral''s official
     install script; it is an instruction for a person, not code the plugin runs.'
@@ -61,7 +61,7 @@ entries:
 - scanner: skillspector
   rule: RA1
   file: plugins/rf-core/variants/codex/agents/rf-test-architect.toml
-  fingerprint: f61399a3bab46902
+  fingerprint: 5943071c8ec4dd62
   severity: HIGH
   reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
   reviewed_by: ''
@@ -69,7 +69,7 @@ entries:
 - scanner: skillspector
   rule: RA1
   file: plugins/rf-core/variants/opencode/agents/rf-test-architect.md
-  fingerprint: 3da47d920f300a73
+  fingerprint: 5943071c8ec4dd62
   severity: HIGH
   reason: 'False positive: the text forbids overwriting existing files (''never overwrite existing files'').'
   reviewed_by: ''

@@ -143,3 +143,17 @@ def test_empty_sarif_file(tmp_path: Path) -> None:
     empty = tmp_path / "e.sarif"
     empty.write_text("")
     assert cf.read_sarif("cc-audit", empty) == []
+
+
+def test_bundle_copy_is_judged_by_the_source_plugins_baseline(tmp_path: Path) -> None:
+    """A finding in bundles/rf-agentskills/ matches the entry for the file it
+    was copied from (design D15: generated copies have one owner)."""
+    src = cf.read_sarif("skillspector", _sarif(tmp_path, _result("PE2", REF, "HIGH", "sudo pip install"), name="s.sarif"))
+    copy = REF.replace("plugins/rf-core/", "bundles/rf-agentskills/")
+    bundle = cf.read_sarif("skillspector", _sarif(tmp_path, _result("PE2", copy, "HIGH", "sudo pip install"), name="b.sarif"))
+    assert src[0].fingerprint == bundle[0].fingerprint
+    baseline = _baseline(tmp_path, _entry(src[0]))
+    sarif = tmp_path / "b.sarif"
+    args = ["--baseline", str(baseline), "--sarif", f"skillspector={sarif}", "--today", TODAY.isoformat()]
+    assert cf.main(args) == 1
+    assert cf.main([*args, "--map", "plugins/rf-core/=bundles/rf-agentskills/"]) == 0

@@ -8,7 +8,7 @@ entries:
 - scanner: skillspector
   rule: TM1
   file: plugins/rf-web/skills/rf-selenium/references/troubleshooting.md
-  fingerprint: 2436704f4cc79187
+  fingerprint: 7ed6d84b6f2c55a0
   severity: HIGH
   reason: 'False positive: documentation example, not a tool call: clearing Selenium Manager''s driver cache (rm
     -rf ~/.cache/selenium).'
@@ -17,7 +17,7 @@ entries:
 - scanner: skillspector
   rule: TM1
   file: plugins/rf-web/skills/rf-selenium/references/troubleshooting.md
-  fingerprint: f22e05e06c6e27e0
+  fingerprint: 0b971c82b3b6d416
   severity: HIGH
   reason: 'False positive: documentation example, not a tool call: clearing Selenium Manager''s driver cache (rm
     -rf ~/.cache/selenium).'

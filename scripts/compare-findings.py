@@ -3,9 +3,9 @@
 content-security-scanning, "The gate fails on new findings only"; design D8).
 
 Each result is normalised to ``(scanner, rule, file, fingerprint)``. The
-fingerprint hashes the scanner, rule, file and the finding's evidence text,
-without line numbers, so a finding keeps its fingerprint when lines move
-(SkillSpector's own finding ids change on every run).
+fingerprint hashes the scanner, rule and the finding's evidence text, without
+line numbers or the path, so a finding keeps it when lines move or the file is
+a generated copy (SkillSpector's own finding ids change on every run).
 
 The gate fails on:
   - a HIGH or CRITICAL finding that is not in the baseline;
@@ -19,8 +19,11 @@ Usage:
       --sarif cisco=out/cisco.sarif --summary out/summary.md
 
 ``@BASE`` names the folder the scanner ran in when its SARIF paths are
-relative to it. ``--draft FILE`` writes baseline entries for every finding
-not in the baseline yet, to review by hand (task 5.3).
+relative to it. ``--baseline`` can repeat. ``--map OLD=NEW`` rewrites the
+``file`` of baseline entries under ``OLD`` to ``NEW``: a bundle's copies are
+judged by the baselines of the plugins they come from (design D15).
+``--draft FILE`` writes baseline entries for every finding not in the
+baseline yet, to review by hand (task 5.3).
 """
 
 from __future__ import annotations
@@ -78,8 +81,8 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def fingerprint(scanner: str, rule: str, file: str, evidence: str) -> str:
-    raw = "\x1f".join((scanner, rule, file, _norm(evidence)))
+def fingerprint(scanner: str, rule: str, evidence: str) -> str:
+    raw = "\x1f".join((scanner, rule, _norm(evidence)))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
@@ -127,18 +130,27 @@ def read_sarif(scanner: str, path: Path, base: str = "") -> list[Finding]:
             line = (phys.get("region") or {}).get("startLine")
             out.append(Finding(
                 scanner=scanner, rule=rule, file=file,
-                fingerprint=fingerprint(scanner, rule, file, _evidence(result)),
+                fingerprint=fingerprint(scanner, rule, _evidence(result)),
                 severity=_severity(result), line=line,
                 message=_norm(str((result.get("message") or {}).get("text") or ""))[:160],
             ))
     return out
 
 
-def load_baseline(path: Path) -> list[dict]:
+def load_baseline(path: Path, maps: list[tuple[str, str]] = ()) -> list[dict]:
     if not path.is_file():
         return []
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    return list(data.get("entries") or [])
+    entries = []
+    for entry in data.get("entries") or []:
+        entry = dict(entry)
+        file = str(entry.get("file") or "")
+        for old, new in maps:
+            if file.startswith(old):
+                entry["file"] = new + file[len(old):]
+                break
+        entries.append(entry)
+    return entries
 
 
 def _entry_problem(entry: dict, today: dt.date) -> str | None:
@@ -226,9 +238,17 @@ def _sarif_arg(value: str) -> tuple[str, Path, str]:
     return scanner, Path(file), base
 
 
+def _map_arg(value: str) -> tuple[str, str]:
+    old, sep, new = value.partition("=")
+    if not sep or not old:
+        raise argparse.ArgumentTypeError(f"expected OLD=NEW, got {value!r}")
+    return old, new
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--baseline", type=Path, required=True)
+    parser.add_argument("--baseline", type=Path, action="append", required=True)
+    parser.add_argument("--map", type=_map_arg, action="append", default=[], metavar="OLD=NEW")
     parser.add_argument("--sarif", type=_sarif_arg, action="append", default=[], metavar="SCANNER=FILE[@BASE]")
     parser.add_argument("--summary", type=Path, help="write the Markdown summary here (default: stdout)")
     parser.add_argument("--draft", type=Path, help="write draft baseline entries for the new findings")
@@ -237,11 +257,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     findings = [f for scanner, path, base in args.sarif for f in read_sarif(scanner, path, base)]
-    baseline = load_baseline(args.baseline)
+    baseline = [e for path in args.baseline for e in load_baseline(path, args.map)]
+    first = args.baseline[0]
     plugin = args.plugin
-    if not plugin and args.baseline.is_file():
-        plugin = (yaml.safe_load(args.baseline.read_text(encoding="utf-8")) or {}).get("plugin", "")
-    plugin = plugin or args.baseline.stem
+    if not plugin and first.is_file():
+        plugin = (yaml.safe_load(first.read_text(encoding="utf-8")) or {}).get("plugin", "")
+    plugin = plugin or first.stem
     res = compare(findings, baseline, args.today)
     text = summary(res, plugin)
     if args.summary:

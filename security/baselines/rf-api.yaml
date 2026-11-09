@@ -8,7 +8,7 @@ entries:
 - scanner: skillspector
   rule: TM1
   file: plugins/rf-api/skills/rf-restinstance/assets/examples/basic-rest.robot
-  fingerprint: 2148e67050d1026c
+  fingerprint: bf3ee72ac9bcea49
   severity: HIGH
   reason: 'False positive: documentation example, not a tool call: a RESTinstance example test that sends DELETE
     /users/2 to the example API.'
