@@ -46,6 +46,9 @@ def suggests_plugin_or_passes(run: Run, params: dict[str, Any]) -> Verdict | dic
         return {"passed": True, "details": f"suggests installing {plugin}"}
     check = dict(params.get("check") or {})
     kind = str(check.pop("type", ""))
+    # Same alias the rubric grader applies to top-level checks.
+    if "path" not in check and "target" in check:
+        check["path"] = check["target"]
     if not kind:
         return {"passed": False, "details": f"does not suggest installing {plugin}"}
     inner = lookup_check(kind)(run, f"{kind} (instead of suggesting {plugin})", check)

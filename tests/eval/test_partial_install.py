@@ -57,6 +57,33 @@ def test_falls_back_to_the_gating_check(tmp_path: Path) -> None:
     assert bad["passed"] is False and "does not suggest installing rf-web" in bad["details"]
 
 
+def test_inner_check_takes_target_like_a_task_check(tmp_path: Path) -> None:
+    run = _run(tmp_path, "Done.")
+    (run.workspace_dir / "tests").mkdir()
+    (run.workspace_dir / "tests" / "login.robot").write_text("*** Test Cases ***\nT\n    Log    x\n")
+    ok = suggests_plugin_or_passes(run, {"plugin": "rf-web", "check": {
+        "type": "file_contains", "target": "tests/login.robot", "regex": "Log"}})
+    assert ok["passed"] is True, ok
+
+
+@pytest.mark.parametrize("task", sorted(_REPO.glob("plugins/*/evals/tasks/partial/*.yaml")), ids=lambda p: p.stem)
+def test_shipped_partial_tasks_grade_without_a_grader_error(task: Path, tmp_path: Path) -> None:
+    """The nested check of each shipped task runs (an empty answer fails it, never errors)."""
+    import yaml
+
+    from rf_skill_eval.errors import GraderError
+
+    data = yaml.safe_load(task.read_text(encoding="utf-8"))
+    (check,) = [c for c in data["grader_checks"] if c.get("name") == "suggests_plugin_or_passes"]
+    params = {k: v for k, v in check.items() if k not in ("type", "name", "func_ref", "gating")}
+    run = _run(tmp_path, "Done.")
+    try:
+        result = suggests_plugin_or_passes(run, params)
+    except GraderError as exc:
+        pytest.fail(f"{task.name}: {exc}")
+    assert result["passed"] is False
+
+
 def test_every_technology_plugin_has_a_partial_task() -> None:
     evals = plugin_evals_dir(_REPO, "all")
     rep = coverage(_REPO, evals / "tasks", evals / "triggers", "all")
