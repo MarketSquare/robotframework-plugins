@@ -59,7 +59,7 @@ Prerequisite: `split-rf-agentskills` is applied. Groups 4–10 work on its plugi
 
 - [ ] 8.1 Add `.github/workflows/adoption-collect.yml`, which runs weekly and commits traffic JSON to the `adoption-data` branch. Verify after the first run that the branch has daily view and clone data; switch to a fine-grained token if `GITHUB_TOKEN` is refused.
 - [ ] 8.2 Add the feedback issue form with per-plugin labels, and `scripts/adoption-report.py` with a quarterly workflow that opens a PR with `docs/reports/adoption-<YYYY>-Q<n>.md`. Verify the report on fixture data, including a listed demotion candidate.
-- [ ] 8.3 Add a test that the installer makes no network calls during a file-mode install, by blocking sockets in the test process. Verify that the test passes.
+- [x] 8.3 Add a test that the installer makes no network calls during a file-mode install, by blocking sockets in the test process. Verify that the test passes.
 
 ## 9. Documentation in the Robot Framework Voice
 
