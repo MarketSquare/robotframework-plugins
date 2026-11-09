@@ -134,13 +134,21 @@ jobs:
             uv run rf-skill-eval --plugin "$plugin" coverage
           done
 
+      # Live evals run plugin hooks and scripts with an API key, so they run only
+      # on code a maintainer pushed: main, schedules, manual runs, and PRs whose
+      # head branch is in this repository (content-security-scanning, "Untrusted
+      # plugin content is never executed with secrets"). A fork PR never counts
+      # as having credentials, whatever the repository's fork-secrets setting.
       - name: Detect credentials
         id: creds
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
-          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ] || [ -n "${ANTHROPIC_API_KEY}" ]; then
+          if [ "${FORK_PR}" = "true" ]; then
+            echo "has_credentials=false" >> "$GITHUB_OUTPUT"
+          elif [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ] || [ -n "${ANTHROPIC_API_KEY}" ]; then
             echo "has_credentials=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_credentials=false" >> "$GITHUB_OUTPUT"
@@ -228,7 +236,7 @@ jobs:
   pr-eval:
     name: PR eval ${{ matrix.plugin }} (narrow, treatment, N=3)
     needs: preflight
-    if: ${{ github.event_name == 'pull_request' && needs.preflight.outputs.run_evals == 'true' && needs.preflight.outputs.has_credentials == 'true' }}
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.preflight.outputs.run_evals == 'true' && needs.preflight.outputs.has_credentials == 'true' }}
     strategy:
       fail-fast: false
       matrix:

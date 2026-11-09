@@ -41,7 +41,7 @@ Prerequisite: `split-rf-agentskills` is applied. Groups 4–10 work on its plugi
 - [ ] 5.4 Add `.github/workflows/security-gate.yml` (`pull_request`, `contents: read`, no secrets). It runs the house rules, the scanners on changed plugins (a changed shared file counts as a change to every plugin that links to it; `scripts/select-plugin-tests.py` already computes this), cc-audit, Gitleaks and the comparison, and publishes SARIF as artifacts with a job summary. Add a nightly full scan. Verify on a test PR from a fork that the job runs without secrets, on a PR that adds the C4 hook canary that the gate fails, and with the "Shared hook change scans both plugins" fixture.
 - [ ] 5.5 Add `.github/workflows/security-deep-scan.yml` (`pull_request_target` on the `security-deep-scan` label, and push to `main`). It checks out the PR head as data only, uses actions pinned to commit SHAs, runs the model-assisted SkillSpector and Cisco scans, comments the findings and sets a status check. Verify with a labelled test PR that the comment appears, and that an unlabelled PR does not run the job.
 - [ ] 5.6 Restrict live `rf-skill-eval` workflows to `main`, maintainer branches and schedules. Verify that a fork PR does not trigger them, by reviewing the workflow triggers and with a dry run on a fork PR.
-- [ ] 5.7 Retest Gitleaks with a correctly shaped fake Anthropic key in a fixture. Verify that it is detected, or record which secret detector the gate uses instead.
+- [x] 5.7 Retest Gitleaks with a correctly shaped fake Anthropic key in a fixture. Verify that it is detected, or record which secret detector the gate uses instead.
 
 ## 6. Trust tiers and review
 

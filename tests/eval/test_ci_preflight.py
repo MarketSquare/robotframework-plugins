@@ -178,3 +178,31 @@ def test_deleted_or_renamed_skill_dirs_are_ignored() -> None:
     assert "rf-browser" in res.skills
     assert not ({"robotframework-appium-skill", "rf-keyword-builder"} & res.trigger_skills)
     assert any("not shipped" in r for r in res.reasons)
+
+
+# --- fork PRs never run live evals (content-security-scanning, task 5.6) --------
+
+_EVAL_SECRETS = ("secrets.CLAUDE_CODE_OAUTH_TOKEN", "secrets.ANTHROPIC_API_KEY")
+
+
+def _triggers(wf: dict) -> set[str]:  # type: ignore[type-arg]
+    on = wf.get("on", wf.get(True))
+    return set(on) if isinstance(on, dict) else {on} if isinstance(on, str) else set(on)
+
+
+def test_live_evals_never_use_pull_request_target_or_workflow_run() -> None:
+    """Those events run with secrets on fork code; no workflow that holds the
+    eval secrets may use them."""
+    for path in sorted((_REPO / ".github" / "workflows").glob("*.yml")):
+        text = path.read_text()
+        if any(s in text for s in _EVAL_SECRETS):
+            assert not _triggers(yaml.safe_load(text)) & {"pull_request_target", "workflow_run"}, path.name
+
+
+def test_fork_prs_have_no_credentials() -> None:
+    wf = _wf()
+    creds = next(s for s in wf["jobs"]["preflight"]["steps"] if s.get("id") == "creds")
+    assert "head.repo.full_name != github.repository" in creds["env"]["FORK_PR"]
+    assert creds["run"].lstrip().startswith('if [ "${FORK_PR}" = "true" ]; then\n  echo "has_credentials=false"')
+    assert "github.event.pull_request.head.repo.full_name == github.repository" in wf["jobs"]["pr-eval"]["if"]
+    assert _triggers(wf) == {"pull_request", "schedule", "workflow_dispatch"}
