@@ -175,6 +175,10 @@ jobs:
           else
             python scripts/build-catalog.py --check
           fi
+      - name: Docs voice
+        # Banned corporate phrases and at most one exclamation mark per
+        # document (programme-documentation; the rest is a review item).
+        run: python scripts/check-docs-voice.py
       - name: Ownership and tier evidence
         # CODEOWNERS matches catalog.yaml maintainers; verified plugins have
         # their evidence or a dated grace entry (.github/governance.yaml).

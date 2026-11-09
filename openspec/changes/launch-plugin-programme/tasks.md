@@ -63,7 +63,7 @@ Prerequisite: `split-rf-agentskills` is applied. Groups 4–10 work on its plugi
 
 ## 9. Documentation in the Robot Framework Voice
 
-- [ ] 9.1 Add `scripts/check-docs-voice.py` (banned phrases, at most one exclamation mark per document) to CI, with tests. Verify that the "Our mission is" fixture fails.
+- [x] 9.1 Add `scripts/check-docs-voice.py` (banned phrases, at most one exclamation mark per document) to CI, with tests. Verify that the "Our mission is" fixture fails.
 - [ ] 9.2 Write README.md: what it is, the catalogue (generated), install per agent with the new commands, the tiers and what they don't guarantee, no telemetry, and links. Verify that the docs voice check passes and a reviewer has checked the text against the voice guide.
 - [ ] 9.3 Write CONTRIBUTING.md (adding a plugin, checks, review, writing rules), GOVERNANCE.md (tiers, review, maintainer targets, lifecycle) and SECURITY.md (private reporting, 7-day response, limits of the checks). Verify that the voice check passes and the GitHub Security tab shows the policy.
 - [ ] 9.4 Add `templates/plugin/` with `catalog.yaml`, a README and one example skill, plus a CI job that copies it to `plugins/example/` in a scratch checkout and runs every PR check. Verify that the job passes.
