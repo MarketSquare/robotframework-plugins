@@ -1,7 +1,20 @@
-# Changelog — rf-agentskills installer
+# Changelog — robotframework-plugins installer
 
-The `rf-agentskills` package is versioned independently from the
-content bundle (the marketplace plugin and skills tarballs). See `RELEASING.md` at the repo root for the policy.
+The installer has calendar versions (`YYYY.M.PATCH`), independent of the plugins' own versions; each release states which plugin versions it bundles. Up to 0.8.0 it was published as `rf-agentskills`. See `RELEASING.md` at the repo root.
+
+## Unreleased (2026.12.0)
+
+### Renamed
+- **The package is now `robotframework-plugins`**, with the command `robotframework-plugins` and the module `robotframework_plugins`, from `MarketSquare/robotframework-plugins`. It continues `rf-agentskills` 0.8.0; `rf-agentskills` 0.9.0 depends on it and forwards with a notice. Versions switch to calendar versions, starting with `2026.12.0`.
+- **The marketplace is `robotframework-plugins`.** `--mode plugin` writes the new marketplace entry and source, and re-installing replaces an old `robotframework-agentskills` entry, keeping its `--ref` pin.
+
+### Added
+- **Several plugins.** The installer bundles every listed plugin (`rf-core`, `rf-web`, `rf-api`, `rf-mobile`, `rf-desktop` and the `rf-agentskills` bundle). By default it installs `rf-core` plus the plugins for the libraries the project declares in `pyproject.toml` or `requirements*.txt`, or every verified plugin when it declares none. `--plugins <csv>|all` chooses them; an unknown or removed plugin is an error, a deprecated one a warning.
+- **`robotframework-plugins catalog [--json]`** lists the bundled plugins with version, tier and status. `version` prints every bundled plugin's version.
+- **Upgrades keep what is installed.** On an upgrade, `install` covers the plugins already installed and adds the ones the project now declares. The summary names the skills and plugins an install removed, including a plugin the catalogue no longer has; files you changed are kept and reported.
+
+### Changed
+- **Support files move per plugin**: `<agent folder>/rf-core-files/` replaces `rf-agentskills-files/`, written only for plugins with hooks or scripts. An install made by 0.8.0 or earlier is moved there, its hook commands rewritten and its files recorded under their plugin. The OpenCode plugin file is `rf-core.js`.
 
 ## 0.8.0 — 2026-11-07
 

@@ -67,7 +67,7 @@ Prerequisite: `split-rf-agentskills` is applied. Groups 4–10 work on its plugi
 - [ ] 9.2 Write README.md: what it is, the catalogue (generated), install per agent with the new commands, the tiers and what they don't guarantee, no telemetry, and links. Verify that the docs voice check passes and a reviewer has checked the text against the voice guide.
 - [ ] 9.3 Write CONTRIBUTING.md (adding a plugin, checks, review, writing rules), GOVERNANCE.md (tiers, review, maintainer targets, lifecycle) and SECURITY.md (private reporting, 7-day response, limits of the checks). Verify that the voice check passes and the GitHub Security tab shows the policy.
 - [ ] 9.4 Add `templates/plugin/` with `catalog.yaml`, a README and one example skill, plus a CI job that copies it to `plugins/example/` in a scratch checkout and runs every PR check. Verify that the job passes.
-- [ ] 9.5 Update `RELEASING.md` (plugin releases with `<plugin>--v*` tags, CalVer installer releases with `robotframework-plugins-v*` tags, the version table, trusted publishing), add the "Versions" section to `CONTRIBUTING.md`, and update the installer README and changelog, including the rename note. Verify that the voice check passes.
+- [x] 9.5 Update `RELEASING.md` (plugin releases with `<plugin>--v*` tags, CalVer installer releases with `robotframework-plugins-v*` tags, the version table, trusted publishing), add the "Versions" section to `CONTRIBUTING.md`, and update the installer README and changelog, including the rename note. Verify that the voice check passes.
 
 ## 10. Release and switch-over
 
