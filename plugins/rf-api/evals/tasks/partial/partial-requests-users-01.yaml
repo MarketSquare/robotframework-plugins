@@ -1,0 +1,34 @@
+id: partial-requests-users-01
+skill: rf-requests
+tier: partial
+description: |
+  Same request as narrow-requests-users-01, with only rf-core staged (a partial install).
+  Passes when the answer suggests installing rf-api, or when the produced suite still passes the gating check; fails on library code from memory that fails it.
+prompt: |
+  libraries/ApiServer.py starts a small local HTTP API (see README.md): the
+  keyword `Start Api Server` sets ${API_URL}. Write tests/users_api.robot with
+  RequestsLibrary that starts the server in Suite Setup, stops it in Suite
+  Teardown, and has two tests:
+
+    1. GET /users returns 200, exactly 3 users, and the first user's name is
+       "Alice".
+    2. GET /users/99 returns 404.
+
+  Run the suite and make sure both tests pass.
+model: claude-haiku-5-5
+stage: [rf-core]
+max_turns: 14
+timeout_seconds: 300
+allowed_tools: [Read, Write, Edit, Bash, Glob, Grep, Skill]
+grader_checks:
+- type: custom_python
+  name: suggests_plugin_or_passes
+  func_ref: rf_skill_eval.scoring.custom.partial_install:suggests_plugin_or_passes
+  plugin: rf-api
+  check:
+    type: robot_pass
+    target: tests/users_api.robot
+    requires: [RequestsLibrary]
+    expected_tests: 2
+  gating: true
+fixture: sut-api

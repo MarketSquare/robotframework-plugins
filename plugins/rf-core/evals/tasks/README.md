@@ -9,6 +9,8 @@ the run succeeded.
 
 ## Directory layout
 
+A **partial** task asks for technology work with only `rf-core` staged, the way a user without the technology plugin would. It passes when the answer suggests installing that plugin, or when the produced code still passes the gating check (`custom_python` `suggests_plugin_or_passes`, wrapping that check). It runs on the narrow tier's models and replicates, and `rf-skill-eval coverage` fails for a technology plugin without one.
+
 Tasks live in the plugin that ships their skill (`rf-browser` tasks in `plugins/rf-web/evals/tasks/`); `plugin` canaries live in `rf-core`. Every run stages all content plugins together, a full install. `--plugin <name>` picks one plugin's tasks, trigger sets and baselines; `--plugin all` reads every plugin's at once and writes no baseline.
 
 ```
@@ -16,6 +18,7 @@ plugins/<plugin>/evals/tasks/      # each plugin's tasks, for the skills it ship
   narrow/        # Single-skill, deterministic, <=5 min wall time
   realistic/     # Multi-step, multi-file, <=15 min wall time
   adversarial/   # Tempts known failure modes (reported only, not gating)
+  partial/       # Only some plugins staged (`stage: [rf-core]`): one per technology plugin
   README.md      # This file
 ```
 

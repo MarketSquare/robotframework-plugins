@@ -29,7 +29,7 @@ from ..domain.trigger import TriggerSet
 from ..infrastructure.telemetry.skill_loads import skill_dir_map
 
 TASK_SUFFIXES = (".yaml", ".yml", ".json")
-TIERS = ("narrow", "realistic", "adversarial")
+TIERS = ("narrow", "realistic", "adversarial", "partial")
 
 
 def find_repo_root(start: Path | None = None) -> Path:
@@ -68,6 +68,8 @@ def default_eval_plugin(repo_root: Path) -> str:
 
 #: ``--plugin all``: every plugin's evals at once, read-only (see :func:`merged_evals_dir`).
 ALL_PLUGINS = "all"
+#: The plugin every technology plugin depends on; a partial-install task stages only it.
+CORE_PLUGIN = "rf-core"
 
 
 def plugin_evals_dir(repo_root: Path, plugin: str) -> Path:
@@ -183,6 +185,15 @@ def task_problems(
             f"{path}: unknown skill '{task.skill}' (not a shipped skill; "
             f"known: {sorted(skills)} or '{PLUGIN_SKILL}')"
         )
+    if task.tier == "partial" and not task.stage:
+        problems.append(f"{path}: a partial task needs 'stage' (the plugins to stage, e.g. [rf-core])")
+    if task.stage and fixtures_root is not None:
+        from .staging import content_plugins
+
+        known = content_plugins(fixtures_root.parent.parent / "plugins")
+        unknown = [n for n in task.stage if n not in known]
+        if unknown and known:
+            problems.append(f"{path}: stage names unknown plugin(s) {unknown} (known: {known})")
     if task.fixture and fixtures_root is not None and not (fixtures_root / task.fixture).is_dir():
         problems.append(f"{path}: fixture '{task.fixture}' not found under {fixtures_root}")
     if not task.gating_checks:
@@ -272,6 +283,22 @@ class CoverageReport:
         return not self.problems
 
 
+def partial_problems(
+    repo_root: Path, tasks: dict[str, tuple[Path, Task]], plugin: str | None = None
+) -> list[str]:
+    """Every technology plugin needs a partial-install task: one of its skills,
+    run with only ``rf-core`` staged (skill-eval-harness "Partial-install tier")."""
+    owner = {s: p.parent.name for p in sorted((repo_root / "plugins").glob("*/skills"))
+             for s in skill_dir_map(p)}
+    technology = sorted({p for p in owner.values() if p != CORE_PLUGIN})
+    if plugin not in (None, ALL_PLUGINS):
+        technology = [p for p in technology if p == plugin]
+    covered = {owner.get(t.skill) for _p, t in tasks.values()
+               if t.tier == "partial" and tuple(t.stage) == (CORE_PLUGIN,)}
+    return [f"technology plugin '{p}' has no partial-install task (tier partial, stage [{CORE_PLUGIN}])"
+            for p in technology if p not in covered]
+
+
 def coverage(
     repo_root: Path, tasks_dir: Path, triggers_dir: Path, plugin: str | None = None
 ) -> CoverageReport:
@@ -288,6 +315,7 @@ def coverage(
             problems.append(f"skill '{name}' has no narrow task under {tasks_dir}")
         if name not in sets:
             problems.append(f"skill '{name}' has no trigger set ({triggers_dir}/{name}.yaml)")
+    problems += partial_problems(repo_root, validation.tasks, plugin)
     return CoverageReport(
         skills=sorted(skills),
         narrow_tasks=narrow,

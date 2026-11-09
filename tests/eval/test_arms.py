@@ -210,3 +210,14 @@ def test_trigger_profile_disables_hooks_and_uses_empty_workspace(
     assert call["cwd"] == str(run.workspace_dir.resolve())  # type: ignore[union-attr]
     assert os.path.basename(str(call["config_dir"])) == "claude_config"
     assert set(_mcp(config)) == set()  # the plugin ships no MCP server
+
+
+def test_partial_task_stages_only_its_plugins(tmp_path: Path, fake_claude: Path) -> None:
+    """A task with ``stage: [rf-core]`` (partial-install tier) gets rf-core's skills only."""
+    out = tmp_path / "runs"
+    runner = ClaudeCodeRunner(claude_binary=str(fake_claude), fixtures_root=_REPO / "eval" / "fixtures",
+                              repo_root=_REPO)
+    run = runner.execute(_task(tier="partial", stage=["rf-core"]), Profile.for_arm("treatment", out / "cfg"), out)
+    config = run.artifacts_dir / "claude_config"
+    assert sorted(p.name for p in (config / "skills").iterdir()) == ["rf-language", "rf-python-library", "rf-setup"]
+    assert (config / "agents").is_dir()

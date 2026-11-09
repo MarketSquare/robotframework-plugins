@@ -9,7 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from ..errors import ModelNotAllowedError
 from .verdict import CheckCategory
 
-TaskTier = Literal["narrow", "realistic", "adversarial"]
+#: ``partial``: a task run with only some plugins staged (``stage``), to check
+#: that a missing technology plugin is suggested, not answered from memory.
+TaskTier = Literal["narrow", "realistic", "adversarial", "partial"]
 
 #: Model allow-list (design D7). Opus is allowed only as an explicit run-time
 #: opt-in (``--model claude-opus-5-5 --allow-opus --max-cost-usd <cap>``);
@@ -39,6 +41,7 @@ LEGACY_MODEL_IDS: dict[str, str] = {
 #: Tier -> default model when a task omits ``model``.
 TIER_DEFAULT_MODELS: dict[str, str] = {
     "narrow": HAIKU_MODEL,
+    "partial": HAIKU_MODEL,  # same models and replicates as the narrow tier
     "realistic": SONNET_MODEL,
     "adversarial": SONNET_MODEL,
 }
@@ -252,6 +255,9 @@ class Task(BaseModel):
     max_turns: int = Field(default=40, gt=0, le=200)
     fixture: str | None = None
     primary_metric: str | None = None
+    #: Plugins to stage for this task (a partial install), e.g. ``[rf-core]``;
+    #: empty stages every content plugin.
+    stage: tuple[str, ...] = Field(default_factory=tuple)
 
     @model_validator(mode="before")
     @classmethod

@@ -8,6 +8,7 @@ name: Skill Evaluation
 # Every plugin with an evals/ folder is a matrix leg; each leg stages all
 # content plugins (a full install) and uses only its own tasks and baselines.
 #   weekly   -> all tiers in both arms, N=3, all trigger sets, candidate baseline.
+#               The partial tier (only rf-core staged) runs like narrow.
 #   manual   -> same as weekly with model / runs / allow_opus inputs.
 # Every harness invocation carries an explicit --max-cost-usd cap.
 
@@ -30,7 +31,7 @@ on:
       tiers:
         description: "Comma list of tiers"
         required: true
-        default: "narrow,realistic,adversarial"
+        default: "narrow,realistic,adversarial,partial"
         type: string
       arms:
         description: "Arms to run"
@@ -94,6 +95,7 @@ env:
   WEEKLY_NARROW_CAP_USD: "12"
   WEEKLY_REALISTIC_CAP_USD: "12"
   WEEKLY_ADVERSARIAL_CAP_USD: "8"
+  WEEKLY_PARTIAL_CAP_USD: "4"
   WEEKLY_TRIGGER_CAP_USD: "8"
 
 jobs:
@@ -437,7 +439,7 @@ jobs:
     env:
       RF_EVAL_PLUGIN: ${{ matrix.plugin }}
       EVALS: plugins/${{ matrix.plugin }}/evals
-      TIERS: ${{ github.event_name == 'workflow_dispatch' && inputs.tiers || 'narrow,realistic,adversarial' }}
+      TIERS: ${{ github.event_name == 'workflow_dispatch' && inputs.tiers || 'narrow,realistic,adversarial,partial' }}
       ARMS: ${{ github.event_name == 'workflow_dispatch' && inputs.arms || 'treatment,baseline' }}
       RUNS: ${{ github.event_name == 'workflow_dispatch' && inputs.runs || '3' }}
       MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.model || '' }}
@@ -500,6 +502,7 @@ jobs:
               narrow) cap="${WEEKLY_NARROW_CAP_USD}" ;;
               realistic) cap="${WEEKLY_REALISTIC_CAP_USD}" ;;
               adversarial) cap="${WEEKLY_ADVERSARIAL_CAP_USD}" ;;
+              partial) cap="${WEEKLY_PARTIAL_CAP_USD}" ;;
               *) echo "unknown tier $tier"; exit 2 ;;
             esac
             if [ -n "${MANUAL_CAP}" ]; then cap="${MANUAL_CAP}"; fi

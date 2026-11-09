@@ -63,6 +63,16 @@ class ClaudeCodeRunner:
         # rf-agentskills bundle gives); built lazily, see ``_plugin_root``.
         self._plugin_root_arg = plugin_root.resolve() if plugin_root is not None else None
         self._merged_root: Path | None = None
+        self._partial_roots: dict[tuple[str, ...], Path] = {}
+
+    def _partial_root(self, task: Task) -> Path | None:
+        """A task's ``stage`` (a partial install): those plugins merged, built once."""
+        if not task.stage:
+            return None
+        key = tuple(task.stage)
+        if key not in self._partial_roots:
+            self._partial_roots[key] = staged_tree(self._repo_root / "plugins", key).resolve()
+        return self._partial_roots[key]
 
     @property
     def _plugin_root(self) -> Path:
@@ -100,7 +110,9 @@ class ClaudeCodeRunner:
         # ${CLAUDE_SKILL_DIR}, expanded by Claude Code itself.
         # Baseline arm: nothing from the plugin is staged (design D1).
         plugin_dst = (
-            self._stage_plugin(config_dir, profile.plugin_root) if profile.stage_plugin else None
+            self._stage_plugin(config_dir, profile.plugin_root or self._partial_root(task))
+            if profile.stage_plugin
+            else None
         )
 
         write_mcp_config(config_dir, extra_servers=self._mcp_servers(task, plugin_dst))
