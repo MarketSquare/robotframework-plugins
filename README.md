@@ -1,6 +1,8 @@
-# Robot Framework Agent Skills
+# Robot Framework plugins
 
-AI agent skills for Robot Framework test automation, distributed for **eight coding agents**: Claude Code, GitHub Copilot CLI, GitHub Copilot in VS Code, OpenAI Codex, Cursor, OpenCode, Project Goose, Claude Desktop. Includes skills for the Robot Framework language (tests, keywords, resources, variables), web testing (Browser/Selenium), API testing (Requests/RESTinstance), mobile testing (Appium), native desktop testing (PlatynUI, preview), and environment setup — plus 3 specialised subagents and validation hooks. It is built to sit next to the RobotCode project's own [`robotcode` plugin](https://github.com/robotcodedev/robotframework-agent-plugins), which teaches agents to drive the robotcode CLI.
+Skills, subagents and hooks that help coding agents write, run and fix Robot Framework tests. They work with eight agents: Claude Code, GitHub Copilot CLI, GitHub Copilot in VS Code, OpenAI Codex, Cursor, OpenCode, Project Goose and Claude Desktop.
+
+Install `rf-core` for the Robot Framework language, environment setup and Python keyword libraries, then add the plugin for each library you test with: web, API, mobile or desktop. The plugins sit next to the RobotCode project's own [`robotcode` plugin](https://github.com/robotcodedev/robotframework-agent-plugins), which teaches agents the robotcode CLI.
 
 **Requires the robotcode CLI** (`robotcode[all]>=2.8`) in the project's Python environment. See [Prerequisites](#prerequisites).
 
@@ -34,7 +36,7 @@ The Python installer bundles these plugin versions:
 
 There are two ways to install, and both work at **user scope** (every project on your machine) or **project scope** (one repository, shared with your team):
 
-- **Plugin marketplace**: Claude Code, GitHub Copilot CLI, VS Code (Copilot), OpenAI Codex and Cursor all read this repository's `.claude-plugin/marketplace.json`. Add the marketplace `MarketSquare/robotframework-plugins` and install `rf-core` plus the technology plugins you need, or the `rf-agentskills` bundle (see below). Updates arrive through the agent.
+- **Plugin marketplace**: Claude Code, GitHub Copilot CLI, VS Code (Copilot), OpenAI Codex and Cursor all read this repository's `.claude-plugin/marketplace.json`. Add the marketplace `MarketSquare/robotframework-plugins` and install `rf-core` plus the technology plugins you need, or the `rf-agentskills` bundle. Updates arrive through the agent.
 - **Python installer** (`robotframework-plugins`): copies the files into each agent's own folders. Use it for OpenCode, Goose and Claude Desktop, which have no plugin marketplace, or wherever you prefer plain files. It can also write the marketplace settings for you (`--mode plugin`).
 
 ### Which plugins
@@ -155,7 +157,7 @@ Codex has no committed project-scope plugin file: every user runs the `codex plu
 
 Add the marketplace by its git URL, `https://github.com/MarketSquare/robotframework-plugins` (Customize → Plugins, or `cursor-agent plugin marketplace add …`), install `rf-core` and the technology plugins you need (or `rf-agentskills`) and choose project or user scope. Cursor keeps marketplaces on your Cursor account. It also imports the plugin when it is installed in Claude Code or enabled in `.claude/settings.json` (Settings → Third-Party Imports). Add `https://github.com/robotcodedev/robotframework-agent-plugins` the same way for the `robotcode` plugin.
 
-### Python installer (`rf-agentskills`)
+### Python installer (`robotframework-plugins`)
 
 Run it with zero install and let it walk you through the agents to set up:
 
@@ -175,7 +177,7 @@ robotframework-plugins install --agents all                 # every known agent
 robotframework-plugins install --agents claude-code,cursor  # explicit list
 robotframework-plugins install --agents detected --yes      # only detected, headless
 robotframework-plugins install --agent claude-code          # single (back-compat)
-robotframework-plugins install --agent claude-code --mode plugin --ref v3.0.0   # marketplace settings instead of files
+robotframework-plugins install --agent claude-code --mode plugin --ref rf-core--v1.0.0   # marketplace settings instead of files
 ```
 
 Installs default to **project scope** (into the current directory, e.g. `./.claude/`); add `--scope user` for a global install under your home directory. Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope project|user [--project DIR]`, `--mode files|plugin [--ref TAG]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks`, `--force`, `--no-input`.
@@ -194,34 +196,32 @@ A manifest (per-project under `<project>/.rf-agentskills/`, or global for user s
 | **Project Goose** ≥ 1.25 | `~/.agents/skills` (Summon), `.goosehints` persona | skills; subagents folded into hints; hooks N/A |
 | **Claude Desktop** | one upload-ready `rf-*.zip` per skill in `~/rf-agentskills-claude-desktop/` | skills via upload (Customize → Skills → Upload a skill; needs code execution); no subagents/hooks |
 
-Release notes, sha256 hashes, and the latest wheel + sdist are on the **[robotframework-plugins releases](https://github.com/MarketSquare/robotframework-plugins/releases)** page (tag prefix `robotframework-plugins-v*`) and on [PyPI](https://pypi.org/project/rf-agentskills/).
+Release notes, sha256 hashes, and the latest wheel + sdist are on the **[robotframework-plugins releases](https://github.com/MarketSquare/robotframework-plugins/releases)** page (tag prefix `robotframework-plugins-v*`) and on [PyPI](https://pypi.org/project/robotframework-plugins/).
 
-### Manual: drop skill files into your project
+### Manual: copy skill folders
 
-Each skill is a self-contained folder under `skills/`. Copy what you need:
+Each skill is a self-contained folder under `plugins/<plugin>/skills/`. Copy what you need into the folder your agent reads skills from:
 
 ```bash
-cp -r skills/rf-browser <your-project>/.claude/skills/
+cp -r plugins/rf-web/skills/rf-browser <your-project>/.claude/skills/
 ```
 
-This works for any agent that reads SKILL.md files from a project-local directory (Claude Code, Codex via `.codex/skills/`, Copilot via `.github/skills/`, Cursor via `.cursor/skills/`, etc.).
+Agents read project skills from `.claude/skills/` (Claude Code, Copilot), `.agents/skills/` (Codex), `.cursor/skills/` (Cursor) and similar folders. Each release also attaches a tarball of standalone skill folders, with plain script paths.
 
-## Versioning
+## Trust tiers
 
-This repo ships two release scopes — see **[`RELEASING.md`](RELEASING.md)** for the policy:
+Every plugin has a tier, shown in the catalogue above.
 
-- **Plugins** (the marketplace plugins and the skills tarballs): each plugin has its own version, tagged `<plugin>--v<version>`, for example `rf-core--v1.0.0`; a tag is the ref you pin a marketplace to. The table under "Catalogue" lists the versions an installer release bundles. The older `v<version>` tags are `rf-agentskills` releases up to 3.0.0.
-- **Tooling** (`robotframework-plugins` Python installer): calendar versions, currently `2026.12.0`, tagged `robotframework-plugins-v*`.
+- **verified**: the Foundation reviewers approved it. It has at least two maintainers, trigger tests and eval tasks for every skill, and eval baselines on the current models that it keeps passing.
+- **community**: it passes the same automated checks (house content rules, the security scanners, frontmatter and example checks) and a maintainer review, without the eval evidence.
 
-The two are versioned independently. `robotframework-plugins version` prints both:
+A tier describes the evidence behind a plugin, not a warranty. The checks and reviews lower the risk of a harmful or broken plugin; they don't prove that one is safe. Plugins give instructions to an agent that can run commands on your machine, so read what you install, as you would any other dependency. [GOVERNANCE.md](GOVERNANCE.md) has the full criteria, and [SECURITY.md](SECURITY.md) says what the security checks cover.
 
-```console
-$ robotframework-plugins version
-robotframework-plugins 2026.12.0
-bundled plugins: rf-agentskills 4.0.0, rf-api 1.0.0, rf-core 1.0.0, rf-desktop 1.0.0, rf-mobile 1.0.0, rf-web 1.0.0
-```
+## No telemetry
 
-## What You Get
+The installer, hooks and scripts send nothing anywhere. The installer only touches the network for the marketplace and package operations you ask for. To learn which plugins help, the project uses public signals (GitHub traffic, PyPI downloads, issues) and the [plugin feedback form](https://github.com/MarketSquare/robotframework-plugins/issues/new?template=plugin-feedback.yml).
+
+## What you get
 
 ### 9 Skills
 
@@ -236,38 +236,6 @@ bundled plugins: rf-agentskills 4.0.0, rf-api 1.0.0, rf-core 1.0.0, rf-desktop 1
 | Robot Framework language | language-guide + script | `/rf-core:rf-language` | Write and review tests (keyword-driven, data-driven, BDD), suites, `__init__.robot`, tags, user keywords, `.resource` and variable files in modern, version-gated syntax; `rf_conventions` script detects the project's conventions (requires robotframework). Not for Python keyword libraries |
 | Python keyword libraries | library-guide + script | `/rf-core:rf-python-library` | Write and fix keyword libraries and listeners in Python: `@library`/`@keyword`, scope by state lifetime (TEST/SUITE/GLOBAL), type-hint conversion and custom converters, failures and logging, dynamic/hybrid APIs, listener API v3, libdoc; `check_library` script finds "contains no keywords", leaked imports, lost signatures and state kept in `TEST` scope before tests run (requires robotframework, Python 3.10+) |
 | Setup | setup-guide | `/rf-core:rf-setup` | Install Robot Framework and libraries with uv, venv + pip or Poetry; fix environment errors (`ModuleNotFoundError`, wrong interpreter); project layout, CI |
-
-#### Renamed in 2.0
-
-Every skill now has one identifier, `rf-<topic>`, used as its folder name and its `name` in every channel (agentskills.io requires the two to match). In Claude Code the plugin skills are invoked as `/rf-agentskills:rf-browser` instead of `/rf-agentskills:browser`; description-based auto-loading is unaffected. `robotframework-plugins install` migrates earlier installs automatically (old folders it installed are removed; files you edited are kept and reported). Folders you copied by hand are not touched — `robotframework-plugins doctor` lists them so you can delete them.
-
-| Before 2.0: repo `skills/` folder | Before 2.0: plugin / installer folder and command | Now (everywhere) |
-|---|---|---|
-| `robotframework-browser-skill` | `browser`, `/rf-agentskills:browser` | `rf-browser` |
-| `robotframework-selenium-skill` | `selenium`, `/rf-agentskills:selenium` | `rf-selenium` |
-| `robotframework-appium-skill` | `appium`, `/rf-agentskills:appium` | `rf-appium` |
-| `robotframework-requests-skill` | `requests`, `/rf-agentskills:requests` | `rf-requests` |
-| `robotframework-restinstance-skill` | `restinstance`, `/rf-agentskills:restinstance` | `rf-restinstance` |
-| `robotframework-platynui-skill` | `platynui`, `/rf-agentskills:platynui` | `rf-platynui` |
-| `robotframework-robotcode-skill` | `robotcode`, `/rf-agentskills:robotcode` | `rf-robotcode` (removed in 3.0) |
-| `robotframework-setup-skill` | `setup`, `/rf-agentskills:setup` | `rf-setup` |
-| `robotframework-results` | `results`, `/rf-agentskills:results` | `rf-results` (removed in 3.0) |
-| `robotframework-libdoc-search`, `robotframework-libdoc-explain` | `libdoc-search`, `libdoc-explain` | `rf-libdoc` (merged) (removed in 3.0) |
-
-The library-reference skills provide documentation and usage guidance; they look keywords up with `robotcode doc`, check files with `robotcode analyze code` and read results with `robotcode results`, written out inline so they work with or without the robotcode plugin. `rf-language` and `rf-python-library` ship a Python script each. Each skill ships its script in its own `scripts/` folder, and the documented command runs it in the project environment: `uv run python scripts/<name>.py …` (the Claude Code plugin copy uses `"${CLAUDE_SKILL_DIR}/scripts/<name>.py"`, and the installer writes absolute paths for agents that do not expand that variable). The scripts use fixed exit codes (0 ok, 1 internal, 2 usage, 3 Robot Framework missing or < 7, 4 input not loadable) and print `error:`/`hint:` lines on stderr. Library-reference skills cross-reference their companion skills (e.g., the Browser skill suggests Setup and Language). Agents write keywords, test cases and resource files directly and verify them with `robotcode doc` and `robotcode analyze code`; the validation hooks check every written `.robot`/`.resource` file.
-
-#### Removed in 3.0: `rf-robotcode`, `rf-libdoc`, `rf-results`, `rf-keyword-consultant`
-
-These overlapped with the RobotCode project's `robotcode` plugin and with `robotcode` 2.8 itself, so they are gone:
-
-| Removed | Use instead |
-|---|---|
-| `rf-robotcode` skill | the `robotcode` skill of `robotcode@robotframework-agent-plugins` |
-| `rf-libdoc` skill, `rf_libdoc.py` | `robotcode doc keywords <Library> [pattern]`, `robotcode doc keyword <Library> "<Keyword>"` |
-| `rf-results` skill, `rf_results.py` | `robotcode results summary / show / log / stats / diff` |
-| `rf-keyword-consultant` subagent | `robotcode doc`, or the REPL's `.kw` |
-
-`robotframework-plugins install` removes the copies it installed earlier; folders you copied by hand are reported, not deleted.
 
 ### 3 Specialized Agents
 
@@ -316,109 +284,6 @@ uv add RESTinstance                                # RESTinstance skill (Python 
 uv add --prerelease allow robotframework-PlatynUI  # PlatynUI skill (preview; Python 3.12+; a plain install gets old 0.9.2)
 ```
 
-## What is an Agent Skill?
-
-Agent Skills are modular, self-contained packages that include a `SKILL.md` file (instructions) plus optional scripts, references, and assets. AI agents load a skill when its name or description matches the user request. Skills use progressive disclosure: only metadata is loaded initially; the full skill body and references are loaded on demand.
-
-## Project Structure
-
-```
-.claude-plugin/marketplace.json  # The marketplace every plugin-capable agent reads (generated)
-plugins/<name>/                # One folder per plugin; the only copy of its content
-├── .claude-plugin/plugin.json # The plugin's one version
-├── catalog.yaml               # Programme manifest: tier, status, maintainers, libraries
-├── skills/rf-*/               # One folder per skill; folder name == SKILL.md name
-│   ├── SKILL.md               # Skill definition (loaded by agent)
-│   ├── scripts/               # Python scripts (executed, not loaded)
-│   └── references/            # Deep reference docs (loaded on demand)
-├── scripts/                   # Hook scripts (.mjs) only
-├── agents/                    # Subagent definitions
-├── hooks/                     # Session/edit hooks
-├── variants/                  # Generated: Codex TOML subagents, OpenCode agents + JS plugin
-├── tests/                     # The plugin's own tests (not installed by the installer)
-└── evals/                     # Eval tasks, trigger sets and baselines (not installed by the installer)
-schemas/catalog.schema.json    # Schema of catalog.yaml
-installer/                     # The robotframework-plugins Python installer
-tests/                         # Shared tests: repository, catalogue, installer, eval harness
-eval/                          # Shared eval harness content: fixture projects and hidden graders
-scripts/                       # Build and check utilities
-```
-
-Each plugin's folder is the single source of its content; there is no second copy to sync. `scripts/export-skills.py` writes standalone copies for the release tarballs and Claude Desktop archives, with plain `scripts/x.py` commands instead of the plugin's `"${CLAUDE_SKILL_DIR}/scripts/x.py"`. `scripts/build-catalog.py` (also run in CI) validates every `catalog.yaml` and regenerates the marketplace and the catalogue tables. `scripts/check-drift.sh` (also run in CI) checks the generated variants and the plugin layout, and `scripts/validate-skills.py` (also run in CI) checks every `SKILL.md` against the [agentskills.io](https://agentskills.io) frontmatter rules: the folder name equals `name`, which is `rf-<topic>`, plus `license`, `compatibility` and `metadata.version` (= the plugin's `plugin.json` version; kept in step by `scripts/bump-version.sh <plugin> <part>`).
-
-## Development
-
-### After changing a plugin
-
-Edit the files under `plugins/<name>/`. After changing a subagent or `hooks/hooks.json`, regenerate the variants; after changing a `catalog.yaml` or a version, regenerate the catalogue:
-
-```bash
-python scripts/build-agent-variants.py
-python scripts/build-catalog.py
-```
-
-### Checking for Drift
-
-Verify that the generated files and the plugin layout are consistent:
-
-```bash
-bash scripts/check-drift.sh
-python scripts/build-catalog.py --check
-```
-
-Both also run in CI.
-
-### Running Tests
-
-The shared tests and each plugin's tests run separately (plugins may reuse test file names):
-
-```bash
-# Shared tests (repository, catalogue, installer)
-python -m pytest tests/ --ignore=tests/eval -v
-
-# One plugin's tests
-python -m pytest plugins/rf-agentskills/tests/ -v
-
-# Specific test files
-python -m pytest plugins/rf-agentskills/tests/test_hook_scripts.py -v       # requires robotcode[all] for the validation tiers
-python -m pytest plugins/rf-agentskills/tests/test_rf_conventions.py -v     # requires robotframework
-python -m pytest plugins/rf-agentskills/tests/test_script_execution.py -v   # script CLI contract (exit codes, --help, --json-out)
-python -m pytest plugins/rf-agentskills/tests/test_skill_commands.py -v     # how SKILL.md / agents / hooks run the scripts
-python -m pytest tests/test_drift_detection.py -v
-python -m pytest tests/test_marketplace_validation.py -v
-python -m pytest tests/test_skill_validation.py -v
-```
-
-In a pull request, CI runs the shared tests plus the tests of each plugin the change touches; a change outside `plugins/` runs every plugin's tests (`scripts/select-plugin-tests.py`).
-
-The eval harness (`rf-skill-eval`, `uv run pytest tests/eval`) reads a plugin's eval content from `plugins/<name>/evals/`; pass `--plugin <name>` once more than one plugin has evals.
-
-### Validate the Marketplace and Skills
-
-```bash
-python scripts/validate-marketplace.py
-python scripts/validate-skills.py --channel all   # root and plugin copies
-```
-
-### Bundled scripts
-
-Skills run their Python scripts directly (`uv run python scripts/<name>.py …`, or the project's interpreter); there is no MCP server. Each script prints JSON:
-
-| Script (skill) | Purpose |
-|----------------|---------|
-| `rf_conventions.py` (rf-language) | Report a project's Robot Framework conventions and version |
-| `check_library.py` (rf-python-library) | Check the project's own Python keyword libraries: keywords, scope, API style and defect findings (runs in a subprocess, never imports user code into the agent) |
-
-### Claude Desktop and claude.ai
-
-Claude Desktop loads custom skills uploaded as ZIP files, not from disk. `robotframework-plugins install --agent claude-desktop` writes one archive per skill to `~/rf-agentskills-claude-desktop/` (the CI and release artifacts contain the same archives). Upload each under **Customize → Skills → + → Create skill → Upload a skill** and start a new chat; code execution must be enabled. Build them from a checkout with `python scripts/build-skill-zips.py --out dist/skill-zips`.
-
-### Test the Plugin Locally
-
-```bash
-claude --plugin-dir ./plugins/rf-agentskills
-```
-
 ## Compatibility
 
 - **Robot Framework** 7+ (uses modern syntax: RETURN, IF/ELSE, TRY/EXCEPT)
@@ -426,21 +291,21 @@ claude --plugin-dir ./plugins/rf-agentskills
 - **robotcode** 2.8+ with the `all` extra, in the project environment
 - **Coding agents** (see the install matrices above): Claude Code ≥ 2.1, GitHub Copilot CLI (plugin verified with 1.0.91), GitHub Copilot in VS Code ≥ 1.108 (plugin verified with 1.138 and 1.142), OpenAI Codex (plugin verified with 0.153.4 and 0.161.0), Cursor ≥ 2.4 (plugin loader checked in CLI 2026.10.01), OpenCode, Project Goose ≥ 1.25, Claude Desktop (skills via ZIP upload)
 
-Anthropic's SKILL.md format is an open standard supported by all eight agents listed above (Claude Code, Copilot, Codex, Cursor, OpenCode, and Goose all read it natively as of their respective recent releases). The `rf-agentskills` installer handles the path-routing per agent so you don't have to memorise where each one wants its skills.
+## Upgrading from rf-agentskills
 
-## Running skill evaluations
+Up to 3.0.0 everything shipped as one plugin, `rf-agentskills`, from a personal repository, with the installer on PyPI as `rf-agentskills`. Both moved here:
 
-This repository ships an evaluation harness (`rf-skill-eval`) that grades each
-skill under controlled Claude Code sessions and produces a scorecard. See
-[docs/ci/usage.md](docs/ci/usage.md) for the full walkthrough. Quick start:
+- **Marketplace:** add `MarketSquare/robotframework-plugins` and install the plugins you need, or the `rf-agentskills` 4.0.0 bundle to keep everything as it was. Old pins to `v3.0.0` keep working from the archived repository.
+- **Installer:** run `uvx robotframework-plugins install`. It finds files the old installer wrote, moves them to the new layout and keeps the ones you edited. `rf-agentskills` 0.9.0 on PyPI forwards to it.
 
-```bash
-cp .env.example .env      # add your CLAUDE_CODE_OAUTH_TOKEN
-uv sync
-uv run rfbrowser init
-uv run rf-skill-eval doctor
-bash scripts/eval-local.sh
-```
+The [rf-agentskills changelog](plugins/rf-agentskills/CHANGELOG.md) lists the skills renamed in 2.0 and removed in 3.0.
+
+## More
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): add or change a plugin, run the checks and tests, and which version to bump.
+- [GOVERNANCE.md](GOVERNANCE.md): tiers, review, maintainer expectations, deprecation and removal.
+- [SECURITY.md](SECURITY.md): report a vulnerability privately; what the checks cover and what they can't.
+- [RELEASING.md](RELEASING.md): plugin and installer releases.
 
 ## License
 
