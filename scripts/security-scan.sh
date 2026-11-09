@@ -9,6 +9,7 @@
 # A bundle (catalog.yaml with a bundle: list) ships its generated copy in
 # bundles/<name>/; its findings are judged by its member plugins' baselines,
 # mapped onto the copy (design D15), plus its own baseline if it has one.
+# Cisco runs on skills/, on agents/ (lenient) and on the whole tree (lenient).
 # Writes one SARIF file per scanner run, <outdir>/summary.md, and with --draft
 # <outdir>/draft.yaml (baseline entries for the new findings, to review).
 # Exits 1 when the comparison fails. Scanners come from SCANNERS (default
@@ -53,6 +54,10 @@ if [ -d "$src/agents" ]; then
   run cisco-agents "" "$bin/skill-scanner" scan-all "$src/agents" --recursive --lenient \
     --format sarif --output-sarif "$out/cisco-agents.sarif"
 fi
+# The whole shipped tree in lenient mode: the only Cisco pass that reads hooks
+# and scripts (catches a hook that sends the environment out, canary C4).
+run cisco-tree "" "$bin/skill-scanner" scan "$src" --lenient \
+  --format sarif --output-sarif "$out/cisco-tree.sarif"
 run skillspector "$src" "$bin/skillspector" scan "$src" --recursive --no-llm \
   --format sarif --output "$out/skillspector.sarif"
 for type in mcp plugin hook subagent; do

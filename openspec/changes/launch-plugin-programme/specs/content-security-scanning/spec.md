@@ -33,7 +33,7 @@ The PR gate SHALL fail, independent of external scanners, when shipped content c
 ### Requirement: Static scanners gate every PR without secrets
 
 Every PR, including PRs from forks, SHALL run a static security job that has no repository secrets and no write permissions, and that does not execute plugin content. The job SHALL run, at pinned versions with verified checksums:
-- Cisco skill-scanner on changed skills and, in lenient mode, on changed subagents;
+- Cisco skill-scanner on changed skills and, in lenient mode, on changed subagents and on each changed plugin's whole shipped tree, which is the pass that reads hooks and scripts;
 - SkillSpector with the model pass disabled on changed skills and subagents;
 - cc-audit on MCP configuration and manifests;
 - Gitleaks on the PR diff.

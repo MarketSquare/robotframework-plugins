@@ -82,7 +82,8 @@ security-gate.yml (on: pull_request)        security-deep-scan.yml              
   no secrets, forks included                   'security-deep-scan';                maintainer branches,
   1. house rules (own script)                  on: push to main)                    schedule
   2. Cisco skill-scanner (changed skills;      checks out PR head into ./pr as      never on fork code
-     --lenient on changed agents)              DATA; never runs it                  with secrets
+     --lenient on changed agents and on        DATA; never runs it                  with secrets
+     the whole shipped tree)
   3. SkillSpector --no-llm (changed            SkillSpector with model pass,
      skills/agents)                            Cisco model judge
   4. cc-audit -t mcp, -t plugin                secrets: model provider key only
@@ -93,6 +94,8 @@ security-gate.yml (on: pull_request)        security-deep-scan.yml              
 ```
 
 - **Why tools are pinned:** each scanner is installed at an exact version, and checksum-verified where releases offer checksums, in its own virtualenv or as a release binary. The npm package named `cc-audit` links to no repository, so only the GitHub release binary is used.
+- **Why Cisco also scans the whole tree:** only its lenient pass reads hooks and scripts. Without it, a hook that sends `process.env` to a remote host (canary C4) is a MEDIUM SkillSpector finding and passes. The cost is a CRITICAL `child_process` finding for every hook that starts a program, each reviewed once in the baseline.
+- **Scanned files:** only what a plugin ships (its tracked files without `tests/` and `evals/`); the bundle's generated copy is judged by its member plugins' baselines (D15).
 - **Why only changed plugins are scanned on PRs:** a full SkillSpector run of one plugin took 134 s. A nightly job scans everything, so baseline expiry and new scanner rules are noticed.
 - **Why SARIF isn't uploaded to code scanning from PRs:** the upload needs `security-events: write`, which fork PRs don't get. Artifacts plus the job summary work for every PR.
 - **The `pull_request_target` risk:** it runs with secrets. The job therefore never installs or executes anything from the PR, pins every action to a commit SHA, and passes the PR tree only as a path to scanners. A maintainer must apply the label, which is the review step of decision (a).
