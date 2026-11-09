@@ -1,6 +1,7 @@
 """Programme manifests and the generated catalogue (spec plugin-catalogue)."""
 from __future__ import annotations
 
+import datetime as _dt
 import importlib.util
 import json
 import shutil
@@ -122,6 +123,14 @@ def test_unquoted_date_is_accepted(scratch: Path, tmp_path: Path) -> None:
 
 # --- generated files (task 3.2) -------------------------------------------
 
+def _releases(root: Path, *releases: tuple[str, str]) -> None:
+    """installer/CHANGELOG.md with these releases (newest first, as written)."""
+    path = root / bc.INSTALLER_CHANGELOG_REL
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = "".join(f"## {v} — {d}\n\n- Changes.\n\n" for v, d in reversed(releases))
+    path.write_text("# Changelog\n\n## Unreleased\n\n" + body + "## 2026.12.0rc1 — 2026-11-01 (pre-release)\n")
+
+
 def _full_scratch(tmp_path: Path) -> Path:
     """Scratch repo with the generated files too, so --check can run on it."""
     root = tmp_path / "repo"
@@ -174,15 +183,16 @@ def test_deprecated_plugin_is_tagged_and_removed_plugin_leaves(tmp_path: Path) -
     root = _full_scratch(tmp_path)
     d = _add_plugin(root, "rf-example", FIXTURES / "valid-community.yaml")
     text = (d / "catalog.yaml").read_text().replace(
-        "status: active", 'status: deprecated\ndeprecated_since: "2026-11-08"\nreplacement: rf-agentskills')
+        "status: active", 'status: deprecated\ndeprecated_since: "2026-08-01"\nreplacement: rf-agentskills')
     (d / "catalog.yaml").write_text(text)
+    _releases(root, ("2026.9.0", "2026-09-10"), ("2026.10.0", "2026-10-12"))
     assert bc.main(["--root", str(root)]) == 0
     entries = {e["name"]: e for e in json.loads((root / bc.MARKETPLACE_REL).read_text())["plugins"]}
     assert "deprecated" in entries["rf-example"]["tags"]
     assert "deprecated, use rf-agentskills" in (root / "README.md").read_text()
     (d / "catalog.yaml").write_text(text.replace("status: deprecated", "status: removed"))
-    assert bc.main(["--check", "--root", str(root)]) == 1
-    assert bc.main(["--root", str(root)]) == 0
+    assert bc.main(["--check", "--root", str(root), "--today", "2026-11-09"]) == 1
+    assert bc.main(["--root", str(root), "--today", "2026-11-09"]) == 0
     market = json.loads((root / bc.MARKETPLACE_REL).read_text())
     assert "rf-example" not in [e["name"] for e in market["plugins"]]
     assert market["renames"] == {"rf-example": None}
@@ -381,3 +391,49 @@ def test_installer_version_bump_without_regeneration_fails_check(tmp_path: Path)
     assert bc.main(["--check", "--root", str(root)]) == 1
     assert bc.main(["--root", str(root)]) == 0
     assert "robotframework-plugins 2099.1.0 bundles" in (root / "README.md").read_text()
+
+
+# --- lifecycle (plugin-lifecycle; launch task 7.1) --------------------------
+
+def _removed(root: Path, since: str) -> Path:
+    d = _add_plugin(root, "rf-example", FIXTURES / "valid-community.yaml")
+    (d / "catalog.yaml").write_text((d / "catalog.yaml").read_text().replace(
+        "status: active", f'status: removed\ndeprecated_since: "{since}"\nreplacement: rf-agentskills'))
+    return d
+
+
+def test_removal_too_early(scratch: Path) -> None:
+    _removed(scratch, "2026-10-01")
+    _releases(scratch, ("2026.10.0", "2026-10-20"))
+    (problem,) = bc.lifecycle_problems(scratch, bc.load_plugins(scratch), {"plugins": []}, _dt.date(2026, 11, 9))
+    assert "removed too early: deprecated since 2026-10-01, with 1 installer release(s) since (2026.10.0)" in problem
+    assert "Earliest: after 1 more installer release, and not before 2026-12-30" in problem
+
+
+def test_removal_after_two_releases_and_ninety_days(scratch: Path) -> None:
+    _removed(scratch, "2026-08-01")
+    _releases(scratch, ("2026.7.0", "2026-07-15"), ("2026.9.0", "2026-09-10"), ("2026.10.0", "2026-10-12"))
+    plugins = bc.load_plugins(scratch)
+    assert bc.lifecycle_problems(scratch, plugins, {"plugins": []}, _dt.date(2026, 11, 9)) == []
+    # Two releases but not yet 90 days; pre-releases don't count.
+    assert bc.lifecycle_problems(scratch, plugins, {"plugins": []}, _dt.date(2026, 10, 15))
+    assert bc.installer_releases(scratch)[-1] == ("2026.10.0", _dt.date(2026, 10, 12))
+
+
+def test_marketplace_must_not_list_a_removed_plugin(scratch: Path) -> None:
+    _removed(scratch, "2026-01-01")
+    _releases(scratch, ("2026.2.0", "2026-02-10"), ("2026.3.0", "2026-03-10"))
+    problems = bc.lifecycle_problems(scratch, bc.load_plugins(scratch), {"plugins": [{"name": "rf-example"}]},
+                                     _dt.date(2026, 11, 9))
+    assert problems == [".claude-plugin/marketplace.json: lists rf-example, which is removed"]
+
+
+def test_last_maintainer_leaves(scratch: Path) -> None:
+    d = _add_plugin(scratch, "rf-example", FIXTURES / "valid-community.yaml")
+    text = (d / "catalog.yaml").read_text().replace("maintainers:\n  - github: someone\n", "maintainers: []\n")
+    (d / "catalog.yaml").write_text(text)
+    (problem,) = bc.lifecycle_problems(scratch, bc.load_plugins(scratch), {"plugins": []}, _dt.date(2026, 11, 9))
+    assert "no maintainers left; set status: deprecated" in problem
+    (d / "catalog.yaml").write_text(text.replace(
+        "status: active", 'status: deprecated\ndeprecated_since: "2026-11-09"\nreplacement: rf-agentskills'))
+    assert bc.lifecycle_problems(scratch, bc.load_plugins(scratch), {"plugins": []}, _dt.date(2026, 11, 9)) == []

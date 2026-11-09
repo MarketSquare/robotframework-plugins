@@ -52,7 +52,7 @@ Prerequisite: `split-rf-agentskills` is applied. Groups 4–10 work on its plugi
 
 ## 7. Lifecycle
 
-- [ ] 7.1 Add lifecycle checks to `build-catalog.py --check`: a deprecated plugin needs `replacement` and `deprecated_since`; a plugin can be removed only after two content releases and 90 days; the marketplace must not list removed plugins; a plugin whose last maintainer leaves must be deprecated. Verify with fixtures for "Removal too early" and "Last maintainer leaves".
+- [x] 7.1 Add lifecycle checks to `build-catalog.py --check`: a deprecated plugin needs `replacement` and `deprecated_since`; a plugin can be removed only after two content releases and 90 days; the marketplace must not list removed plugins; a plugin whose last maintainer leaves must be deprecated. Verify with fixtures for "Removal too early" and "Last maintainer leaves".
 - [ ] 7.2 Make installer upgrades remove the files of plugins that are no longer bundled, keeping and reporting user-modified files. Verify with a test for "Upgrade cleans up a removed plugin".
 
 ## 8. Adoption reporting

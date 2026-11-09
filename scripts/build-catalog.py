@@ -410,6 +410,54 @@ def _dump_json(data: Any) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
+INSTALLER_CHANGELOG_REL = Path("installer/CHANGELOG.md")
+REMOVAL_DAYS = 90
+REMOVAL_RELEASES = 2
+
+
+def installer_releases(root: Path) -> list[tuple[str, _dt.date]]:
+    """Installer releases from the changelog's ``## <version> — <date>``
+    headings, oldest first; pre-releases don't count."""
+    path = root / INSTALLER_CHANGELOG_REL
+    if not path.is_file():
+        return []
+    out = []
+    for m in re.finditer(r"^## (\S+) [—-] (\d{4}-\d{2}-\d{2})(.*)$", path.read_text(encoding="utf-8"), re.MULTILINE):
+        if "pre-release" not in m.group(3):
+            out.append((m.group(1), _dt.date.fromisoformat(m.group(2))))
+    return sorted(out, key=lambda r: r[1])
+
+
+def lifecycle_problems(root: Path, plugins: list[Plugin], market: dict[str, Any], today: _dt.date) -> list[str]:
+    """plugin-lifecycle: removal only after deprecation for two installer
+    releases and 90 days; no removed plugin in the marketplace; an active
+    plugin needs a maintainer."""
+    problems = []
+    releases = installer_releases(root)
+    listed = {e.get("name") for e in market.get("plugins", [])}
+    for p in plugins:
+        rel = f"plugins/{p.name}/{MANIFEST}"
+        if p.status == "active" and not p.manifest.get("maintainers"):
+            problems.append(f"{rel}: no maintainers left; set status: deprecated (with deprecated_since and "
+                            "replacement) unless a new maintainer is added")
+        if p.status != "removed":
+            continue
+        if p.name in listed:
+            problems.append(f"{MARKETPLACE_REL.as_posix()}: lists {p.name}, which is removed")
+        since = _dt.date.fromisoformat(str(p.manifest["deprecated_since"]))
+        after = [v for v, d in releases if d > since]
+        earliest_date = since + _dt.timedelta(days=REMOVAL_DAYS)
+        if len(after) < REMOVAL_RELEASES or today < earliest_date:
+            so_far = ", ".join(after) or "none"
+            need = REMOVAL_RELEASES - len(after)
+            when = ("now" if need <= 0 else f"after {need} more installer release{'s' if need > 1 else ''}")
+            problems.append(
+                f"{rel}: removed too early: deprecated since {since.isoformat()}, with {len(after)} installer "
+                f"release(s) since ({so_far}); removal needs {REMOVAL_RELEASES} releases and {REMOVAL_DAYS} days. "
+                f"Earliest: {when}, and not before {earliest_date.isoformat()}")
+    return problems
+
+
 def bundle_problems(plugins: list[Plugin]) -> list[str]:
     """A listed plugin needs content, or must be a bundle of listed plugins
     that has none of its own; dependencies name listed plugins."""
@@ -491,6 +539,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--check", action="store_true", help="validate and fail on stale generated files")
     ap.add_argument("--root", type=Path, default=REPO, help="repository root (default: this checkout)")
     ap.add_argument("--base", help="git ref (the PR base) whose marketplace renames must all be kept")
+    ap.add_argument("--today", type=_dt.date.fromisoformat, default=_dt.date.today(), help=argparse.SUPPRESS)
     ap.add_argument("--version-table", action="store_true",
                     help="print the table of bundled plugin versions (installer release notes) and exit")
     args = ap.parse_args(argv)
@@ -502,6 +551,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         problems = name_problems(plugins) + symlink_problems(root, plugins) + bundle_problems(plugins)
         market = json.loads((root / MARKETPLACE_REL).read_text(encoding="utf-8"))
+        # In --check mode the marketplace on disk must not list a removed plugin;
+        # without it, the file is about to be regenerated.
+        problems += lifecycle_problems(root, plugins, market if args.check else {"plugins": []}, args.today)
         if args.base:
             problems += renames_problems(base_renames(root, args.base), market.get("renames", {}))
         if problems:
