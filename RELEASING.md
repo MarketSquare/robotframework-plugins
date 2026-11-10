@@ -29,6 +29,13 @@ Older tags stay where they are: `v1.1.0` to `v3.0.0` are `rf-agentskills` conten
    ```
 4. `release.yml` checks that the tag matches the plugin's `plugin.json`, builds the plugin's archives, attaches them to a GitHub release and moves the `stable` and `latest` branches.
 
+Before step 3, check the skills on Claude. CI evaluates PRs on DeepSeek V4.1 Flash, through OpenRouter, so run a manual Claude evaluation of the release candidate's branch and check its gate against the Claude baselines:
+
+```bash
+gh workflow run skill-evaluation.yml --ref <branch> \
+  -f provider=claude -f model=claude-sonnet-5-5 -f tiers=narrow,realistic -f arms=treatment,baseline
+```
+
 A pushed tag is the ref users pin a marketplace to: never move or delete one.
 
 ## Installer release

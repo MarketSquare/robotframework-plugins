@@ -28,9 +28,10 @@ from pathlib import Path
 from typing import Any
 
 from ...application.staging import staged_tree
+from ...domain.pricing import priced_cost
 from ...domain.profile import Profile
-from ...domain.run import Run
-from ...domain.task import Task
+from ...domain.run import Run, RunUsage
+from ...domain.task import Task, provider_for
 from ...errors import AuthConfigError, RunnerTimeout, SkillRunnerError
 from ..mcp.config_builder import MCP_SERVER_REGISTRY, write_mcp_config
 from ..telemetry.session_parser import parse_result_usage
@@ -140,6 +141,8 @@ class ClaudeCodeRunner:
             "artifacts_dir": artifacts_dir,
             "workspace_dir": workspace_dir if workspace_dir != artifacts_dir else None,
             "model": task.model,
+            "provider": provider_for(task.model),
+            "turns_factor": task.turns_factor,
             "arm": profile.arm,
             "replicate": replicate,
         }
@@ -148,7 +151,9 @@ class ClaudeCodeRunner:
         if leaked is not None:
             return leaked
 
-        env = self._build_env(config_dir, listing_budget=profile.listing_budget)
+        env = self._build_env(
+            config_dir, listing_budget=profile.listing_budget, model=task.model
+        )
         cmd = self._build_cmd(
             task,
             workspace_dir,
@@ -227,12 +232,13 @@ class ClaudeCodeRunner:
             # Normalise: the exit code slot signals 'no clean exit'.
             exit_code = -1
 
-        usage = parse_result_usage(stdout_path)
-        error: str | None = None
+        usage = _with_provider_cost(parse_result_usage(stdout_path), task.model)
+        error: str | None = _provider_model_error(usage, task.model)
         if not profile.stage_plugin:
             leaks = baseline_transcript_leaks(stdout_path, self._known_skill_dirs())
             if leaks:
-                error = "arm-leak: baseline transcript loaded " + ", ".join(leaks)
+                leak = "arm-leak: baseline transcript loaded " + ", ".join(leaks)
+                error = f"{error}; {leak}" if error else leak
                 _log.error("%s (run %s)", error, run_id)
         if violations:
             isolation = isolation_error(self._repo_root, violations)
@@ -509,7 +515,7 @@ class ClaudeCodeRunner:
             )
 
     def _build_env(
-        self, config_dir: Path, *, listing_budget: int | None = None
+        self, config_dir: Path, *, listing_budget: int | None = None, model: str = ""
     ) -> dict[str, str]:
         env = os.environ.copy()
         # `uv run rf-skill-eval` exports the harness venv; an agent's
@@ -520,6 +526,8 @@ class ClaudeCodeRunner:
         if listing_budget is not None:
             # Skill-listing budget (design D14); only set when requested.
             env[LISTING_BUDGET_ENV] = str(listing_budget)
+        if model and provider_for(model) == "openrouter":
+            return openrouter_env(env, model)
         if not (env.get("CLAUDE_CODE_OAUTH_TOKEN") or env.get("ANTHROPIC_API_KEY")):
             raise AuthConfigError(
                 "Neither CLAUDE_CODE_OAUTH_TOKEN nor ANTHROPIC_API_KEY is set. "
@@ -565,7 +573,7 @@ class ClaudeCodeRunner:
             "stream-json",
             "--verbose",
             "--max-turns",
-            str(task.max_turns or self._default_max_turns),
+            str(task.effective_max_turns if task.max_turns else self._default_max_turns),
             "--model",
             task.model,
             # Bypass interactive approval prompts that block plugin hooks and
@@ -903,3 +911,66 @@ __all__: Sequence[str] = (
     "raise_on_timeout",
     "run_concurrency_limit",
 )
+
+
+def _with_provider_cost(usage: RunUsage | None, model: str) -> RunUsage | None:
+    """OpenRouter runs: replace Claude Code's Claude-priced cost with list prices (D3)."""
+    if usage is None or provider_for(model) != "openrouter":
+        return usage
+    cost = priced_cost(
+        model,
+        input_tokens=usage.input_tokens,
+        cache_read_input_tokens=usage.cache_read_input_tokens,
+        cache_creation_input_tokens=usage.cache_creation_input_tokens,
+        output_tokens=usage.output_tokens,
+    )
+    return usage.model_copy(update={"total_cost_usd": cost, "cost_source": "priced"})
+
+
+def _provider_model_error(usage: RunUsage | None, model: str) -> str | None:
+    """An OpenRouter run whose usage names another model is not trustworthy."""
+    if usage is None or provider_for(model) != "openrouter":
+        return None
+    others = [m for m in usage.models if m != model]
+    if not others:
+        return None
+    return f"provider_model: session used {', '.join(others)}, not {model}"
+
+
+#: OpenRouter's Anthropic-compatible endpoint (Claude Code appends ``/v1/messages``).
+OPENROUTER_BASE_URL = "https://openrouter.ai/api"
+
+#: Claude credentials never reach an OpenRouter session (eval-model-providers).
+_CLAUDE_CREDENTIAL_VARS: tuple[str, ...] = (
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_BASE_URL",
+)
+
+#: Every model alias Claude Code may resolve (background tasks, subagents).
+_MODEL_ALIAS_VARS: tuple[str, ...] = (
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "CLAUDE_CODE_SUBAGENT_MODEL",
+)
+
+
+def openrouter_env(env: dict[str, str], model: str) -> dict[str, str]:
+    """Point Claude Code at OpenRouter, every alias mapped to ``model`` (design D1)."""
+    key = env.get("OPENROUTER_API_KEY", "")
+    if not key:
+        raise AuthConfigError(
+            "OPENROUTER_API_KEY is not set; an OpenRouter model needs it. "
+            "Populate .env (see .env.example) or export the key before running."
+        )
+    for var in _CLAUDE_CREDENTIAL_VARS:
+        env.pop(var, None)
+    env["ANTHROPIC_BASE_URL"] = OPENROUTER_BASE_URL
+    env["ANTHROPIC_AUTH_TOKEN"] = key
+    # Empty, not unset: Claude Code would otherwise look for a stored login.
+    env["ANTHROPIC_API_KEY"] = ""
+    for var in _MODEL_ALIAS_VARS:
+        env[var] = model
+    return env

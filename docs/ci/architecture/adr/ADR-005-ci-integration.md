@@ -7,6 +7,36 @@
 
 ---
 
+## Amendment 2026-11-10 — `openrouter-ci-eval-tier`
+
+PR and weekly runs move to a cheap OpenRouter tier when the
+`OPENROUTER_API_KEY` secret is set, so the evals no longer depend on a
+maintainer's Claude subscription. The 2026-09-27 tiers below stay as they
+are; only the model and the credentials change.
+
+- **Provider.** Preflight picks `openrouter` when the OpenRouter key is set,
+  `claude` otherwise; a manual dispatch input `provider` overrides it. Each
+  eval job gets only that provider's credentials.
+- **Model.** `deepseek/deepseek-v4.1-flash` for every tier, with turn-limit
+  factor 1.5 (`--max-turns-factor`). Claude runs (Haiku, Sonnet, Opus) are a
+  manual dispatch with `provider: claude`, and part of the release checklist.
+- **Baselines.** Kept per model: `plugins/<plugin>/evals/baselines/` for
+  Claude, `plugins/<plugin>/evals/baselines/openrouter/deepseek-v4.1-flash/`
+  for DeepSeek. The gate never compares one model with another.
+- **Cost.** The harness prices OpenRouter runs at list prices (Claude Code's
+  own figure prices them as Claude); caps are `PR_NARROW_CAP_USD_OPENROUTER`,
+  `PR_TRIGGER_CAP_USD_OPENROUTER` and `WEEKLY_CAP_USD_OPENROUTER`. Each job
+  records the key's spend before and after, and the key's credit limit on
+  OpenRouter is the hard cap.
+- **Why.** A spike (run 42822700497, rf-core narrow, both arms, N=3) completed
+  all 72 sessions on DeepSeek for $0.84; the skills loaded in every treatment
+  run and the treatment–baseline delta stayed visible on 8 of 12 tasks.
+- **Risk.** Anthropic doesn't support non-Claude models in Claude Code. Each
+  OpenRouter job starts with a one-session smoke test; if a Claude Code
+  release breaks the path, dispatch with `provider: claude`.
+
+---
+
 ## Amendment 2026-09-27 — `strengthen-skill-eval-harness`
 
 The three planned workflows are implemented as **one** workflow,

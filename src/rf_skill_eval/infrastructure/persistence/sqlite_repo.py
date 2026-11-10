@@ -28,7 +28,7 @@ from ...domain.verdict import Verdict
 
 _log = logging.getLogger(__name__)
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -88,6 +88,9 @@ _V2_COLUMNS: tuple[tuple[str, str, str], ...] = (
     ("verdicts", "category", "TEXT NOT NULL DEFAULT 'outcome'"),
     ("scorecards", "gate_result", "TEXT"),
     ("scorecards", "incomplete_reason", "TEXT"),
+    # Schema version 3 (openrouter-ci-eval-tier).
+    ("runs", "provider", "TEXT"),
+    ("runs", "turns_factor", "REAL NOT NULL DEFAULT 1.0"),
 )
 
 
@@ -145,8 +148,9 @@ class SqliteRunRepository:
                 run_id, task_id, profile_name, started_at, finished_at,
                 exit_code, session_jsonl_path, artifacts_dir, workspace_dir,
                 model, timed_out, arm, replicate, error, usage_json,
-                input_tokens, output_tokens, num_turns, duration_ms, total_cost_usd
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                input_tokens, output_tokens, num_turns, duration_ms, total_cost_usd,
+                provider, turns_factor
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.id,
@@ -169,6 +173,8 @@ class SqliteRunRepository:
                 usage.num_turns if usage else None,
                 usage.duration_ms if usage else None,
                 usage.total_cost_usd if usage else None,
+                run.effective_provider,
+                run.turns_factor,
             ),
         )
 
@@ -271,6 +277,8 @@ def _row_to_run(row: sqlite3.Row) -> Run:
         artifacts_dir=Path(row["artifacts_dir"]),
         workspace_dir=Path(ws) if (ws := _row_get(row, "workspace_dir")) else None,
         model=row["model"],
+        provider=_row_get(row, "provider") or "",
+        turns_factor=float(_row_get(row, "turns_factor") or 1.0),
         timed_out=bool(row["timed_out"]),
         arm=_row_get(row, "arm") or "",
         replicate=int(replicate_raw) if replicate_raw is not None else 0,

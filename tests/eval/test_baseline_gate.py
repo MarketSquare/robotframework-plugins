@@ -49,6 +49,7 @@ def test_baseline_file_is_deterministic() -> None:
     entry = data["entries"]["t|treatment"]
     assert entry == {
         "arm": "treatment",
+        "cost_source": "reported",
         "gating": True,
         "incomplete": 0,
         "mean_cost_usd": 0.02,
@@ -59,10 +60,13 @@ def test_baseline_file_is_deterministic() -> None:
         "model": HAIKU,
         "outcome_pass_rate": 1.0,
         "pass_rate": 1.0,
+        "provider": "anthropic",
         "runs": 3,
         "skill": "rf-browser",
         "task_hash": "h1",
         "task_id": "t",
+        "turn_limit_stops": 0,
+        "turns_factor": 1.0,
     }
     assert data["harness_version"] == "0.1.0"
     assert data["claude_code_version"] == "2.1.0 (Claude Code)"

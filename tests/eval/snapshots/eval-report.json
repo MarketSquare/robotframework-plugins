@@ -26,17 +26,20 @@
     }
   ],
   "summary": {
+    "cost_source": "reported",
     "cost_usd": 0.25,
     "fail": 4,
     "incomplete": 1,
     "pass": 6,
     "runs": 11,
-    "skipped_checks": 2
+    "skipped_checks": 2,
+    "turn_limit_stops": 0
   },
   "tasks": [
     {
       "arms": {
         "treatment": {
+          "cost_source": "reported",
           "cost_usd": 0.02,
           "duration_s": 20.0,
           "flaky": false,
@@ -55,6 +58,7 @@
             "output_tokens": 0.0,
             "turns": 0.0
           },
+          "turn_limit_stops": 0,
           "turns": 4.0
         }
       },
@@ -70,6 +74,7 @@
     {
       "arms": {
         "baseline": {
+          "cost_source": "reported",
           "cost_usd": 0.02,
           "duration_s": 20.0,
           "flaky": true,
@@ -88,9 +93,11 @@
             "output_tokens": 0.0,
             "turns": 0.0
           },
+          "turn_limit_stops": 0,
           "turns": 4.0
         },
         "treatment": {
+          "cost_source": "reported",
           "cost_usd": 0.03,
           "duration_s": 20.0,
           "flaky": false,
@@ -109,6 +116,7 @@
             "output_tokens": 0.0,
             "turns": 0.0
           },
+          "turn_limit_stops": 0,
           "turns": 4.0
         }
       },
@@ -137,6 +145,7 @@
     {
       "arms": {
         "treatment": {
+          "cost_source": "reported",
           "cost_usd": 0.02,
           "duration_s": 20.0,
           "flaky": false,
@@ -155,6 +164,7 @@
             "output_tokens": 0.0,
             "turns": 0.0
           },
+          "turn_limit_stops": 0,
           "turns": 4.0
         }
       },
@@ -170,6 +180,7 @@
     {
       "arms": {
         "treatment": {
+          "cost_source": "reported",
           "cost_usd": 0.02,
           "duration_s": 20.0,
           "flaky": true,
@@ -188,6 +199,7 @@
             "output_tokens": 0.0,
             "turns": 0.0
           },
+          "turn_limit_stops": 0,
           "turns": 4.0
         }
       },

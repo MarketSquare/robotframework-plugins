@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -23,7 +24,24 @@ OPUS_MODEL: str = "claude-opus-5-5"
 #: The default model for evaluation runs (narrow tier and trigger evals).
 DEFAULT_MODEL: str = HAIKU_MODEL
 
-ALLOWED_MODELS: frozenset[str] = frozenset({HAIKU_MODEL, SONNET_MODEL, OPUS_MODEL})
+#: The Claude models (provider ``anthropic``).
+CLAUDE_MODELS: frozenset[str] = frozenset({HAIKU_MODEL, SONNET_MODEL, OPUS_MODEL})
+
+#: OpenRouter models, run time only (openrouter-ci-eval-tier D2). Each needs
+#: an entry in ``domain.pricing.PROVIDER_PRICES`` and its own baselines.
+DEEPSEEK_FLASH_MODEL: str = "deepseek/deepseek-v4.1-flash"
+OPENROUTER_MODELS: frozenset[str] = frozenset({DEEPSEEK_FLASH_MODEL})
+
+#: Every model a run may use (``--model``).
+ALLOWED_MODELS: frozenset[str] = CLAUDE_MODELS | OPENROUTER_MODELS
+
+Provider = Literal["anthropic", "openrouter"]
+PROVIDERS: tuple[Provider, ...] = ("anthropic", "openrouter")
+
+
+def provider_for(model: str) -> Provider:
+    """The provider a model id runs on: OpenRouter ids are ``vendor/model``."""
+    return "openrouter" if model in OPENROUTER_MODELS or "/" in model else "anthropic"
 
 #: Models a task YAML / trigger set may declare as its own model.
 YAML_ALLOWED_MODELS: frozenset[str] = frozenset({HAIKU_MODEL, SONNET_MODEL})
@@ -61,7 +79,18 @@ def model_policy_error(model: str, *, in_yaml: bool) -> str | None:
             f"Permitted: {sorted(ALLOWED_MODELS)}."
         )
     if model not in ALLOWED_MODELS:
+        if provider_for(model) == "openrouter":
+            return (
+                f"OpenRouter model '{model}' is not allowed. "
+                f"Permitted OpenRouter models: {sorted(OPENROUTER_MODELS)}."
+            )
         return f"Model '{model}' is not allowed. Permitted: {sorted(ALLOWED_MODELS)}."
+    if in_yaml and model in OPENROUTER_MODELS:
+        return (
+            f"Model '{model}' is an OpenRouter model; OpenRouter models are run-time only "
+            f"(--model), never declared in task YAML or trigger sets "
+            f"(permitted there: {sorted(YAML_ALLOWED_MODELS)})."
+        )
     if in_yaml and model not in YAML_ALLOWED_MODELS:
         return (
             f"Model '{model}' may not be declared in task YAML or trigger sets "
@@ -253,6 +282,9 @@ class Task(BaseModel):
     tier: TaskTier = "narrow"
     mcp_servers: tuple[str, ...] = Field(default_factory=tuple)
     max_turns: int = Field(default=40, gt=0, le=200)
+    #: Run-time ``--max-turns-factor`` (1.0-3.0); not part of the task
+    #: definition hash, recorded on every run.
+    turns_factor: float = Field(default=1.0, ge=1.0, le=3.0)
     fixture: str | None = None
     primary_metric: str | None = None
     #: Plugins to stage for this task (a partial install), e.g. ``[rf-core]``;
@@ -294,6 +326,11 @@ class Task(BaseModel):
         if check.gating is not None:
             return check.gating
         return self.primary_metric is not None and check.type == self.primary_metric
+
+    @property
+    def effective_max_turns(self) -> int:
+        """``max_turns`` scaled by the turn-limit factor, rounded up."""
+        return math.ceil(self.max_turns * self.turns_factor - 1e-9)
 
     @property
     def gating_checks(self) -> tuple[GraderCheck, ...]:
