@@ -822,14 +822,18 @@ def _claude_auth_ping(claude_binary: str, *, provider: str = "anthropic") -> tup
         "--verbose",
     ]
     env: dict[str, str] | None = None
+    # OpenRouter's first response can take longer than Claude's (the smoke
+    # step allows 120 s); a 30 s ping failed a run's Doctor step.
+    timeout = 30
     if provider == "openrouter":
         model = sorted(OPENROUTER_MODELS)[0]
         env = openrouter_env(os.environ.copy(), model)
         argv += ["--model", model]
+        timeout = 120
     try:
-        result = subprocess.run(argv, capture_output=True, text=True, timeout=30, env=env)
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=env)
     except subprocess.TimeoutExpired:
-        return False, "timed out after 30s"
+        return False, f"timed out after {timeout}s"
     except OSError as exc:
         return False, f"{type(exc).__name__}: {exc}"
 

@@ -333,6 +333,7 @@ jobs:
         run: uv run rfbrowser init
 
       - name: Doctor (grader tools for the narrow tier)
+        id: doctor
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
           ANTHROPIC_API_KEY: ${{ needs.preflight.outputs.provider == 'claude' && secrets.ANTHROPIC_API_KEY || '' }}
@@ -400,7 +401,9 @@ jobs:
 
       - name: Trigger evals (validation split, changed descriptions)
         id: triggers
-        if: ${{ always() && matrix.run_triggers == 'true' }}
+        # After a failed batch too (independent results), never after a failed
+        # Doctor: that would spend without a usable result.
+        if: ${{ always() && steps.doctor.outcome == 'success' && matrix.run_triggers == 'true' }}
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
           ANTHROPIC_API_KEY: ${{ needs.preflight.outputs.provider == 'claude' && secrets.ANTHROPIC_API_KEY || '' }}
@@ -587,6 +590,7 @@ jobs:
         run: echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> "$GITHUB_ENV"
 
       - name: Doctor
+        id: doctor
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
           OPENROUTER_API_KEY: ${{ needs.preflight.outputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || '' }}
@@ -643,7 +647,9 @@ jobs:
 
       - name: Trigger evals (all sets, both splits)
         id: triggers
-        if: ${{ always() && env.RUN_TRIGGERS == 'true' }}
+        # After a failed batch too (independent results), never after a failed
+        # Doctor: that would spend without a usable result.
+        if: ${{ always() && steps.doctor.outcome == 'success' && env.RUN_TRIGGERS == 'true' }}
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
           OPENROUTER_API_KEY: ${{ needs.preflight.outputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || '' }}

@@ -313,3 +313,14 @@ def test_fork_prs_have_no_credentials() -> None:
     assert creds["run"].lstrip().startswith('if [ "${FORK_PR}" = "true" ]; then\n  echo "has_credentials=false"')
     assert "github.event.pull_request.head.repo.full_name == github.repository" in wf["jobs"]["pr-eval"]["if"]
     assert _triggers(wf) == {"pull_request", "schedule", "workflow_dispatch"}
+
+
+def test_trigger_evals_never_run_after_a_failed_doctor() -> None:
+    # Run 42885585678: Doctor failed, the tiers were skipped, and the trigger
+    # step (if: always()) went on spending.
+    wf = _wf()
+    for name in ("pr-eval", "full-eval"):
+        steps = wf["jobs"][name]["steps"]
+        assert any(s.get("id") == "doctor" for s in steps)
+        triggers = next(s for s in steps if s.get("id") == "triggers")
+        assert "steps.doctor.outcome == 'success'" in triggers["if"]
