@@ -520,7 +520,7 @@ class ClaudeCodeRunner:
         if listing_budget is not None:
             # Skill-listing budget (design D14); only set when requested.
             env[LISTING_BUDGET_ENV] = str(listing_budget)
-        if not (env.get("CLAUDE_CODE_OAUTH_TOKEN") or env.get("ANTHROPIC_API_KEY")):
+        if not (env.get("CLAUDE_CODE_OAUTH_TOKEN") or env.get("ANTHROPIC_API_KEY") or env.get("ANTHROPIC_AUTH_TOKEN")):
             raise AuthConfigError(
                 "Neither CLAUDE_CODE_OAUTH_TOKEN nor ANTHROPIC_API_KEY is set. "
                 "Populate .env (see .env.example) or export the token before running."

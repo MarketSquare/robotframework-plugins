@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     def has_auth(self) -> bool:
         """Return True iff some form of Claude authentication is present."""
 
-        return bool(self.claude_code_oauth_token or self.anthropic_api_key)
+        return bool(self.claude_code_oauth_token or self.anthropic_api_key or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
 
 
 @lru_cache(maxsize=1)

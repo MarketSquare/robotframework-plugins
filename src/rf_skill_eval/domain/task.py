@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -23,7 +24,12 @@ OPUS_MODEL: str = "claude-opus-5-5"
 #: The default model for evaluation runs (narrow tier and trigger evals).
 DEFAULT_MODEL: str = HAIKU_MODEL
 
-ALLOWED_MODELS: frozenset[str] = frozenset({HAIKU_MODEL, SONNET_MODEL, OPUS_MODEL})
+#: SPIKE (openrouter-evals): extra run-time models, e.g. an OpenRouter model id.
+EXTRA_MODELS: frozenset[str] = frozenset(
+    m.strip() for m in os.environ.get("RF_SKILL_EVAL_EXTRA_MODELS", "").split(",") if m.strip()
+)
+
+ALLOWED_MODELS: frozenset[str] = frozenset({HAIKU_MODEL, SONNET_MODEL, OPUS_MODEL}) | EXTRA_MODELS
 
 #: Models a task YAML / trigger set may declare as its own model.
 YAML_ALLOWED_MODELS: frozenset[str] = frozenset({HAIKU_MODEL, SONNET_MODEL})

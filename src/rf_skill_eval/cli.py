@@ -189,7 +189,7 @@ def _build_service(output_dir: Path, *, fmt: str = "md") -> EvaluationService:
 
 
 def _require_auth() -> None:
-    if not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")):
+    if not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         console.print(
             "[red]not run: no credentials[/red] (set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY)"
         )

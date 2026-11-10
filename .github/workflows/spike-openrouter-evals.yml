@@ -1,0 +1,127 @@
+# SPIKE (never merged): can the live evals run through OpenRouter on a cheap
+# model? Runs the rf-core narrow tier, both arms, N=3, on DeepSeek V4.1 Flash
+# and records the key's spend before and after. Delete with the branch.
+name: Spike - OpenRouter evals
+
+on:
+  push:
+    branches: [spike/openrouter-evals]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spike-openrouter-evals
+  cancel-in-progress: true
+
+env:
+  MODEL: deepseek/deepseek-v4.1-flash
+  EVALS: plugins/rf-core/evals
+  RF_EVAL_PLUGIN: rf-core
+  RF_SKILL_EVAL_EXTRA_MODELS: deepseek/deepseek-v4.1-flash
+  # Claude Code -> OpenRouter's Anthropic-compatible endpoint. Every model
+  # alias Claude Code may use (background tasks, subagents) maps to the same
+  # model, so no call reaches a Claude model unnoticed.
+  ANTHROPIC_BASE_URL: https://openrouter.ai/api
+  ANTHROPIC_API_KEY: ""
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: deepseek/deepseek-v4.1-flash
+  ANTHROPIC_DEFAULT_SONNET_MODEL: deepseek/deepseek-v4.1-flash
+  ANTHROPIC_DEFAULT_OPUS_MODEL: deepseek/deepseek-v4.1-flash
+  CLAUDE_CODE_SUBAGENT_MODEL: deepseek/deepseek-v4.1-flash
+
+jobs:
+  narrow:
+    name: rf-core narrow tier on DeepSeek V4.1 Flash (both arms, N=3)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Install Python dependencies
+        run: uv sync --all-packages
+
+      - name: Initialize Playwright browsers
+        run: uv run rfbrowser init
+
+      - name: Spend before
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          curl -sf -H "Authorization: Bearer $OPENROUTER_API_KEY" https://openrouter.ai/api/v1/key \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; print(json.dumps({k: d.get(k) for k in ("usage","limit","limit_remaining")}))' \
+            | tee "$RUNNER_TEMP/spend-before.json"
+
+      - name: Smoke test (one session)
+        env:
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/smoke" && cd "$RUNNER_TEMP/smoke"
+          claude -p "Reply with the single word: ready" --model "$MODEL" --output-format json --max-turns 2 \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); print({k: d.get(k) for k in ("result","is_error","total_cost_usd","num_turns")}); print("models:", list((d.get("modelUsage") or {}).keys()))'
+
+      - name: Doctor
+        env:
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTER_API_KEY }}
+        run: uv run rf-skill-eval doctor --tasks-dir ${EVALS}/tasks/narrow || true
+
+      - name: Run narrow tier (both arms)
+        env:
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          set +e
+          uv run rf-skill-eval run-batch \
+            --tasks-dir ${EVALS}/tasks/narrow \
+            --tier narrow \
+            --arms treatment,baseline \
+            --runs 3 \
+            --model "$MODEL" \
+            --output "$RUNNER_TEMP/eval-runs/narrow"
+          echo "run-batch exit code: $?"
+
+      - name: Compare with the Haiku baseline (informative)
+        if: always()
+        run: |
+          uv run rf-skill-eval gate \
+            --runs-dir "$RUNNER_TEMP/eval-runs/narrow" \
+            --baseline ${EVALS}/baselines/narrow.json \
+            --tasks-dir ${EVALS}/tasks \
+            --report-output "$RUNNER_TEMP/gate.txt" || true
+          cat "$RUNNER_TEMP/gate.txt" >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Spend after
+        if: always()
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          curl -sf -H "Authorization: Bearer $OPENROUTER_API_KEY" https://openrouter.ai/api/v1/key \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; print(json.dumps({k: d.get(k) for k in ("usage","limit","limit_remaining")}))' \
+            | tee "$RUNNER_TEMP/spend-after.json"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spike-openrouter-narrow
+          path: |
+            ${{ runner.temp }}/eval-runs
+            ${{ runner.temp }}/gate.txt
+            ${{ runner.temp }}/spend-*.json
+          if-no-files-found: warn
