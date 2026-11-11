@@ -841,10 +841,28 @@ def _claude_auth_ping(claude_binary: str, *, provider: str = "anthropic") -> tup
     if "API Error" in combined or "invalid value" in combined.lower():
         snippet = combined.strip().splitlines()[0][:160] if combined.strip() else "(no output)"
         return False, f"API rejected probe: {snippet}"
+    final = _final_result_event(result.stdout or "")
+    # A model that answers "ok" with a tool call stops at --max-turns 1 and
+    # claude exits 1, but the provider did answer, so the credentials work.
+    if final.get("subtype") == "error_max_turns":
+        return True, "auth verified via claude --print (stopped at the turn limit)"
     if result.returncode != 0:
-        snippet = (result.stderr or result.stdout or "").strip()[:160]
-        return False, f"claude exit={result.returncode}: {snippet}"
+        # The result event says why; stderr may only hold harmless notices.
+        reason = final.get("result") or final.get("subtype") or result.stderr or result.stdout or ""
+        return False, f"claude exit={result.returncode}: {str(reason).strip()[:160]}"
     return True, "auth verified via claude --print"
+
+
+def _final_result_event(stdout: str) -> dict[str, Any]:
+    """The last ``{"type": "result"}`` event in stream-json output, or ``{}``."""
+    for line in reversed(stdout.splitlines()):
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "result":
+            return event
+    return {}
 
 
 # --- validity & coverage -----------------------------------------------------------

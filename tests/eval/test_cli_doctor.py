@@ -42,6 +42,43 @@ def test_doctor_fails_when_auth_ping_returns_api_error(monkeypatch) -> None:
     assert "API rejected probe" in result.stdout
 
 
+def test_doctor_passes_ping_that_stops_at_the_turn_limit(monkeypatch) -> None:
+    """A model that answers with a tool call hits --max-turns 1; auth still worked."""
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
+    fake_completed = subprocess.CompletedProcess(
+        args=["claude"],
+        returncode=1,
+        stdout='{"type":"system","subtype":"init"}\n'
+        '{"type":"result","subtype":"error_max_turns","is_error":true,"num_turns":2}',
+        stderr='{"model":"deepseek/deepseek-v4.1-flash","query_source":"unrecognized_model"}',
+    )
+    with patch("rf_skill_eval.cli.shutil.which", return_value="/fake/claude"), patch(
+        "rf_skill_eval.cli.subprocess.run", return_value=fake_completed
+    ):
+        result = runner.invoke(app, ["doctor"])
+
+    assert result.exit_code == 0
+    row = next(line for line in result.stdout.splitlines() if "claude auth ping" in line)
+    assert "ok" in row
+
+
+def test_doctor_ping_failure_reports_the_result_not_stderr(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
+    fake_completed = subprocess.CompletedProcess(
+        args=["claude"],
+        returncode=1,
+        stdout='{"type":"result","subtype":"error_during_execution","is_error":true}',
+        stderr='{"model":"x","query_source":"unrecognized_model"}',
+    )
+    with patch("rf_skill_eval.cli.shutil.which", return_value="/fake/claude"), patch(
+        "rf_skill_eval.cli.subprocess.run", return_value=fake_completed
+    ):
+        result = runner.invoke(app, ["doctor"])
+
+    assert result.exit_code == 1
+    assert "error_during_execution" in result.stdout
+
+
 def test_doctor_passes_ping_with_clean_response(monkeypatch) -> None:
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "fake")
     fake_completed = subprocess.CompletedProcess(
