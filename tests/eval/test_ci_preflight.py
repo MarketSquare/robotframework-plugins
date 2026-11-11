@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -324,3 +325,45 @@ def test_trigger_evals_never_run_after_a_failed_doctor() -> None:
         assert any(s.get("id") == "doctor" for s in steps)
         triggers = next(s for s in steps if s.get("id") == "triggers")
         assert "steps.doctor.outcome == 'success'" in triggers["if"]
+
+
+def _run_select_legs(tmp_path: Path, plugins: list[str], **env: str) -> list[dict[str, str]]:
+    """Run the preflight select step's leg builder over all-plugins legs."""
+    import json
+    import os
+    import subprocess
+
+    wf = _wf()
+    step = next(s for s in wf["jobs"]["preflight"]["steps"] if s.get("id") == "select")
+    script = step["run"].split("<<'PY'\n", 1)[1].rsplit("PY", 1)[0]
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    for plugin in plugins:
+        (legs / f"{plugin}.env").write_text("run_evals=true\nfull_tier=true\nskills=\n")
+    base = {"PATH": os.environ["PATH"], **{k: str(v) for k, v in wf["env"].items()}}
+    out = subprocess.run(["python3", "-I", "-c", textwrap.dedent(script), str(legs)],
+                         env={**base, **env}, capture_output=True, text=True, check=True).stdout
+    values = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    return json.loads(values["matrix"])
+
+
+def test_rf_desktop_gets_its_own_openrouter_turn_factor(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-api", "rf-desktop"], PROVIDER="openrouter", DEFAULT_FACTOR="1.5")
+    assert {leg["plugin"]: leg["turns_factor"] for leg in legs} == {"rf-api": "1.5", "rf-desktop": "2.0"}
+
+
+def test_claude_runs_ignore_the_openrouter_turn_factors(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-desktop"], PROVIDER="claude", DEFAULT_FACTOR="1.0")
+    assert legs[0]["turns_factor"] == "1.0"
+
+
+def test_plugins_input_limits_the_matrix(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-api", "rf-core", "rf-desktop"], PROVIDER="openrouter",
+                            DEFAULT_FACTOR="1.5", ONLY_PLUGINS="rf-desktop, rf-api")
+    assert [leg["plugin"] for leg in legs] == ["rf-api", "rf-desktop"]
+
+
+def test_eval_jobs_take_the_turn_factor_from_the_matrix_leg() -> None:
+    wf = _wf()
+    for name in ("pr-eval", "full-eval"):
+        assert wf["jobs"][name]["env"]["TURNS_FACTOR"] == "${{ matrix.turns_factor }}"

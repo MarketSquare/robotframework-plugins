@@ -42,6 +42,11 @@ on:
           - ""
           - "openrouter"
           - "claude"
+      plugins:
+        description: "Comma list of plugins to run (empty = every plugin with evals)"
+        required: false
+        default: ""
+        type: string
       tiers:
         description: "Comma list of tiers"
         required: true
@@ -105,6 +110,10 @@ env:
   HAIKU_MODEL: claude-haiku-5-5
   OPENROUTER_MODEL: deepseek/deepseek-v4.1-flash
   OPENROUTER_TURNS_FACTOR: "1.5"
+  # Per-plugin overrides of the factor (JSON). rf-desktop's PlatynUI tasks
+  # stopped at the 1.5 limit in 3-5 of 6 sessions and swung between 0.33 and
+  # 0.83 across runs, so they get 2.0. The factor is stored in the baselines.
+  OPENROUTER_TURNS_FACTORS: '{"rf-desktop": "2.0"}'
   # OpenRouter caps (priced at list prices, an upper bound); the key's credit
   # limit on OpenRouter is the hard cap. Tune after the first weekly run.
   PR_NARROW_CAP_USD_OPENROUTER: "2"
@@ -204,6 +213,10 @@ jobs:
 
       - name: Map changed paths to skills, per plugin
         id: select
+        env:
+          PROVIDER: ${{ steps.creds.outputs.provider }}
+          DEFAULT_FACTOR: ${{ steps.creds.outputs.turns_factor }}
+          ONLY_PLUGINS: ${{ github.event_name == 'workflow_dispatch' && inputs.plugins || '' }}
         run: |
           legs="${RUNNER_TEMP}/legs"
           mkdir -p "$legs"
@@ -219,14 +232,22 @@ jobs:
             fi
           done
           python3 - "$legs" >> "$GITHUB_OUTPUT" <<'PY'
-          import json, sys
+          import json, os, sys
           from pathlib import Path
+          only = {p.strip() for p in os.environ.get("ONLY_PLUGINS", "").split(",") if p.strip()}
+          factors = json.loads(os.environ.get("OPENROUTER_TURNS_FACTORS") or "{}")
+          openrouter = os.environ.get("PROVIDER") == "openrouter"
           legs = []
           for f in sorted(Path(sys.argv[1]).glob("*.env")):
+              if only and f.stem not in only:
+                  continue
               values = dict(line.split("=", 1) for line in f.read_text().splitlines() if "=" in line)
               if values.get("run_evals") == "true":
-                  legs.append({"plugin": f.stem, **{k: values.get(k, "") for k in
-                               ("skills", "full_tier", "run_triggers", "trigger_skills")}})
+                  factor = factors.get(f.stem) if openrouter else None
+                  legs.append({"plugin": f.stem,
+                               "turns_factor": factor or os.environ.get("DEFAULT_FACTOR") or "1.0",
+                               **{k: values.get(k, "") for k in
+                                  ("skills", "full_tier", "run_triggers", "trigger_skills")}})
           print(f"run_evals={'true' if legs else 'false'}")
           print(f"matrix={json.dumps(legs)}")
           PY
@@ -294,7 +315,7 @@ jobs:
       EVALS: plugins/${{ matrix.plugin }}/evals
       PROVIDER: ${{ needs.preflight.outputs.provider }}
       EVAL_MODEL: ${{ needs.preflight.outputs.model }}
-      TURNS_FACTOR: ${{ needs.preflight.outputs.turns_factor }}
+      TURNS_FACTOR: ${{ matrix.turns_factor }}
       BASELINES: plugins/${{ matrix.plugin }}/evals/baselines/${{ needs.preflight.outputs.baseline_subdir }}
     runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     # A harness-wide PR selects the full narrow tier (66 sequential sessions)
@@ -548,7 +569,7 @@ jobs:
       # OpenRouter: the pinned model for every tier; Claude: the dispatch override
       # (empty = each task's tier default).
       MODEL: ${{ needs.preflight.outputs.provider == 'openrouter' && needs.preflight.outputs.model || (github.event_name == 'workflow_dispatch' && inputs.model || '') }}
-      TURNS_FACTOR: ${{ needs.preflight.outputs.turns_factor }}
+      TURNS_FACTOR: ${{ matrix.turns_factor }}
       BASELINES: plugins/${{ matrix.plugin }}/evals/baselines/${{ needs.preflight.outputs.baseline_subdir }}
       ALLOW_OPUS: ${{ needs.preflight.outputs.provider == 'claude' && github.event_name == 'workflow_dispatch' && inputs.allow_opus || false }}
       MANUAL_CAP: ${{ github.event_name == 'workflow_dispatch' && inputs.max_cost_usd || '' }}
