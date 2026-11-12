@@ -1,0 +1,99 @@
+{
+  "harness_version": "0.1.0",
+  "kind": "trigger-baseline",
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "openrouter",
+  "schema_version": 1,
+  "skills": {
+    "rf-language": {
+      "train": {
+        "accuracy": 0.76,
+        "fn": 2,
+        "fp": 4,
+        "negative_loads": 13,
+        "negative_runs": 36,
+        "positive_loads": 35,
+        "positive_runs": 39,
+        "precision": 0.7333,
+        "queries": 25,
+        "recall": 0.8462,
+        "tn": 8,
+        "tp": 11
+      },
+      "validation": {
+        "accuracy": 0.8182,
+        "fn": 1,
+        "fp": 1,
+        "negative_loads": 4,
+        "negative_runs": 15,
+        "positive_loads": 16,
+        "positive_runs": 18,
+        "precision": 0.8333,
+        "queries": 11,
+        "recall": 0.8333,
+        "tn": 4,
+        "tp": 5
+      }
+    },
+    "rf-python-library": {
+      "train": {
+        "accuracy": 0.6364,
+        "fn": 0,
+        "fp": 8,
+        "negative_loads": 24,
+        "negative_runs": 33,
+        "positive_loads": 32,
+        "positive_runs": 33,
+        "precision": 0.5789,
+        "queries": 22,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 11
+      },
+      "validation": {
+        "accuracy": 0.875,
+        "fn": 0,
+        "fp": 1,
+        "negative_loads": 5,
+        "negative_runs": 12,
+        "positive_loads": 12,
+        "positive_runs": 12,
+        "precision": 0.8,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 4
+      }
+    },
+    "rf-setup": {
+      "train": {
+        "accuracy": 0.6957,
+        "fn": 0,
+        "fp": 7,
+        "negative_loads": 23,
+        "negative_runs": 33,
+        "positive_loads": 35,
+        "positive_runs": 36,
+        "precision": 0.6316,
+        "queries": 23,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 12
+      },
+      "validation": {
+        "accuracy": 0.5,
+        "fn": 1,
+        "fp": 3,
+        "negative_loads": 8,
+        "negative_runs": 12,
+        "positive_loads": 9,
+        "positive_runs": 12,
+        "precision": 0.5,
+        "queries": 8,
+        "recall": 0.75,
+        "tn": 1,
+        "tp": 3
+      }
+    }
+  }
+}
