@@ -86,6 +86,12 @@ class ReplicateStats:
     skipped_reasons: tuple[str, ...] = field(default_factory=tuple)
     process_results: tuple[tuple[str, int, int], ...] = field(default_factory=tuple)
     incomplete_reasons: tuple[str, ...] = field(default_factory=tuple)
+    provider: str = "anthropic"
+    turns_factor: float = 1.0
+    #: Runs that ended because they reached the turn limit.
+    turn_limit_stops: int = 0
+    #: ``priced`` when the costs are the harness's list-price estimate.
+    cost_source: str = "reported"
 
     @property
     def pass_rate(self) -> float:
@@ -155,6 +161,14 @@ def aggregate_replicates(results: Iterable[RunResult]) -> list[ReplicateStats]:
                     (name, c[0], c[1]) for name, c in sorted(process.items())
                 ),
                 incomplete_reasons=tuple(sorted(set(incomplete_reasons))),
+                provider=items[0].run.effective_provider,
+                turns_factor=items[0].run.turns_factor,
+                turn_limit_stops=sum(
+                    1 for i in items if i.run.usage is not None and i.run.usage.hit_turn_limit
+                ),
+                cost_source="priced"
+                if any(u.cost_source == "priced" for u in usages)
+                else "reported",
             )
         )
     return out

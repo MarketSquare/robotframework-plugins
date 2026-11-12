@@ -1,0 +1,51 @@
+{
+  "claude_code_version": "2.1.322 (Claude Code)",
+  "entries": {
+    "partial-platynui-calculator-01|baseline": {
+      "arm": "baseline",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.022808,
+      "mean_duration_s": 60.19,
+      "mean_input_tokens": 423533.3,
+      "mean_output_tokens": 8134.0,
+      "mean_turns": 20.0,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-platynui",
+      "task_hash": "8f932ab699f8f3dffedd2dbe6dfb20a541947e643cd789295f986576a102b1bc",
+      "task_id": "partial-platynui-calculator-01",
+      "turn_limit_stops": 1,
+      "turns_factor": 1.5
+    },
+    "partial-platynui-calculator-01|treatment": {
+      "arm": "treatment",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.034988,
+      "mean_duration_s": 107.86,
+      "mean_input_tokens": 731280.0,
+      "mean_output_tokens": 12132.0,
+      "mean_turns": 22.83,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "outcome_pass_rate": 0.8333,
+      "pass_rate": 0.8333,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-platynui",
+      "task_hash": "8f932ab699f8f3dffedd2dbe6dfb20a541947e643cd789295f986576a102b1bc",
+      "task_id": "partial-platynui-calculator-01",
+      "turn_limit_stops": 5,
+      "turns_factor": 1.5
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "partial"
+}

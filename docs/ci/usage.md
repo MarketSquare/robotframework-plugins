@@ -22,6 +22,7 @@ same machinery on every PR.
 - [Adding a New Task](#adding-a-new-task)
 - [CI Reference](#ci-reference)
 - [Model Policy](#model-policy)
+- [OpenRouter tier](#openrouter-tier)
 - [Cost Expectations](#cost-expectations)
 - [Related Documents](#related-documents)
 
@@ -122,6 +123,9 @@ If you do not have a Claude subscription and want to pay per token,
 comment out `CLAUDE_CODE_OAUTH_TOKEN` and uncomment
 `ANTHROPIC_API_KEY` instead. See [faq.md](faq.md#subscription) for
 details.
+
+To run on the cheap OpenRouter model instead, set `OPENROUTER_API_KEY`; see
+[OpenRouter tier](#openrouter-tier).
 
 ### 3. Install Python dependencies
 
@@ -362,8 +366,10 @@ tokens above `--token-budget` (default +30 %; the PR job uses +75 %), incomplete
 significantly below the baseline — Fisher exact p < 0.05 on run-level loads,
 or more than one query for baselines without run counts — a shipped skill
 listed by name only in a skill listing, cost over `--max-cost-usd`) or 3 (`rebaseline-needed` only: the task
-definition, fixture or model changed, or no baseline entry exists — never a
-pass). Baseline files are promoted through a reviewed PR
+definition, fixture, model or turn-limit factor changed, or no baseline entry exists — never a
+pass). Without `--baseline`, `gate` and `baseline update` use the runs' model's
+folder: `<evals>/baselines/` for Claude, `<evals>/baselines/openrouter/<model name>/`
+for an OpenRouter model. Baseline files are promoted through a reviewed PR
 ([`eval/baselines/README.md`](../../eval/baselines/README.md)).
 
 ---
@@ -406,13 +412,19 @@ amendment).
 
 | Trigger | Jobs | Scope | Arms | N | Model | Cap |
 |---|---|---|---|---|---|---|
-| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `claude-haiku-5-5` | `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
-| `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | tier defaults | 12 + 12 + 8 + 8 = $40 |
-| `workflow_dispatch` | `preflight` → `full-eval` | inputs `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | input | `max_cost_usd` per invocation |
+| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `deepseek/deepseek-v4.1-flash` when `OPENROUTER_API_KEY` is set, else `claude-haiku-5-5` | OpenRouter: `PR_NARROW_CAP_USD_OPENROUTER`=2, `PR_TRIGGER_CAP_USD_OPENROUTER`=2; Claude: `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
+| `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | DeepSeek when its key is set, else tier defaults | OpenRouter: `WEEKLY_CAP_USD_OPENROUTER`=3 per invocation; Claude: 12 + 12 + 8 + 8 = $40 |
+| `workflow_dispatch` | `preflight` → `full-eval` | inputs `provider`, `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | `provider: claude` + `model`, or DeepSeek | `max_cost_usd` per invocation |
 | all | `harness-tests` | ruff, mypy, `pytest tests/eval` (no API calls) | – | – | – | – |
 
-- The PR job gates against `eval/baselines/narrow.json` and posts one PR
-  comment (report + gate result + trigger report).
+- Preflight picks the provider once: OpenRouter when `OPENROUTER_API_KEY` is
+  set, otherwise Claude; a manual dispatch with `provider` overrides it. Each
+  eval job gets only that provider's credentials.
+- The PR job gates against the provider's baselines
+  (`plugins/<plugin>/evals/baselines/narrow.json` for Claude,
+  `plugins/<plugin>/evals/baselines/openrouter/deepseek-v4.1-flash/narrow.json`
+  for OpenRouter) and posts one PR comment (report + gate result + trigger
+  report, and the OpenRouter spend).
 - The weekly job uploads the report and a `candidate-baseline-<run>`
   artifact; a maintainer promotes it with a PR. The PR gate becomes a
   **required** check only after two weekly baselines have been recorded.
@@ -431,6 +443,12 @@ gh workflow run skill-evaluation.yml -f tiers=narrow -f arms=treatment -f runs=5
 gh workflow run skill-evaluation.yml -f tiers=narrow -f model=claude-opus-5-5 -f allow_opus=true -f max_cost_usd=20
 # Force API-key auth:
 gh workflow run skill-evaluation.yml -f use_api_key=true
+# A Claude run while the OpenRouter key is set (before a release):
+gh workflow run skill-evaluation.yml -f provider=claude -f tiers=narrow,realistic -f model=claude-sonnet-5-5
+# Record the OpenRouter baselines (N=6):
+gh workflow run skill-evaluation.yml -f provider=openrouter -f runs=6
+# Re-record one plugin only:
+gh workflow run skill-evaluation.yml -f provider=openrouter -f runs=6 -f plugins=rf-desktop
 ```
 
 ---
@@ -449,6 +467,56 @@ gh workflow run skill-evaluation.yml -f use_api_key=true
   It never runs on PRs or the weekly schedule (≈5× Sonnet per token).
 - Retired ids (`claude-haiku-4-5`, `claude-sonnet-4-6`) are rejected with a
   migration hint.
+- OpenRouter models (`deepseek/deepseek-v4.1-flash`) are run time only; a task
+  YAML that declares one fails to load. See [OpenRouter tier](#openrouter-tier).
+
+---
+
+## OpenRouter tier
+
+The harness can run every session on DeepSeek V4.1 Flash through OpenRouter,
+so the evals run from an OpenRouter key instead of a Claude subscription. CI
+uses it by default when the `OPENROUTER_API_KEY` secret is set. A spike run of
+the rf-core narrow tier (both arms, N=3, 72 sessions) cost $0.84.
+
+```bash
+export OPENROUTER_API_KEY=sk-or-v1-...           # or put it in .env
+uv run rf-skill-eval doctor --provider openrouter
+uv run rf-skill-eval run-batch --tier narrow --arms treatment --runs 3 \
+  --model deepseek/deepseek-v4.1-flash --max-turns-factor 1.5 --max-cost-usd 2 \
+  --output eval/runs/or
+uv run rf-skill-eval gate --runs-dir eval/runs/or   # uses baselines/openrouter/deepseek-v4.1-flash/
+```
+
+- **Provider.** An OpenRouter model id selects the OpenRouter provider;
+  `--provider openrouter|anthropic` only states it, and a mismatch is refused.
+  The runner points Claude Code at `https://openrouter.ai/api`, maps every
+  Claude model alias and the subagent model to the chosen model, and doesn't
+  pass `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` to the session. A run
+  whose usage names any other model is recorded as incomplete
+  (`provider_model`).
+- **Allowed models.** Only `deepseek/deepseek-v4.1-flash`. Adding one is a
+  code change: an entry in `OPENROUTER_MODELS`, a price in
+  `src/rf_skill_eval/domain/pricing.py`, and its own baselines.
+- **Cost.** Claude Code prices every session as Claude (the spike reported
+  $29.66). For OpenRouter runs the harness prices the token counts at
+  OpenRouter's list prices instead; reports label that figure as an estimate.
+  List prices are an upper bound (the spike priced at $1.33 against $0.84
+  charged). `--max-cost-usd` uses the estimate. CI also records the key's
+  real spend before and after each job; the key's credit limit is the hard
+  cap.
+- **Turn limits.** DeepSeek takes more turns than Haiku: 25 of the 72 spike
+  sessions stopped at the limit. `--max-turns-factor 1.5` scales each task's
+  `max_turns` (rounded up); the factor is stored with the runs and the
+  baselines, and a different factor means `rebaseline-needed`. Reports show
+  turn-limit stops per task and arm. `OPENROUTER_TURNS_FACTORS` in the
+  workflow can override the factor per plugin. None does now: rf-desktop at
+  2.0 used the extra turns and passed no more often.
+- **What it tells you.** Results say how the skills work with DeepSeek, not
+  with Claude. Run a Claude check before a release (see RELEASING.md).
+  Anthropic doesn't support non-Claude models in Claude Code, which prints
+  `unrecognized_model` on each session; a Claude Code release could break this
+  path, and the CI smoke step would catch it.
 
 ---
 

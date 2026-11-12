@@ -1,0 +1,51 @@
+{
+  "claude_code_version": "2.1.322 (Claude Code)",
+  "entries": {
+    "partial-requests-users-01|baseline": {
+      "arm": "baseline",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.010817,
+      "mean_duration_s": 18.67,
+      "mean_input_tokens": 118719.3,
+      "mean_output_tokens": 1887.5,
+      "mean_turns": 11.5,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-requests",
+      "task_hash": "61a51a99892fbbe4bb9bfb7a9505341483d3ba9960c49ec1ab50a9eb39854550",
+      "task_id": "partial-requests-users-01",
+      "turn_limit_stops": 0,
+      "turns_factor": 1.5
+    },
+    "partial-requests-users-01|treatment": {
+      "arm": "treatment",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.035372,
+      "mean_duration_s": 107.71,
+      "mean_input_tokens": 560272.5,
+      "mean_output_tokens": 12909.3,
+      "mean_turns": 24.17,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-requests",
+      "task_hash": "61a51a99892fbbe4bb9bfb7a9505341483d3ba9960c49ec1ab50a9eb39854550",
+      "task_id": "partial-requests-users-01",
+      "turn_limit_stops": 2,
+      "turns_factor": 1.5
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "partial"
+}

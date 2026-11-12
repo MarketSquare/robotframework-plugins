@@ -146,8 +146,16 @@ def _read_mapping(path: Path) -> dict[str, Any]:
     return loaded
 
 
+#: Run-time settings a task file may not declare (openrouter-ci-eval-tier).
+_RUNTIME_ONLY_KEYS: tuple[str, ...] = ("turns_factor", "provider")
+
+
 def load_task_file(path: Path) -> Task:
-    return Task.model_validate(_read_mapping(path))
+    data = _read_mapping(path)
+    for key in _RUNTIME_ONLY_KEYS:
+        if key in data:
+            raise ValueError(f"'{key}' is a run-time setting and may not appear in a task file")
+    return Task.model_validate(data)
 
 
 def task_files(tasks_dir: Path) -> list[Path]:

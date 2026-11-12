@@ -11,6 +11,11 @@ name: Skill Evaluation
 #               The partial tier (only rf-core staged) runs like narrow.
 #   manual   -> same as weekly with model / runs / allow_opus inputs.
 # Every harness invocation carries an explicit --max-cost-usd cap.
+#
+# Provider (openrouter-ci-eval-tier): when the OPENROUTER_API_KEY secret is set,
+# PR and weekly runs use the OpenRouter tier (DeepSeek V4.1 Flash, turn-limit
+# factor 1.5) and gate against plugins/<plugin>/evals/baselines/openrouter/
+# deepseek-v4.1-flash/. Claude runs are a manual dispatch (provider: claude).
 
 on:
   pull_request:
@@ -28,6 +33,20 @@ on:
     - cron: '0 4 * * 0'
   workflow_dispatch:
     inputs:
+      provider:
+        description: "openrouter (DeepSeek, the CI default when its key is set) or claude"
+        required: false
+        default: ""
+        type: choice
+        options:
+          - ""
+          - "openrouter"
+          - "claude"
+      plugins:
+        description: "Comma list of plugins to run (empty = every plugin with evals)"
+        required: false
+        default: ""
+        type: string
       tiers:
         description: "Comma list of tiers"
         required: true
@@ -43,7 +62,7 @@ on:
           - "treatment"
           - "baseline"
       model:
-        description: "Override every task's model (empty = tier defaults: narrow Haiku, realistic/adversarial Sonnet)"
+        description: "Claude runs only: override every task's model (empty = tier defaults: narrow Haiku, realistic/adversarial Sonnet)"
         required: false
         default: ""
         type: choice
@@ -89,6 +108,17 @@ permissions:
 
 env:
   HAIKU_MODEL: claude-haiku-5-5
+  OPENROUTER_MODEL: deepseek/deepseek-v4.1-flash
+  OPENROUTER_TURNS_FACTOR: "1.5"
+  # Per-plugin overrides of the factor (JSON), e.g. '{"rf-desktop": "2.0"}'.
+  # The factor is stored in the baselines. rf-desktop at 2.0 (run 43167186288)
+  # took more turns but passed no more often, so no plugin overrides it.
+  OPENROUTER_TURNS_FACTORS: '{}'
+  # OpenRouter caps (priced at list prices, an upper bound); the key's credit
+  # limit on OpenRouter is the hard cap. Tune after the first weekly run.
+  PR_NARROW_CAP_USD_OPENROUTER: "2"
+  PR_TRIGGER_CAP_USD_OPENROUTER: "2"
+  WEEKLY_CAP_USD_OPENROUTER: "3"
   # Initial caps (design D9 open question) - tune after the first weekly run.
   PR_NARROW_CAP_USD: "10"
   PR_TRIGGER_CAP_USD: "20"
@@ -105,6 +135,11 @@ jobs:
     timeout-minutes: 15
     outputs:
       has_credentials: ${{ steps.creds.outputs.has_credentials }}
+      # openrouter | claude, and what goes with it (openrouter-ci-eval-tier D6).
+      provider: ${{ steps.creds.outputs.provider }}
+      model: ${{ steps.creds.outputs.model }}
+      turns_factor: ${{ steps.creds.outputs.turns_factor }}
+      baseline_subdir: ${{ steps.creds.outputs.baseline_subdir }}
       run_evals: ${{ steps.select.outputs.run_evals }}
       # JSON list of {plugin, skills, full_tier, run_triggers, trigger_skills},
       # one per plugin whose evals must run.
@@ -144,18 +179,44 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.provider || '' }}
           FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           if [ "${FORK_PR}" = "true" ]; then
             echo "has_credentials=false" >> "$GITHUB_OUTPUT"
-          elif [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ] || [ -n "${ANTHROPIC_API_KEY}" ]; then
-            echo "has_credentials=true" >> "$GITHUB_OUTPUT"
-          else
+            exit 0
+          fi
+          has_or=""; has_claude=""
+          [ -n "${OPENROUTER_API_KEY}" ] && has_or=yes
+          { [ -n "${CLAUDE_CODE_OAUTH_TOKEN}" ] || [ -n "${ANTHROPIC_API_KEY}" ]; } && has_claude=yes
+          case "${REQUESTED}" in
+            openrouter) provider=openrouter; [ -n "$has_or" ] || provider="" ;;
+            claude) provider=claude; [ -n "$has_claude" ] || provider="" ;;
+            *) if [ -n "$has_or" ]; then provider=openrouter; elif [ -n "$has_claude" ]; then provider=claude; else provider=""; fi ;;
+          esac
+          if [ -z "$provider" ]; then
             echo "has_credentials=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "has_credentials=true" >> "$GITHUB_OUTPUT"
+          echo "provider=$provider" >> "$GITHUB_OUTPUT"
+          if [ "$provider" = "openrouter" ]; then
+            echo "model=${OPENROUTER_MODEL}" >> "$GITHUB_OUTPUT"
+            echo "turns_factor=${OPENROUTER_TURNS_FACTOR}" >> "$GITHUB_OUTPUT"
+            echo "baseline_subdir=openrouter/${OPENROUTER_MODEL#*/}/" >> "$GITHUB_OUTPUT"
+          else
+            echo "model=${HAIKU_MODEL}" >> "$GITHUB_OUTPUT"
+            echo "turns_factor=1.0" >> "$GITHUB_OUTPUT"
+            echo "baseline_subdir=" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Map changed paths to skills, per plugin
         id: select
+        env:
+          PROVIDER: ${{ steps.creds.outputs.provider }}
+          DEFAULT_FACTOR: ${{ steps.creds.outputs.turns_factor }}
+          ONLY_PLUGINS: ${{ github.event_name == 'workflow_dispatch' && inputs.plugins || '' }}
         run: |
           legs="${RUNNER_TEMP}/legs"
           mkdir -p "$legs"
@@ -171,14 +232,22 @@ jobs:
             fi
           done
           python3 - "$legs" >> "$GITHUB_OUTPUT" <<'PY'
-          import json, sys
+          import json, os, sys
           from pathlib import Path
+          only = {p.strip() for p in os.environ.get("ONLY_PLUGINS", "").split(",") if p.strip()}
+          factors = json.loads(os.environ.get("OPENROUTER_TURNS_FACTORS") or "{}")
+          openrouter = os.environ.get("PROVIDER") == "openrouter"
           legs = []
           for f in sorted(Path(sys.argv[1]).glob("*.env")):
+              if only and f.stem not in only:
+                  continue
               values = dict(line.split("=", 1) for line in f.read_text().splitlines() if "=" in line)
               if values.get("run_evals") == "true":
-                  legs.append({"plugin": f.stem, **{k: values.get(k, "") for k in
-                               ("skills", "full_tier", "run_triggers", "trigger_skills")}})
+                  factor = factors.get(f.stem) if openrouter else None
+                  legs.append({"plugin": f.stem,
+                               "turns_factor": factor or os.environ.get("DEFAULT_FACTOR") or "1.0",
+                               **{k: values.get(k, "") for k in
+                                  ("skills", "full_tier", "run_triggers", "trigger_skills")}})
           print(f"run_evals={'true' if legs else 'false'}")
           print(f"matrix={json.dumps(legs)}")
           PY
@@ -234,7 +303,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   pr-eval:
-    name: PR eval ${{ matrix.plugin }} (narrow, treatment, N=3)
+    name: PR eval ${{ matrix.plugin }} (narrow, treatment, N=3, ${{ needs.preflight.outputs.provider }})
     needs: preflight
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.preflight.outputs.run_evals == 'true' && needs.preflight.outputs.has_credentials == 'true' }}
     strategy:
@@ -244,6 +313,10 @@ jobs:
     env:
       RF_EVAL_PLUGIN: ${{ matrix.plugin }}
       EVALS: plugins/${{ matrix.plugin }}/evals
+      PROVIDER: ${{ needs.preflight.outputs.provider }}
+      EVAL_MODEL: ${{ needs.preflight.outputs.model }}
+      TURNS_FACTOR: ${{ matrix.turns_factor }}
+      BASELINES: plugins/${{ matrix.plugin }}/evals/baselines/${{ needs.preflight.outputs.baseline_subdir }}
     runs-on: ubuntu-24.04  # ubuntu-latest (26.04) has no Playwright chromium yet
     # A harness-wide PR selects the full narrow tier (66 sequential sessions)
     # plus trigger evals for every changed description; 90 min was not enough.
@@ -281,16 +354,41 @@ jobs:
         run: uv run rfbrowser init
 
       - name: Doctor (grader tools for the narrow tier)
+        id: doctor
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: uv run rf-skill-eval doctor --tasks-dir ${EVALS}/tasks/narrow --strict
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          ANTHROPIC_API_KEY: ${{ needs.preflight.outputs.provider == 'claude' && secrets.ANTHROPIC_API_KEY || '' }}
+          OPENROUTER_API_KEY: ${{ needs.preflight.outputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || '' }}
+        run: uv run rf-skill-eval doctor --provider "$([ "${PROVIDER}" = openrouter ] && echo openrouter || echo anthropic)" --tasks-dir ${EVALS}/tasks/narrow --strict
+
+      - name: Select the cost caps for the provider
+        run: |
+          if [ "${PROVIDER}" = "openrouter" ]; then
+            echo "NARROW_CAP=${PR_NARROW_CAP_USD_OPENROUTER}" >> "$GITHUB_ENV"
+            echo "TRIGGER_CAP=${PR_TRIGGER_CAP_USD_OPENROUTER}" >> "$GITHUB_ENV"
+          else
+            echo "NARROW_CAP=${PR_NARROW_CAP_USD}" >> "$GITHUB_ENV"
+            echo "TRIGGER_CAP=${PR_TRIGGER_CAP_USD}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Spend before (OpenRouter key)
+        if: ${{ env.PROVIDER == 'openrouter' }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 scripts/openrouter-ci.py spend | tee "${RUNNER_TEMP}/spend-before.json" || true
+
+      - name: Smoke test (one OpenRouter session)
+        if: ${{ env.PROVIDER == 'openrouter' }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: uv run python scripts/openrouter-ci.py smoke "${EVAL_MODEL}"
 
       - name: Run narrow tier (treatment arm)
         id: batch
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          ANTHROPIC_API_KEY: ${{ needs.preflight.outputs.provider == 'claude' && secrets.ANTHROPIC_API_KEY || '' }}
+          OPENROUTER_API_KEY: ${{ needs.preflight.outputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || '' }}
           SKILLS: ${{ matrix.skills }}
         run: |
           set +e
@@ -302,8 +400,9 @@ jobs:
             "${SKILL_ARGS[@]}" \
             --arms treatment \
             --runs 3 \
-            --model "${HAIKU_MODEL}" \
-            --max-cost-usd "${PR_NARROW_CAP_USD}" \
+            --model "${EVAL_MODEL}" \
+            --max-turns-factor "${TURNS_FACTOR}" \
+            --max-cost-usd "${NARROW_CAP}" \
             --output "${RUNNER_TEMP}"/eval-runs/pr
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
@@ -314,36 +413,48 @@ jobs:
           set +e
           uv run rf-skill-eval gate \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/pr \
-            --baseline ${EVALS}/baselines/narrow.json \
+            --baseline "${BASELINES}narrow.json" \
             --tasks-dir ${EVALS}/tasks \
             --token-budget 0.75 \
-            --max-cost-usd "${PR_NARROW_CAP_USD}" \
+            --max-cost-usd "${NARROW_CAP}" \
             --report-output gate.txt
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
       - name: Trigger evals (validation split, changed descriptions)
         id: triggers
-        if: ${{ always() && matrix.run_triggers == 'true' }}
+        # After a failed batch too (independent results), never after a failed
+        # Doctor: that would spend without a usable result.
+        if: ${{ always() && steps.doctor.outcome == 'success' && matrix.run_triggers == 'true' }}
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          ANTHROPIC_API_KEY: ${{ needs.preflight.outputs.provider == 'claude' && secrets.ANTHROPIC_API_KEY || '' }}
+          OPENROUTER_API_KEY: ${{ needs.preflight.outputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || '' }}
           TRIGGER_SKILLS: ${{ matrix.trigger_skills }}
         run: |
           set +e
           uv run rf-skill-eval trigger \
             --skills "${TRIGGER_SKILLS}" \
             --split validation \
-            --model "${HAIKU_MODEL}" \
+            --model "${EVAL_MODEL}" \
             --concurrency 2 \
-            --max-cost-usd "${PR_TRIGGER_CAP_USD}" \
+            --max-cost-usd "${TRIGGER_CAP}" \
             --output "${RUNNER_TEMP}"/eval-runs/triggers
           code=$?
           uv run rf-skill-eval gate \
             --trigger-results "${RUNNER_TEMP}"/eval-runs/triggers/trigger-results.json \
-            --trigger-baseline ${EVALS}/baselines/triggers.json \
+            --trigger-baseline "${BASELINES}triggers.json" \
             --report-output trigger-gate.txt
           gate=$?
           if [ "$code" -ne 0 ]; then echo "exit_code=$code" >> "$GITHUB_OUTPUT"; else echo "exit_code=$gate" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Spend after (OpenRouter key)
+        if: ${{ always() && env.PROVIDER == 'openrouter' }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python3 scripts/openrouter-ci.py spend | tee "${RUNNER_TEMP}/spend-after.json" || true
+          python3 scripts/openrouter-ci.py summary "${RUNNER_TEMP}/spend-before.json" \
+            "${RUNNER_TEMP}/spend-after.json" "${RUNNER_TEMP}/eval-runs" --out spend.md || true
 
       - name: Render report
         if: always()
@@ -351,10 +462,13 @@ jobs:
           uv run rf-skill-eval report \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/pr \
             --tasks-dir ${EVALS}/tasks \
-            --baseline ${EVALS}/baselines/narrow.json \
+            --baseline "${BASELINES}narrow.json" \
             --format md \
             --output eval-report.md || echo "_no report (no runs recorded)_" > eval-report.md
           {
+            echo "Model: \`${EVAL_MODEL}\` (provider ${PROVIDER}, turn-limit factor ${TURNS_FACTOR})"
+            echo
+            cat spend.md 2>/dev/null || true
             echo '### Gate'
             echo '```'
             cat gate.txt 2>/dev/null || echo "gate did not run"
@@ -381,6 +495,7 @@ jobs:
           path: |
             ${{ runner.temp }}/eval-runs/pr
             ${{ runner.temp }}/eval-runs/triggers
+            ${{ runner.temp }}/spend-*.json
             eval-report.md
             gate.txt
             trigger-gate.txt
@@ -406,7 +521,7 @@ jobs:
             } catch (err) {
               body = 'Evaluation report missing (run may have failed before report generation).';
             }
-            const fullBody = `${marker}\n\n## Skill Evaluation: ${{ matrix.plugin }} (narrow, treatment, N=3)\n\n${body}`.slice(0, 65000);
+            const fullBody = `${marker}\n\n## Skill Evaluation: ${{ matrix.plugin }} (narrow, treatment, N=3, ${{ needs.preflight.outputs.model }})\n\n${body}`.slice(0, 65000);
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
             const { data: comments } = await github.rest.issues.listComments({
@@ -432,7 +547,7 @@ jobs:
           fi
 
   full-eval:
-    name: Full eval ${{ matrix.plugin }} (all tiers, both arms)
+    name: Full eval ${{ matrix.plugin }} (all tiers, both arms, ${{ needs.preflight.outputs.provider }})
     needs: preflight
     if: ${{ github.event_name != 'pull_request' && needs.preflight.outputs.has_credentials == 'true' }}
     strategy:
@@ -450,8 +565,13 @@ jobs:
       TIERS: ${{ github.event_name == 'workflow_dispatch' && inputs.tiers || 'narrow,realistic,adversarial,partial' }}
       ARMS: ${{ github.event_name == 'workflow_dispatch' && inputs.arms || 'treatment,baseline' }}
       RUNS: ${{ github.event_name == 'workflow_dispatch' && inputs.runs || '3' }}
-      MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.model || '' }}
-      ALLOW_OPUS: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_opus || false }}
+      PROVIDER: ${{ needs.preflight.outputs.provider }}
+      # OpenRouter: the pinned model for every tier; Claude: the dispatch override
+      # (empty = each task's tier default).
+      MODEL: ${{ needs.preflight.outputs.provider == 'openrouter' && needs.preflight.outputs.model || (github.event_name == 'workflow_dispatch' && inputs.model || '') }}
+      TURNS_FACTOR: ${{ matrix.turns_factor }}
+      BASELINES: plugins/${{ matrix.plugin }}/evals/baselines/${{ needs.preflight.outputs.baseline_subdir }}
+      ALLOW_OPUS: ${{ needs.preflight.outputs.provider == 'claude' && github.event_name == 'workflow_dispatch' && inputs.allow_opus || false }}
       MANUAL_CAP: ${{ github.event_name == 'workflow_dispatch' && inputs.max_cost_usd || '' }}
       RUN_TRIGGERS: ${{ github.event_name != 'workflow_dispatch' || inputs.triggers }}
     steps:
@@ -487,24 +607,40 @@ jobs:
         run: uv run rfbrowser init
 
       - name: Set API key fallback
-        if: ${{ inputs.use_api_key == true }}
+        if: ${{ inputs.use_api_key == true && needs.preflight.outputs.provider == 'claude' }}
         run: echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> "$GITHUB_ENV"
 
       - name: Doctor
+        id: doctor
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: uv run rf-skill-eval doctor --tasks-dir ${EVALS}/tasks --strict
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          OPENROUTER_API_KEY: ${{ needs.preflight.outputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || '' }}
+        run: uv run rf-skill-eval doctor --provider "$([ "${PROVIDER}" = openrouter ] && echo openrouter || echo anthropic)" --tasks-dir ${EVALS}/tasks --strict
+
+      - name: Spend before (OpenRouter key)
+        if: ${{ env.PROVIDER == 'openrouter' }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 scripts/openrouter-ci.py spend | tee "${RUNNER_TEMP}/spend-before.json" || true
+
+      - name: Smoke test (one OpenRouter session)
+        if: ${{ env.PROVIDER == 'openrouter' }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: uv run python scripts/openrouter-ci.py smoke "${MODEL}"
 
       - name: Run tiers
         id: batch
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          OPENROUTER_API_KEY: ${{ needs.preflight.outputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || '' }}
         run: |
           set +e
           overall=0
           MODEL_ARGS=()
           if [ -n "${MODEL}" ]; then MODEL_ARGS=(--model "${MODEL}"); fi
           if [ "${ALLOW_OPUS}" = "true" ]; then MODEL_ARGS+=(--allow-opus); fi
+          MODEL_ARGS+=(--max-turns-factor "${TURNS_FACTOR}")
           for tier in ${TIERS//,/ }; do
             case "$tier" in
               narrow) cap="${WEEKLY_NARROW_CAP_USD}" ;;
@@ -513,6 +649,7 @@ jobs:
               partial) cap="${WEEKLY_PARTIAL_CAP_USD}" ;;
               *) echo "unknown tier $tier"; exit 2 ;;
             esac
+            if [ "${PROVIDER}" = "openrouter" ]; then cap="${WEEKLY_CAP_USD_OPENROUTER}"; fi
             if [ -n "${MANUAL_CAP}" ]; then cap="${MANUAL_CAP}"; fi
             # Not every plugin has every tier (rf-desktop has narrow tasks only).
             if [ ! -d "${EVALS}/tasks/${tier}" ]; then echo "no ${tier} tasks in ${EVALS}"; continue; fi
@@ -531,12 +668,16 @@ jobs:
 
       - name: Trigger evals (all sets, both splits)
         id: triggers
-        if: ${{ always() && env.RUN_TRIGGERS == 'true' }}
+        # After a failed batch too (independent results), never after a failed
+        # Doctor: that would spend without a usable result.
+        if: ${{ always() && steps.doctor.outcome == 'success' && env.RUN_TRIGGERS == 'true' }}
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ needs.preflight.outputs.provider == 'claude' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          OPENROUTER_API_KEY: ${{ needs.preflight.outputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || '' }}
         run: |
           set +e
           cap="${WEEKLY_TRIGGER_CAP_USD}"
+          if [ "${PROVIDER}" = "openrouter" ]; then cap="${WEEKLY_CAP_USD_OPENROUTER}"; fi
           if [ -n "${MANUAL_CAP}" ]; then cap="${MANUAL_CAP}"; fi
           MODEL_ARGS=()
           if [ -n "${MODEL}" ]; then MODEL_ARGS=(--model "${MODEL}"); fi
@@ -547,6 +688,18 @@ jobs:
             --max-cost-usd "${cap}" \
             --output "${RUNNER_TEMP}"/eval-runs/full/triggers
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Spend after (OpenRouter key)
+        if: ${{ always() && env.PROVIDER == 'openrouter' }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python3 scripts/openrouter-ci.py spend | tee "${RUNNER_TEMP}/spend-after.json" || true
+          # Warn when the priced total and the key's spend differ by more than 25%.
+          python3 scripts/openrouter-ci.py summary --warn-drift 0.25 --out spend.md \
+            "${RUNNER_TEMP}/spend-before.json" "${RUNNER_TEMP}/spend-after.json" \
+            "${RUNNER_TEMP}/eval-runs/full" || true
+          cat spend.md >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Candidate baseline and report
         if: always()
@@ -563,11 +716,13 @@ jobs:
           set +e
           uv run rf-skill-eval gate \
             --runs-dir "${RUNNER_TEMP}"/eval-runs/full \
-            --baseline ${EVALS}/baselines/narrow.json \
+            --baseline "${BASELINES}narrow.json" \
             --tasks-dir ${EVALS}/tasks \
             --report-output gate.txt
           echo "GATE_EXIT=$?" >> "$GITHUB_ENV"
           {
+            echo "Model: \`${MODEL:-tier defaults}\` (provider ${PROVIDER}, turn-limit factor ${TURNS_FACTOR})"
+            echo
             echo '### Gate vs committed baseline (informational)'
             echo '```'
             cat gate.txt 2>/dev/null
@@ -583,6 +738,7 @@ jobs:
           name: skill-eval-full-${{ matrix.plugin }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/eval-runs/full
+            ${{ runner.temp }}/spend-*.json
             eval-report.md
             gate.txt
             !${{ runner.temp }}/eval-runs/**/workspace/.venv
@@ -595,7 +751,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: candidate-baseline-${{ matrix.plugin }}-${{ github.run_id }}
+          # The provider is in the name: the files go to baselines/ (claude) or
+          # baselines/openrouter/<model name>/ (openrouter).
+          name: candidate-baseline-${{ matrix.plugin }}-${{ needs.preflight.outputs.provider }}-${{ github.run_id }}
           path: candidate-baseline/
           if-no-files-found: ignore
           retention-days: 90

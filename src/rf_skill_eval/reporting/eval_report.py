@@ -45,6 +45,8 @@ def _arm_block(s: ReplicateStats) -> dict[str, Any]:
         "turns": _mean(s.turns),
         "duration_s": _mean(s.duration_s),
         "cost_usd": _mean(s.cost_usd),
+        "cost_source": s.cost_source,
+        "turn_limit_stops": s.turn_limit_stops,
         "stdev": {
             m: (None if getattr(s, m) is None else round(getattr(s, m).stdev, 4))
             for m in _METRICS
@@ -67,6 +69,8 @@ def _stored_block(entry: Mapping[str, Any], current_hash: str | None) -> dict[st
         "turns": entry.get("mean_turns"),
         "duration_s": entry.get("mean_duration_s"),
         "cost_usd": entry.get("mean_cost_usd"),
+        "cost_source": entry.get("cost_source", "reported"),
+        "turn_limit_stops": entry.get("turn_limit_stops", 0),
         "stdev": {},
     }
 
@@ -141,6 +145,12 @@ def build_report(
         "cost_usd": round(
             sum(r.run.usage.total_cost_usd for r in results if r.run.usage is not None), 6
         ),
+        "cost_source": "priced"
+        if any(r.run.usage is not None and r.run.usage.cost_source == "priced" for r in results)
+        else "reported",
+        "turn_limit_stops": sum(
+            1 for r in results if r.run.usage is not None and r.run.usage.hit_turn_limit
+        ),
     }
     return {"kind": "eval-report", "summary": summary, "tasks": tasks, "skills": skills}
 
@@ -194,6 +204,22 @@ def _fmt_delta(value: Any, pct: bool = False, digits: int = 1) -> str:
     return f"{v:+.{digits}f}"
 
 
+def _turns_cell(b: Mapping[str, Any]) -> str:
+    """Mean turns, plus how many runs stopped at the turn limit (when any)."""
+    stops = b.get("turn_limit_stops") or 0
+    return _fmt(b["turns"]) + (f" ({stops} at limit)" if stops else "")
+
+
+def _cost_cell(b: Mapping[str, Any]) -> str:
+    return _fmt(b["cost_usd"], digits=4) + (" (est.)" if b.get("cost_source") == "priced" else "")
+
+
+def _cost_summary(s: Mapping[str, Any]) -> str:
+    if s.get("cost_source") == "priced":
+        return f"**estimated cost (OpenRouter list prices):** ${s['cost_usd']:.2f}"
+    return f"**reported cost:** ${s['cost_usd']:.2f}"
+
+
 def _task_rows(t: Mapping[str, Any]) -> list[str]:
     tier = t["tier"] + ("" if t["gating"] else " (non-gating)")
     rows: list[str] = []
@@ -204,8 +230,8 @@ def _task_rows(t: Mapping[str, Any]) -> list[str]:
             f"| `{t['task_id']}` | {t['skill']} | {tier} | {arm_label} | {_fmt(b['runs'])} | "
             f"{_fmt(b['pass_rate'], pct=True)} | {_fmt(b['outcome_pass_rate'], pct=True)} | "
             f"{_fmt(b['incomplete'])} | {_fmt(b['input_tokens'], digits=0)} | "
-            f"{_fmt(b['output_tokens'], digits=0)} | {_fmt(b['turns'])} | "
-            f"{_fmt(b['duration_s'])} | {_fmt(b['cost_usd'], digits=4)} | {flaky} |"
+            f"{_fmt(b['output_tokens'], digits=0)} | {_turns_cell(b)} | "
+            f"{_fmt(b['duration_s'])} | {_cost_cell(b)} | {flaky} |"
         )
     d = t["delta"] or {}
     rows.append(
@@ -251,7 +277,8 @@ def render_markdown(report: Mapping[str, Any]) -> str:
         "",
         f"**Runs:** {s['runs']} · **pass:** {s['pass']} · **fail:** {s['fail']} · "
         f"**incomplete:** {s['incomplete']} · **skipped checks:** {s['skipped_checks']} · "
-        f"**reported cost:** ${s['cost_usd']:.2f}",
+        f"{_cost_summary(s)}"
+        + (f" · **turn-limit stops:** {s['turn_limit_stops']}" if s.get("turn_limit_stops") else ""),
         "",
         "Pass rate = runs whose gate result is `pass` / runs attempted. Deltas are "
         "treatment − baseline over **outcome** checks only.",

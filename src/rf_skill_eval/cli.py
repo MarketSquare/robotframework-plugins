@@ -29,9 +29,11 @@ from rich.table import Table
 from . import __version__
 from .application.baseline import (
     baseline_entry,
+    baselines_dir_for,
     build_tier_baseline,
     build_trigger_baseline,
     load_json,
+    single_model,
     task_hash,
     write_json,
 )
@@ -94,11 +96,17 @@ from .config import configure_logging, get_settings
 from .domain.profile import Profile, parse_arms
 from .domain.results import RunResult, aggregate_replicates
 from .domain.scorecard import Scorecard
-from .domain.task import Task
+from .domain.task import (
+    OPENROUTER_MODELS,
+    PROVIDERS,
+    Provider,
+    Task,
+    provider_for,
+)
 from .domain.trigger import SPLIT_NAMES, TriggerQuery, TriggerSet, is_valid_split
 from .errors import ModelNotAllowedError, RfSkillEvalError
 from .infrastructure.persistence.sqlite_repo import SqliteRunRepository
-from .infrastructure.runner.claude_code_runner import ClaudeCodeRunner
+from .infrastructure.runner.claude_code_runner import ClaudeCodeRunner, openrouter_env
 from .infrastructure.telemetry.skill_listing import LISTING_BUDGET_ENV
 from .infrastructure.telemetry.skill_loads import skill_dir_map
 from .reporting.eval_report import build_report, render_markdown, write_report
@@ -188,12 +196,43 @@ def _build_service(output_dir: Path, *, fmt: str = "md") -> EvaluationService:
     return EvaluationService(runner, grader, writer, repo)
 
 
-def _require_auth() -> None:
+def _require_auth(provider: Provider = "anthropic") -> None:
+    if provider == "openrouter":
+        if not os.environ.get("OPENROUTER_API_KEY"):
+            console.print("[red]not run: no credentials[/red] (set OPENROUTER_API_KEY)")
+            raise typer.Exit(code=2)
+        return
     if not (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")):
         console.print(
             "[red]not run: no credentials[/red] (set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY)"
         )
         raise typer.Exit(code=2)
+
+
+def _resolve_provider(provider: str | None, models: set[str]) -> Provider:
+    """The one provider for a set of run models; refuse a mismatch (D1)."""
+    if provider is not None and provider not in PROVIDERS:
+        raise typer.BadParameter(f"--provider must be one of {', '.join(PROVIDERS)}")
+    derived = {provider_for(m) for m in models}
+    if len(derived) > 1:
+        console.print("[red]refused:[/red] the selected tasks mix Claude and OpenRouter models")
+        raise typer.Exit(code=2)
+    actual: Provider = derived.pop() if derived else "anthropic"
+    if provider is not None and provider != actual:
+        if provider == "openrouter":
+            hint = f"pass --model with one of {sorted(OPENROUTER_MODELS)}"
+        else:
+            hint = "pass --model with a Claude model id"
+        console.print(
+            f"[red]refused:[/red] --provider {provider} does not match model(s) "
+            f"{', '.join(sorted(models))}; {hint}"
+        )
+        raise typer.Exit(code=2)
+    return actual
+
+
+_PROVIDER_HELP = "anthropic | openrouter (default: derived from the model)"
+_TURNS_FACTOR_HELP = "Scale each task's max_turns (1.0-3.0, rounded up); recorded per run"
 
 
 def _check_model(model: str, allow_opus: bool, max_cost_usd: float | None) -> None:
@@ -363,6 +402,10 @@ def run(
     max_cost_usd: float | None = typer.Option(None, "--max-cost-usd", min=0.0),
     output: Path = typer.Option(Path("eval/runs"), "--output", help="Run artifacts directory"),
     baseline_dir: Path | None = typer.Option(None, "--baseline-dir"),
+    provider: str | None = typer.Option(None, "--provider", help=_PROVIDER_HELP),
+    max_turns_factor: float = typer.Option(
+        1.0, "--max-turns-factor", min=1.0, max=3.0, help=_TURNS_FACTOR_HELP
+    ),
 ) -> None:
     """Execute ONE task in ONE arm, grade it and persist the result."""
 
@@ -372,8 +415,9 @@ def run(
     arms = _resolve_arms(arm if profile is None else None, profile)
     if model:
         task_obj = task_obj.model_copy(update={"model": model})
+    task_obj = task_obj.model_copy(update={"turns_factor": max_turns_factor})
     _check_model(task_obj.model, allow_opus, max_cost_usd)
-    _require_auth()
+    _require_auth(_resolve_provider(provider, {task_obj.model}))
     code = _run_plan(
         plan_batch([task_obj], arms[:1], 1),
         output,
@@ -402,6 +446,10 @@ def run_batch(
     max_cost_usd: float | None = typer.Option(None, "--max-cost-usd", min=0.0),
     output: Path = typer.Option(Path("eval/runs"), "--output"),
     baseline_dir: Path | None = typer.Option(None, "--baseline-dir"),
+    provider: str | None = typer.Option(None, "--provider", help=_PROVIDER_HELP),
+    max_turns_factor: float = typer.Option(
+        1.0, "--max-turns-factor", min=1.0, max=3.0, help=_TURNS_FACTOR_HELP
+    ),
     concurrency: int = typer.Option(
         1,
         "--concurrency",
@@ -434,10 +482,11 @@ def run_batch(
         raise typer.Exit(code=1)
     if model:
         selected = [t.model_copy(update={"model": model}) for t in selected]
+    selected = [t.model_copy(update={"turns_factor": max_turns_factor}) for t in selected]
     for m in sorted({t.model for t in selected}):
         _check_model(m, allow_opus, max_cost_usd)
     arm_tuple = _resolve_arms(arms, profile)
-    _require_auth()
+    _require_auth(_resolve_provider(provider, {t.model for t in selected}))
     plan = plan_batch(selected, arm_tuple, runs)
     console.print(
         f"[cyan]{len(selected)} task(s) × {len(arm_tuple)} arm(s) × {runs} run(s) = "
@@ -656,6 +705,26 @@ def _requirement_ok(req: str) -> tuple[bool, str]:
     return spec is not None, "importable" if spec is not None else "not importable"
 
 
+def _auth_rows(settings: Any, provider: str) -> list[tuple[str, bool, str]]:
+    """Doctor rows for the credentials ``provider`` needs."""
+    if provider not in PROVIDERS:
+        raise typer.BadParameter(f"--provider must be one of {', '.join(PROVIDERS)}")
+    if provider == "openrouter":
+        ok = settings.has_auth("openrouter")
+        return [("OPENROUTER_API_KEY", ok, "OpenRouter models need it" if ok else "not set")]
+    oauth = bool(settings.claude_code_oauth_token)
+    api = bool(settings.anthropic_api_key)
+    return [
+        (
+            "CLAUDE_CODE_OAUTH_TOKEN",
+            oauth,
+            "preferred auth (subscription)" if oauth else "missing — falls back to ANTHROPIC_API_KEY",
+        ),
+        ("ANTHROPIC_API_KEY", api, "fallback auth" if api else "not set"),
+        ("some auth present", settings.has_auth(), "at least one token/key is needed"),
+    ]
+
+
 @app.command()
 def doctor(
     tasks_dir: Path | None = typer.Option(
@@ -663,6 +732,9 @@ def doctor(
     ),
     strict: bool = typer.Option(
         False, "--strict", help="Exit 1 when a grader requirement is missing"
+    ),
+    provider: str = typer.Option(
+        "anthropic", "--provider", help="anthropic | openrouter: which credentials to check"
     ),
 ) -> None:
     """Verify environment: tokens, CLIs, grader tools, MCP package importability."""
@@ -677,19 +749,8 @@ def doctor(
     def _row(name: str, ok: bool, details: str = "") -> None:
         table.add_row(name, "ok" if ok else "FAIL", details)
 
-    _row(
-        "CLAUDE_CODE_OAUTH_TOKEN",
-        bool(settings.claude_code_oauth_token),
-        "preferred auth (subscription)"
-        if settings.claude_code_oauth_token
-        else "missing — falls back to ANTHROPIC_API_KEY",
-    )
-    _row(
-        "ANTHROPIC_API_KEY",
-        bool(settings.anthropic_api_key),
-        "fallback auth" if settings.anthropic_api_key else "not set",
-    )
-    _row("some auth present", settings.has_auth(), "at least one token/key is needed")
+    for name, ok, details in _auth_rows(settings, provider):
+        _row(name, ok, details)
 
     claude = _which("claude")
     _row("claude CLI on PATH", claude is not None, claude or "not found")
@@ -732,10 +793,10 @@ def doctor(
     _row("harness version", True, __version__)
 
     ping_ok = True
-    if claude is None or not settings.has_auth():
+    if claude is None or not settings.has_auth(provider):
         ping_details = "skipped (claude binary or auth missing)"
     else:
-        ping_ok, ping_details = _claude_auth_ping(claude)
+        ping_ok, ping_details = _claude_auth_ping(claude, provider=provider)
     _row("claude auth ping", ping_ok, ping_details)
 
     console.print(table)
@@ -744,26 +805,35 @@ def doctor(
         raise typer.Exit(code=1)
 
 
-def _claude_auth_ping(claude_binary: str) -> tuple[bool, str]:
-    """Probe ``claude`` with a one-turn prompt to verify auth actually works."""
+def _claude_auth_ping(claude_binary: str, *, provider: str = "anthropic") -> tuple[bool, str]:
+    """Probe ``claude`` with a one-turn prompt to verify auth actually works.
+
+    For ``openrouter`` the probe runs in the session environment an OpenRouter
+    run gets, on the first OpenRouter model.
+    """
+    argv = [
+        claude_binary,
+        "--print",
+        "ok",
+        "--max-turns",
+        "1",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+    ]
+    env: dict[str, str] | None = None
+    # OpenRouter's first response can take longer than Claude's (the smoke
+    # step allows 120 s); a 30 s ping failed a run's Doctor step.
+    timeout = 30
+    if provider == "openrouter":
+        model = sorted(OPENROUTER_MODELS)[0]
+        env = openrouter_env(os.environ.copy(), model)
+        argv += ["--model", model]
+        timeout = 120
     try:
-        result = subprocess.run(
-            [
-                claude_binary,
-                "--print",
-                "ok",
-                "--max-turns",
-                "1",
-                "--output-format",
-                "stream-json",
-                "--verbose",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=env)
     except subprocess.TimeoutExpired:
-        return False, "timed out after 30s"
+        return False, f"timed out after {timeout}s"
     except OSError as exc:
         return False, f"{type(exc).__name__}: {exc}"
 
@@ -771,10 +841,28 @@ def _claude_auth_ping(claude_binary: str) -> tuple[bool, str]:
     if "API Error" in combined or "invalid value" in combined.lower():
         snippet = combined.strip().splitlines()[0][:160] if combined.strip() else "(no output)"
         return False, f"API rejected probe: {snippet}"
+    final = _final_result_event(result.stdout or "")
+    # A model that answers "ok" with a tool call stops at --max-turns 1 and
+    # claude exits 1, but the provider did answer, so the credentials work.
+    if final.get("subtype") == "error_max_turns":
+        return True, "auth verified via claude --print (stopped at the turn limit)"
     if result.returncode != 0:
-        snippet = (result.stderr or result.stdout or "").strip()[:160]
-        return False, f"claude exit={result.returncode}: {snippet}"
+        # The result event says why; stderr may only hold harmless notices.
+        reason = final.get("result") or final.get("subtype") or result.stderr or result.stdout or ""
+        return False, f"claude exit={result.returncode}: {str(reason).strip()[:160]}"
     return True, "auth verified via claude --print"
+
+
+def _final_result_event(stdout: str) -> dict[str, Any]:
+    """The last ``{"type": "result"}`` event in stream-json output, or ``{}``."""
+    for line in reversed(stdout.splitlines()):
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "result":
+            return event
+    return {}
 
 
 # --- validity & coverage -----------------------------------------------------------
@@ -990,6 +1078,7 @@ def trigger(
     model: str | None = typer.Option(None, "--model"),
     allow_opus: bool = typer.Option(False, "--allow-opus"),
     max_cost_usd: float | None = typer.Option(None, "--max-cost-usd", min=0.0),
+    provider: str | None = typer.Option(None, "--provider", help=_PROVIDER_HELP),
     triggers_dir: Path | None = typer.Option(None, "--triggers-dir"),
     output: Path = typer.Option(Path("eval/runs/triggers"), "--output"),
     baseline: Path | None = typer.Option(
@@ -1055,7 +1144,7 @@ def trigger(
         raise typer.BadParameter(f"--split must be a comma list of {SPLIT_NAMES}")
     for m in sorted({model or s.model for s in selected}):
         _check_model(m, allow_opus, max_cost_usd)
-    _require_auth()
+    _require_auth(_resolve_provider(provider, {model or s.model for s in selected}))
     listing_budget = _effective_listing_budget(listing_budget)
     _warn_if_contaminated(output)
     output.mkdir(parents=True, exist_ok=True)
@@ -1123,13 +1212,27 @@ def baseline_update(
     tasks_dir = tasks_dir or _evals("tasks", root=root)
     if output_dir is None and _plugin(root) == ALL_PLUGINS:
         raise typer.BadParameter("--plugin all is read-only: pass --output-dir, or one --plugin")
-    output_dir = output_dir or _evals("baselines", root=root)
     written: list[Path] = []
     cc_version = claude_code_version or _detect_claude_code_version()
-    if any(from_dir.rglob("eval.db")):
+    stats = (
+        aggregate_replicates(load_run_results(from_dir, tasks_dir))
+        if any(from_dir.rglob("eval.db"))
+        else []
+    )
+    trigger_files = sorted(from_dir.rglob("trigger-results.json"))
+    if output_dir is None:
+        models = {s.model for s in stats} | {
+            str(json.loads(f.read_text("utf-8")).get("model") or "") for f in trigger_files
+        }
+        model = single_model(m for m in models if m)
+        if model is None and len({m for m in models if m}) > 1:
+            raise typer.BadParameter(
+                f"runs of several models ({', '.join(sorted(models))}): pass --output-dir"
+            )
+        output_dir = baselines_dir_for(_evals("baselines", root=root), model)
+    if stats:
         index = _task_index(tasks_dir)
         hashes = _task_hashes(index, root / "eval" / "fixtures")
-        stats = aggregate_replicates(load_run_results(from_dir, tasks_dir))
         for tier in sorted({s.tier for s in stats if s.tier != "unknown"}):
             data = build_tier_baseline(
                 stats,
@@ -1139,7 +1242,7 @@ def baseline_update(
                 claude_code_version=cc_version,
             )
             written.append(write_json(output_dir / f"{tier}.json", data))
-    for results_file in sorted(from_dir.rglob("trigger-results.json")):
+    for results_file in trigger_files:
         result = TriggerEvalResult.from_json(json.loads(results_file.read_text("utf-8")))
         data = build_trigger_baseline(result, harness_version=__version__)
         written.append(write_json(output_dir / "triggers.json", data))
@@ -1164,7 +1267,12 @@ def _detect_claude_code_version() -> str:
 @app.command()
 def gate(
     runs_dir: Path | None = typer.Option(None, "--runs-dir"),
-    baseline: Path | None = typer.Option(None, "--baseline", help="Default: <evals>/baselines/narrow.json"),
+    baseline: Path | None = typer.Option(
+        None,
+        "--baseline",
+        help="Default: the runs' model's narrow.json (<evals>/baselines/, or "
+        "<evals>/baselines/openrouter/<model name>/ for an OpenRouter model)",
+    ),
     tasks_dir: Path | None = typer.Option(None, "--tasks-dir"),
     tolerance: float | None = typer.Option(
         None, "--tolerance", help="Allowed pass-rate drop; default: Fisher exact p < 0.05 vs a >=6-run baseline, else > 1/N fails"
@@ -1172,7 +1280,7 @@ def gate(
     token_budget: float = typer.Option(0.30, "--token-budget", help="Allowed input-token rise"),
     trigger_results: Path | None = typer.Option(None, "--trigger-results"),
     trigger_baseline: Path | None = typer.Option(
-        None, "--trigger-baseline", help="Default: <evals>/baselines/triggers.json"
+        None, "--trigger-baseline", help="Default: triggers.json next to the model's baselines"
     ),
     max_cost_usd: float | None = typer.Option(
         None, "--max-cost-usd", min=0.0, help="Fail when the gated runs' reported cost exceeds it"
@@ -1185,15 +1293,23 @@ def gate(
     if runs_dir is None and trigger_results is None:
         raise typer.BadParameter("give --runs-dir and/or --trigger-results")
     tasks_dir = tasks_dir or _evals("tasks")
-    baseline = baseline or _evals("baselines", "narrow.json")
-    trigger_baseline = trigger_baseline or _evals("baselines", "triggers.json")
     report_obj = GateReport()
     spent = 0.0
+    if trigger_baseline is None:
+        trigger_model = (
+            json.loads(trigger_results.read_text("utf-8")).get("model")
+            if trigger_results is not None and trigger_results.is_file()
+            else None
+        )
+        trigger_baseline = baselines_dir_for(_evals("baselines"), trigger_model) / "triggers.json"
     if runs_dir is not None:
         results = load_run_results(runs_dir, tasks_dir)
         if not results:
             console.print(f"[red]gate: no graded runs under {runs_dir}[/red]")
             raise typer.Exit(code=1)
+        if baseline is None:
+            model = single_model(r.run.model for r in results)
+            baseline = baselines_dir_for(_evals("baselines"), model) / "narrow.json"
         for m in sorted({r.run.model for r in results}):
             _check_model(m, allow_opus, max_cost_usd if allow_opus else None)
         index = _task_index(tasks_dir)

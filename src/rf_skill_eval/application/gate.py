@@ -126,6 +126,20 @@ def _pass_rate_finding(
     )
 
 
+def _rebaseline_reason(
+    s: ReplicateStats, entry: Mapping[str, Any], current_hash: str | None
+) -> str | None:
+    """Why a baseline entry can't be compared with ``s``, or ``None``."""
+    if current_hash is not None and entry.get("task_hash") != current_hash:
+        return "task definition or fixture changed"
+    if entry.get("model") != s.model:
+        return f"model differs (baseline {entry.get('model')}, now {s.model})"
+    base_factor = float(entry.get("turns_factor") or 1.0)
+    if abs(base_factor - s.turns_factor) > 1e-9:
+        return f"turn-limit factor differs (baseline {base_factor:g}, now {s.turns_factor:g})"
+    return None
+
+
 def gate_tasks(
     current: Iterable[ReplicateStats],
     baseline: Mapping[str, Any] | None,
@@ -154,20 +168,9 @@ def gate_tasks(
                 GateFinding("rebaseline-needed", s.task_id, "no stored baseline entry")
             )
             continue
-        current_hash = task_hashes.get(s.task_id)
-        if current_hash is not None and entry.get("task_hash") != current_hash:
-            report.findings.append(
-                GateFinding("rebaseline-needed", s.task_id, "task definition or fixture changed")
-            )
-            continue
-        if entry.get("model") != s.model:
-            report.findings.append(
-                GateFinding(
-                    "rebaseline-needed",
-                    s.task_id,
-                    f"model differs (baseline {entry.get('model')}, now {s.model})",
-                )
-            )
+        stale = _rebaseline_reason(s, entry, task_hashes.get(s.task_id))
+        if stale is not None:
+            report.findings.append(GateFinding("rebaseline-needed", s.task_id, stale))
             continue
         finding = _pass_rate_finding(s, entry, tolerance)
         if finding is not None:

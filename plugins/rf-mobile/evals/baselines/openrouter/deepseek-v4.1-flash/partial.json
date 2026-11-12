@@ -1,0 +1,51 @@
+{
+  "claude_code_version": "2.1.322 (Claude Code)",
+  "entries": {
+    "partial-appium-login-01|baseline": {
+      "arm": "baseline",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.019589,
+      "mean_duration_s": 65.56,
+      "mean_input_tokens": 235691.0,
+      "mean_output_tokens": 7699.7,
+      "mean_turns": 16.5,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-appium",
+      "task_hash": "38720d9916e141cf2f3dea4874ff2b70b12ce403564779bf18d1a64fdb38c5b3",
+      "task_id": "partial-appium-login-01",
+      "turn_limit_stops": 0,
+      "turns_factor": 1.5
+    },
+    "partial-appium-login-01|treatment": {
+      "arm": "treatment",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.037225,
+      "mean_duration_s": 100.02,
+      "mean_input_tokens": 667808.6,
+      "mean_output_tokens": 13806.6,
+      "mean_turns": 24.4,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-appium",
+      "task_hash": "38720d9916e141cf2f3dea4874ff2b70b12ce403564779bf18d1a64fdb38c5b3",
+      "task_id": "partial-appium-login-01",
+      "turn_limit_stops": 3,
+      "turns_factor": 1.5
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "partial"
+}

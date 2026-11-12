@@ -252,6 +252,7 @@ def parse_result_usage(path: Path) -> RunUsage | None:
         except (TypeError, ValueError):
             return 0
 
+    model_usage = last.get("modelUsage")
     try:
         cost = float(last.get("total_cost_usd") or 0.0)
     except (TypeError, ValueError):
@@ -265,4 +266,6 @@ def parse_result_usage(path: Path) -> RunUsage | None:
         duration_ms=_int(last.get("duration_ms")),
         total_cost_usd=cost,
         is_error=bool(last.get("is_error", False)),
+        subtype=str(last.get("subtype") or ""),
+        models=tuple(sorted(model_usage)) if isinstance(model_usage, dict) else (),
     )

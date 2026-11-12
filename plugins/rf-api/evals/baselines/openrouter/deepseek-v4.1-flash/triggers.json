@@ -1,0 +1,69 @@
+{
+  "harness_version": "0.1.0",
+  "kind": "trigger-baseline",
+  "model": "deepseek/deepseek-v4.1-flash",
+  "provider": "openrouter",
+  "schema_version": 1,
+  "skills": {
+    "rf-requests": {
+      "train": {
+        "accuracy": 0.7391,
+        "fn": 0,
+        "fp": 6,
+        "negative_loads": 17,
+        "negative_runs": 33,
+        "positive_loads": 36,
+        "positive_runs": 36,
+        "precision": 0.6667,
+        "queries": 23,
+        "recall": 1.0,
+        "tn": 5,
+        "tp": 12
+      },
+      "validation": {
+        "accuracy": 0.75,
+        "fn": 0,
+        "fp": 2,
+        "negative_loads": 7,
+        "negative_runs": 12,
+        "positive_loads": 11,
+        "positive_runs": 12,
+        "precision": 0.6667,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 2,
+        "tp": 4
+      }
+    },
+    "rf-restinstance": {
+      "train": {
+        "accuracy": 0.6957,
+        "fn": 0,
+        "fp": 7,
+        "negative_loads": 21,
+        "negative_runs": 33,
+        "positive_loads": 36,
+        "positive_runs": 36,
+        "precision": 0.6316,
+        "queries": 23,
+        "recall": 1.0,
+        "tn": 4,
+        "tp": 12
+      },
+      "validation": {
+        "accuracy": 0.625,
+        "fn": 0,
+        "fp": 3,
+        "negative_loads": 9,
+        "negative_runs": 12,
+        "positive_loads": 12,
+        "positive_runs": 12,
+        "precision": 0.5714,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 1,
+        "tp": 4
+      }
+    }
+  }
+}

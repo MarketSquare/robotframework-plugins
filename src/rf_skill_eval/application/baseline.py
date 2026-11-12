@@ -27,6 +27,7 @@ from typing import Any
 import yaml
 
 from ..domain.results import ReplicateStats, Spread
+from ..domain.task import provider_for
 from ..domain.trigger import run_load_counts
 from .trigger_eval import TriggerEvalResult
 
@@ -60,6 +61,24 @@ def task_hash(task_path: Path, fixtures_root: Path) -> str:
     fixture = data.get("fixture") if isinstance(data, dict) else None
     fixture_hash = fixture_tree_hash(fixtures_root / str(fixture)) if fixture else "none"
     return hashlib.sha256(f"{normalised}\n{fixture_hash}".encode()).hexdigest()
+
+
+def baselines_dir_for(evals_baselines: Path, model: str | None) -> Path:
+    """Where a model's baselines live (openrouter-ci-eval-tier D5).
+
+    Claude models: ``<evals>/baselines/`` itself; an OpenRouter model:
+    ``<evals>/baselines/openrouter/<model name>/``.
+    """
+    if model and provider_for(model) == "openrouter":
+        return evals_baselines / "openrouter" / model.split("/", 1)[1]
+    return evals_baselines
+
+
+def single_model(models: Iterable[str]) -> str | None:
+    """The one model of a set of runs, ``None`` when there are none or several."""
+    distinct = set(models)
+    return distinct.pop() if len(distinct) == 1 else None
+
 
 
 def _mean(spread: Spread | None, digits: int = 4) -> float | None:
@@ -98,6 +117,10 @@ def build_tier_baseline(
             "mean_duration_s": _mean(s.duration_s, 2),
             "mean_cost_usd": _mean(s.cost_usd, 6),
             "gating": tier != "adversarial",
+            "provider": s.provider,
+            "turns_factor": s.turns_factor,
+            "turn_limit_stops": s.turn_limit_stops,
+            "cost_source": s.cost_source,
         }
     return {
         "kind": "tier-baseline",
@@ -129,6 +152,7 @@ def build_trigger_baseline(result: TriggerEvalResult, *, harness_version: str) -
         "schema_version": BASELINE_SCHEMA_VERSION,
         "harness_version": harness_version,
         "model": result.model,
+        "provider": provider_for(result.model) if result.model else "anthropic",
         "skills": dict(sorted(skills.items())),
     }
 

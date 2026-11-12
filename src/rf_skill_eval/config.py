@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # Auth
     claude_code_oauth_token: str | None = Field(default=None)
     anthropic_api_key: str | None = Field(default=None)
+    #: OpenRouter models (openrouter-ci-eval-tier).
+    openrouter_api_key: str | None = Field(default=None)
 
     # Model selection
     claude_model_default: str = Field(default="claude-haiku-5-5")
@@ -39,9 +41,11 @@ class Settings(BaseSettings):
     # Logging
     rf_skill_eval_log_level: str = Field(default="INFO")
 
-    def has_auth(self) -> bool:
-        """Return True iff some form of Claude authentication is present."""
+    def has_auth(self, provider: str = "anthropic") -> bool:
+        """Return True iff the credentials ``provider`` needs are present."""
 
+        if provider == "openrouter":
+            return bool(self.openrouter_api_key)
         return bool(self.claude_code_oauth_token or self.anthropic_api_key)
 
 

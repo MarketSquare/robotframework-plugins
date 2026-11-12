@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -128,15 +129,118 @@ def test_every_harness_invocation_has_a_cost_cap() -> None:
             assert "--max-cost-usd" in block, line
 
 
-def test_pr_job_is_treatment_only_haiku_runs_3_and_gated() -> None:
+def test_pr_job_is_treatment_only_runs_3_and_gated_on_the_preflight_model() -> None:
     wf = _wf()
-    text = _job_text(wf["jobs"]["pr-eval"])
+    job = wf["jobs"]["pr-eval"]
+    text = _job_text(job)
     assert "--arms treatment" in text
     assert "--runs 3" in text
-    assert '--model "${HAIKU_MODEL}"' in text
+    assert '--model "${EVAL_MODEL}"' in text
+    assert '--max-turns-factor "${TURNS_FACTOR}"' in text
+    assert job["env"]["EVAL_MODEL"] == "${{ needs.preflight.outputs.model }}"
     assert wf["env"]["HAIKU_MODEL"] == "claude-haiku-5-5"
+    assert wf["env"]["OPENROUTER_MODEL"] == "deepseek/deepseek-v4.1-flash"
     assert "rf-skill-eval gate" in text
+    assert '--baseline "${BASELINES}narrow.json"' in text
     assert "--split validation" in text
+
+
+def _run_creds(tmp_path: Path, **env: str) -> dict[str, str]:
+    """Run the preflight credentials step's script with the given secrets set."""
+    import os
+    import subprocess
+
+    wf = _wf()
+    step = next(s for s in wf["jobs"]["preflight"]["steps"] if s.get("id") == "creds")
+    out = tmp_path / "out"
+    out.write_text("")
+    base = {"PATH": os.environ["PATH"], "GITHUB_OUTPUT": str(out), "FORK_PR": "false",
+            "REQUESTED": "", "CLAUDE_CODE_OAUTH_TOKEN": "", "ANTHROPIC_API_KEY": "",
+            "OPENROUTER_API_KEY": "", **{k: str(v) for k, v in wf["env"].items()}}
+    subprocess.run(["bash", "-eo", "pipefail", "-c", step["run"]], env={**base, **env}, check=True)
+    return dict(line.split("=", 1) for line in out.read_text().splitlines() if "=" in line)
+
+
+def test_preflight_prefers_openrouter_when_its_key_is_set(tmp_path: Path) -> None:
+    got = _run_creds(tmp_path, OPENROUTER_API_KEY="k", CLAUDE_CODE_OAUTH_TOKEN="t")
+    assert got == {
+        "has_credentials": "true",
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "turns_factor": "1.5",
+        "baseline_subdir": "openrouter/deepseek-v4.1-flash/",
+    }
+
+
+def test_preflight_falls_back_to_claude(tmp_path: Path) -> None:
+    got = _run_creds(tmp_path, CLAUDE_CODE_OAUTH_TOKEN="t")
+    assert (got["provider"], got["model"], got["turns_factor"], got["baseline_subdir"]) == (
+        "claude", "claude-haiku-5-5", "1.0", "")
+
+
+def test_manual_claude_run_overrides_openrouter(tmp_path: Path) -> None:
+    got = _run_creds(tmp_path, OPENROUTER_API_KEY="k", CLAUDE_CODE_OAUTH_TOKEN="t", REQUESTED="claude")
+    assert got["provider"] == "claude"
+
+
+@pytest.mark.parametrize(
+    "env",
+    [
+        {},
+        {"REQUESTED": "openrouter", "CLAUDE_CODE_OAUTH_TOKEN": "t"},
+        {"FORK_PR": "true", "OPENROUTER_API_KEY": "k"},
+    ],
+)
+def test_preflight_without_usable_credentials(tmp_path: Path, env: dict[str, str]) -> None:
+    assert _run_creds(tmp_path, **env) == {"has_credentials": "false"}
+
+
+def test_eval_jobs_get_only_the_providers_credentials() -> None:
+    wf = _wf()
+    for name in ("pr-eval", "full-eval"):
+        for step in wf["jobs"][name]["steps"]:
+            env = step.get("env") or {}
+            for var, value in env.items():
+                if "secrets.CLAUDE_CODE_OAUTH_TOKEN" in str(value):
+                    assert "provider == 'claude'" in str(value), (name, step.get("name"), var)
+                if "secrets.OPENROUTER_API_KEY" in str(value) and var != "OPENROUTER_API_KEY":
+                    raise AssertionError((name, step.get("name"), var))
+
+
+def test_openrouter_jobs_report_spend_and_smoke() -> None:
+    wf = _wf()
+    for name in ("pr-eval", "full-eval"):
+        names = [s.get("name", "") for s in wf["jobs"][name]["steps"]]
+        assert "Spend before (OpenRouter key)" in names
+        assert "Spend after (OpenRouter key)" in names
+        assert "Smoke test (one OpenRouter session)" in names
+    assert "--warn-drift 0.25" in _job_text(wf["jobs"]["full-eval"])
+
+
+def test_spend_summary(tmp_path: Path) -> None:
+    import json
+    import sqlite3
+    import subprocess
+    import sys
+
+    (tmp_path / "before.json").write_text(json.dumps({"usage": 1.0, "limit": 50, "limit_remaining": 49}))
+    (tmp_path / "after.json").write_text(json.dumps({"usage": 1.84, "limit": 50, "limit_remaining": 48.16}))
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    conn = sqlite3.connect(runs / "eval.db")
+    conn.execute("CREATE TABLE runs (total_cost_usd REAL)")
+    conn.executemany("INSERT INTO runs VALUES (?)", [(0.7,), (0.63,)])
+    conn.commit()
+    conn.close()
+    out = subprocess.run(
+        [sys.executable, "-I", str(_REPO / "scripts" / "openrouter-ci.py"), "summary",
+         str(tmp_path / "before.json"), str(tmp_path / "after.json"), str(runs),
+         "--warn-drift", "0.25", "--out", str(tmp_path / "spend.md")],
+        capture_output=True, text=True, check=True,
+    )
+    md = (tmp_path / "spend.md").read_text()
+    assert "| 0.84 |" in md and "| 1.33 |" in md
+    assert "::warning::" in out.stdout  # 1.33 vs 0.84 is 58% apart
 
 
 def test_full_job_runs_both_arms_and_uploads_candidate_baseline() -> None:
@@ -182,7 +286,11 @@ def test_deleted_or_renamed_skill_dirs_are_ignored() -> None:
 
 # --- fork PRs never run live evals (content-security-scanning, task 5.6) --------
 
-_EVAL_SECRETS = ("secrets.CLAUDE_CODE_OAUTH_TOKEN", "secrets.ANTHROPIC_API_KEY")
+_EVAL_SECRETS = (
+    "secrets.CLAUDE_CODE_OAUTH_TOKEN",
+    "secrets.ANTHROPIC_API_KEY",
+    "secrets.OPENROUTER_API_KEY",
+)
 
 
 def _triggers(wf: dict) -> set[str]:  # type: ignore[type-arg]
@@ -206,3 +314,66 @@ def test_fork_prs_have_no_credentials() -> None:
     assert creds["run"].lstrip().startswith('if [ "${FORK_PR}" = "true" ]; then\n  echo "has_credentials=false"')
     assert "github.event.pull_request.head.repo.full_name == github.repository" in wf["jobs"]["pr-eval"]["if"]
     assert _triggers(wf) == {"pull_request", "schedule", "workflow_dispatch"}
+
+
+def test_trigger_evals_never_run_after_a_failed_doctor() -> None:
+    # Run 42885585678: Doctor failed, the tiers were skipped, and the trigger
+    # step (if: always()) went on spending.
+    wf = _wf()
+    for name in ("pr-eval", "full-eval"):
+        steps = wf["jobs"][name]["steps"]
+        assert any(s.get("id") == "doctor" for s in steps)
+        triggers = next(s for s in steps if s.get("id") == "triggers")
+        assert "steps.doctor.outcome == 'success'" in triggers["if"]
+
+
+def _run_select_legs(tmp_path: Path, plugins: list[str], **env: str) -> list[dict[str, str]]:
+    """Run the preflight select step's leg builder over all-plugins legs."""
+    import json
+    import os
+    import subprocess
+
+    wf = _wf()
+    step = next(s for s in wf["jobs"]["preflight"]["steps"] if s.get("id") == "select")
+    script = step["run"].split("<<'PY'\n", 1)[1].rsplit("PY", 1)[0]
+    legs = tmp_path / "legs"
+    legs.mkdir()
+    for plugin in plugins:
+        (legs / f"{plugin}.env").write_text("run_evals=true\nfull_tier=true\nskills=\n")
+    base = {"PATH": os.environ["PATH"], **{k: str(v) for k, v in wf["env"].items()}}
+    out = subprocess.run(["python3", "-I", "-c", textwrap.dedent(script), str(legs)],
+                         env={**base, **env}, capture_output=True, text=True, check=True).stdout
+    values = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    return json.loads(values["matrix"])
+
+
+_DESKTOP_OVERRIDE = '{"rf-desktop": "2.0"}'
+
+
+def test_a_plugin_can_get_its_own_openrouter_turn_factor(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-api", "rf-desktop"], PROVIDER="openrouter", DEFAULT_FACTOR="1.5",
+                            OPENROUTER_TURNS_FACTORS=_DESKTOP_OVERRIDE)
+    assert {leg["plugin"]: leg["turns_factor"] for leg in legs} == {"rf-api": "1.5", "rf-desktop": "2.0"}
+
+
+def test_no_plugin_overrides_the_openrouter_turn_factor(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-api", "rf-desktop"], PROVIDER="openrouter", DEFAULT_FACTOR="1.5")
+    assert {leg["turns_factor"] for leg in legs} == {"1.5"}
+
+
+def test_claude_runs_ignore_the_openrouter_turn_factors(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-desktop"], PROVIDER="claude", DEFAULT_FACTOR="1.0",
+                            OPENROUTER_TURNS_FACTORS=_DESKTOP_OVERRIDE)
+    assert legs[0]["turns_factor"] == "1.0"
+
+
+def test_plugins_input_limits_the_matrix(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-api", "rf-core", "rf-desktop"], PROVIDER="openrouter",
+                            DEFAULT_FACTOR="1.5", ONLY_PLUGINS="rf-desktop, rf-api")
+    assert [leg["plugin"] for leg in legs] == ["rf-api", "rf-desktop"]
+
+
+def test_eval_jobs_take_the_turn_factor_from_the_matrix_leg() -> None:
+    wf = _wf()
+    for name in ("pr-eval", "full-eval"):
+        assert wf["jobs"][name]["env"]["TURNS_FACTOR"] == "${{ matrix.turns_factor }}"

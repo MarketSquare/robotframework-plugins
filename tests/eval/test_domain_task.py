@@ -31,9 +31,9 @@ def test_default_model_is_haiku() -> None:
     assert t.model == DEFAULT_MODEL
 
 
-def test_model_allowlist_is_the_design_d7_set() -> None:
+def test_model_allowlist_is_the_design_d7_set_plus_openrouter() -> None:
     assert frozenset(
-        {"claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"}
+        {"claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "deepseek/deepseek-v4.1-flash"}
     ) == ALLOWED_MODELS
 
 

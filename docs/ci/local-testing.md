@@ -12,6 +12,7 @@ PR. For the full user guide, see [usage.md](usage.md).
   - [OAuth token expiry](#oauth-token-expiry)
   - [Rate-limit exhaustion](#rate-limit-exhaustion)
   - [`uv sync` cache issues](#uv-sync-cache-issues)
+  - [Running on OpenRouter](#running-on-openrouter)
 - [Iterating on a failing task](#iterating-on-a-failing-task)
 - [Adding a new skill to the eval task bank](#adding-a-new-skill-to-the-eval-task-bank)
 
@@ -181,6 +182,24 @@ uv lock --check
 
 If `uv lock --check` fails on `main`, file an issue — CI enforces
 lock integrity and should have caught it.
+
+### Running on OpenRouter
+
+Without a Claude subscription, run on DeepSeek V4.1 Flash through OpenRouter.
+Set `OPENROUTER_API_KEY` (in `.env` or exported), give the key a credit limit
+at openrouter.ai, and pass the model and the turn-limit factor CI uses:
+
+```bash
+uv run rf-skill-eval doctor --provider openrouter
+uv run rf-skill-eval run-batch --tier narrow --arms treatment --runs 3 \
+  --model deepseek/deepseek-v4.1-flash --max-turns-factor 1.5 --max-cost-usd 2 \
+  --output eval/runs/or-$(date +%s)
+```
+
+Compare the results with the DeepSeek baselines (`gate` finds them from the
+runs' model), not the Haiku ones. The costs in the report are estimates at
+OpenRouter's list prices; the key's activity page on openrouter.ai shows what
+was charged. See [usage.md](usage.md#openrouter-tier).
 
 ---
 

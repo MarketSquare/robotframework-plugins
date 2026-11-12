@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .task import DEFAULT_MODEL
+from .task import DEFAULT_MODEL, Provider, provider_for
 
 
 class RunUsage(BaseModel):
@@ -23,6 +23,17 @@ class RunUsage(BaseModel):
     duration_ms: int = 0
     total_cost_usd: float = 0.0
     is_error: bool = False
+    #: The ``result`` line's ``subtype`` (``success``, ``error_max_turns``, ...).
+    subtype: str = ""
+    #: Models named in the result's ``modelUsage``.
+    models: tuple[str, ...] = ()
+    #: ``reported`` (Claude Code's ``total_cost_usd``) or ``priced`` (the
+    #: harness's estimate from provider list prices).
+    cost_source: str = "reported"
+
+    @property
+    def hit_turn_limit(self) -> bool:
+        return self.subtype == "error_max_turns"
 
     @property
     def total_input_tokens(self) -> int:
@@ -51,6 +62,10 @@ class Run(BaseModel):
     artifacts_dir: Path
     workspace_dir: Path | None = None
     model: str = DEFAULT_MODEL
+    #: Empty on older records: derived from ``model`` (``effective_provider``).
+    provider: str = ""
+    #: The run-time ``--max-turns-factor`` the session ran with.
+    turns_factor: float = 1.0
     timed_out: bool = False
     #: ``treatment`` or ``baseline`` (older records: derived from profile name).
     arm: str = ""
@@ -73,6 +88,10 @@ class Run(BaseModel):
         if self.arm:
             return self.arm
         return "baseline" if self.profile_name in ("baseline", "control") else "treatment"
+
+    @property
+    def effective_provider(self) -> Provider:
+        return "openrouter" if self.provider == "openrouter" else provider_for(self.model)
 
     @property
     def effective_workspace(self) -> Path:
