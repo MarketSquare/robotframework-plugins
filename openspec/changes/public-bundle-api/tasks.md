@@ -20,7 +20,7 @@
 
 ## 5. Wheel test (D6)
 
-- [ ] 5.1 Add a slow test that builds the wheel, installs it into a fresh `uv venv`, and runs a script there checking "Real directories of the installed package" and "Names match the catalogue", that `bundle.fetch` is importable, that `py.typed` is in the wheel, and that `catalog.json` has `format: 1`; verify it passes locally and in the CI job that runs the slow installer tests (or add it to one). Local: passes. CI: the Test job didn't have uv, so the existing wheel test skipped there; this change adds `astral-sh/setup-uv` to it.
+- [x] 5.1 Add a slow test that builds the wheel, installs it into a fresh `uv venv`, and runs a script there checking "Real directories of the installed package" and "Names match the catalogue", that `bundle.fetch` is importable, that `py.typed` is in the wheel, and that `catalog.json` has `format: 1`; verify it passes locally and in the CI job that runs the slow installer tests (or add it to one). Local: passes. CI: the Test job didn't have uv, so the existing wheel test skipped there; this change adds `astral-sh/setup-uv` to it. CI on #6: passes on Windows with Python 3.10 (with `test_wheel_contains_bundled_plugins` and the zip test, which ran in CI for the first time).
 
 ## 6. Docs and changelog
 
@@ -30,7 +30,7 @@
 ## 7. Checks and PR
 
 - [x] 7.1 Run `uv run pytest tests/installer` (with the slow tests), `ruff check installer`, `scripts/check-drift.sh` and `scripts/build-catalog.py --check`; verify all pass. Done: `tests` (819 passed), `tests/installer` with slow tests (274 passed), the new tests on Python 3.10, drift, catalogue and docs voice pass. `ruff check installer` reports 58 findings in files this change doesn't touch (CI doesn't lint the installer); the new and changed files are clean.
-- [ ] 7.2 Open a PR against `main` that closes #5 (ask before posting); verify the required checks pass.
+- [ ] 7.2 Open a PR against `main` that closes #5 (ask before posting); verify the required checks pass. Opened as #6: all checks pass except `required-reviews` (needs a review or the admin bypass).
 
 ## 8. Release (maintainer)
 
