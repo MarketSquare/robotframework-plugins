@@ -21,7 +21,7 @@ rather than written-and-broken.
 | Event | Script | Always fires? | Cost when no-op | Cost when active | Hook timeout |
 |---|---|---|---|---|---|
 | `SessionStart` | `scripts/check_rf_environment.mjs` | yes | — | ~0.5–1 s (import probes) | 15 s |
-| `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) | ~1–1.5 s on a 500-line file once robotcode's cache is warm (`robotcode analyze code`, Robocop check and format run in parallel); the first run in a project ~4 s; +0.4 s or more with the opt-in dry run | 60 s |
+| `PostToolUse` (matcher: `Write\|Edit`) | `scripts/validate_robot.mjs` | only on Write/Edit | ~30ms (file extension check) | ~1–1.5 s on a 500-line file once robotcode's cache is warm (`robotcode analyze code` and Robocop check run in parallel, plus the formatter when enabled); the first run in a project ~4 s; +0.4 s or more with the opt-in dry run | 60 s |
 | `PostToolUse` (matcher: `Bash`) | `scripts/rf_error_hints.mjs` | only on Bash | ~30 ms (text scan) | ~30 ms | 10 s |
 | `UserPromptSubmit` | `scripts/maybe_inject_rf_context.mjs` | always invoked, conditional injection | ~30ms (regex over prompt) | same (≤ 450-character text) | 15 s |
 | `Stop` | `scripts/report_pending_errors.mjs` | always invoked, reports only files whose validation found errors or unresolved names that are still there | ~30 ms (reads the session record) | one `validate_robot.mjs` run per pending file | 60 s |
@@ -106,9 +106,12 @@ Fires from `PostToolUse` after a Write/Edit of a `.robot`/`.resource` file.
     gets no `VAR` hint), and so does the project's Robocop config.
   - If Robocop is missing, times out (10 s), or prints nothing parsable while
     failing, the tier is silent — a tool failure is never a finding.
-- **Tier 2 — formatting drift:** runs `robocop format --no-cache --check --diff`.
-  Purely informational — surfaces the proposed reformat as `additionalContext`
-  (exit 0). Formatting differences **never** cause exit 2.
+- **Tier 2 — formatting drift (opt-in):** with `RF_AGENTSKILLS_FORMAT_CHECK=1`,
+  runs `robocop format --no-cache --check --diff`. Purely informational —
+  surfaces the proposed reformat as `additionalContext` (exit 0). Formatting
+  differences **never** cause exit 2. Off by default: shown a diff, the agent
+  reformats and re-checks a file that is otherwise correct, which cost one to
+  three turns per written file in the evals.
 - **Opt-in per-file dry run:** with `RF_AGENTSKILLS_FILE_DRYRUN=1`, a written
   `.robot` suite (not `.resource`, not `__init__.robot`) is also run through
   `robot --dryrun --output NONE --report NONE --log NONE` from the project
@@ -128,6 +131,7 @@ exit-2 error diagnostic is written. Robocop is always called with
 |---|---|---|
 | `RF_AGENTSKILLS_DEPRECATION_CHECK` | `warn` (default), `off` | `off` drops all deprecation output. Any other value is treated as `warn`; no value makes a deprecation block (exit 2), and the variable never affects error findings. |
 | `RF_AGENTSKILLS_FILE_DRYRUN` | unset (default), `1`/`true`/`yes`/`on` | Enables the per-file dry run above. |
+| `RF_AGENTSKILLS_FORMAT_CHECK` | unset (default), `1`/`true`/`yes`/`on` | Enables the formatting-drift tier above. |
 | `RF_AGENTSKILLS_PROJECT_VALIDATION` | unset (default), `1`/`true`/`yes`/`on` | Enables the project-wide Stop tier below. |
 
 #### Opting out per rule
@@ -335,8 +339,12 @@ event produces no output; it always exits 0.
   or `"…something.resource"` (with bounded regex — `notes.robotic.md`
   does not count). Streaming chunking keeps memory bounded on
   long sessions.
+- Also notes the last Bash `"command"` that runs Robot Framework (`robot`,
+  `python -m robot`, `robotcode … robot`, dry runs included). If that run
+  comes after the last `.robot`/`.resource` file path, the session already
+  ran its suite and the hook exits without output.
 - On hit: emits `additionalContext` reminding the user to run
-  the affected tests (`uv run robotcode robot -bl "<longname>"`), read the
+  the affected tests where they can run (`uv run robotcode robot -bl "<longname>"`), read the
   results with `uv run robotcode results summary --failed`, and open
   `results/report.html`.
 - On miss: stdout stays empty.

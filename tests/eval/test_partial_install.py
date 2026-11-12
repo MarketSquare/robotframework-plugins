@@ -66,6 +66,19 @@ def test_inner_check_takes_target_like_a_task_check(tmp_path: Path) -> None:
     assert ok["passed"] is True, ok
 
 
+def test_fallback_takes_a_list_of_checks_that_must_all_pass(tmp_path: Path) -> None:
+    run = _run(tmp_path, "Done.")
+    (run.workspace_dir / "tests").mkdir()
+    (run.workspace_dir / "tests" / "login.robot").write_text("*** Test Cases ***\nT\n    Log    x\n")
+    log = {"type": "file_contains", "name": "has_log", "target": "tests/login.robot", "regex": "Log"}
+    browser = {"type": "file_contains", "name": "has_browser", "target": "tests/login.robot", "regex": "New Browser"}
+    ok = suggests_plugin_or_passes(run, {"plugin": "rf-web", "checks": [log, dict(log, name="again")]})
+    assert ok["passed"] is True, ok
+    bad = suggests_plugin_or_passes(run, {"plugin": "rf-web", "checks": [log, browser]})
+    assert bad["passed"] is False
+    assert "has_log: passed" in bad["details"] and "has_browser: failed" in bad["details"]
+
+
 @pytest.mark.parametrize("task", sorted(_REPO.glob("plugins/*/evals/tasks/partial/*.yaml")), ids=lambda p: p.stem)
 def test_shipped_partial_tasks_grade_without_a_grader_error(task: Path, tmp_path: Path) -> None:
     """The nested check of each shipped task runs (an empty answer fails it, never errors)."""

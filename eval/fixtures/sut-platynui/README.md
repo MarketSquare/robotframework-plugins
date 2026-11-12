@@ -11,10 +11,17 @@ The standard desktop calculator (Windows Calculator / GNOME Calculator).
 
 | Element | XPath (PlatynUI desktop tree) |
 |---|---|
-| Main window | `//control:Window[@Name='Calculator']` |
-| Digit buttons | `//control:Button[@Name='One']` … `//control:Button[@Name='Nine']` |
-| Plus / Equals | `//control:Button[@Name='Plus']`, `//control:Button[@Name='Equals']` |
-| Result display | `//control:Text[@AutomationId='CalculatorResults']` |
+| Main window | `//control:Window[@Name='Calculator' or @Name='Rechner']` |
+| Digit buttons | `//control:Button[@Id='num1Button']` … `//control:Button[@Id='num9Button']` |
+| Plus / Equals | `//control:Button[@Id='plusButton']`, `//control:Button[@Id='equalButton']` |
+| Result display | `//control:Text[@Id='CalculatorResults']` |
+
+PlatynUI exposes the UIA AutomationId as `@Id`, as `rf-platynui` teaches; a
+plain `@AutomationId` matches nothing. `@Name` values follow the display
+language (a German desktop shows `Rechner`, `Eins`, `Gleich`), so the window
+locator lists both names and the controls use `@Id`. The result display's
+`Name` holds the shown value, such as "Display is 3" (localised). Verified with
+`platynui-cli query` on Windows 11 on 2026-11-12.
 
 `tests/example.robot` is a stub that resolves cleanly. Real execution stays a
 manual, local activity on a desktop machine.

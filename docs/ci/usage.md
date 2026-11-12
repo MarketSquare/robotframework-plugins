@@ -543,6 +543,8 @@ to prefer which.
 
 - [local-testing.md](local-testing.md) — pre-push checklist and
   troubleshooting.
+- [desktop-live-check.md](desktop-live-check.md) — running rf-desktop's
+  eval suites against the real Calculator on Windows.
 - [faq.md](faq.md) — common questions, rate limits, rotation.
 - [architecture/ddd-design.md](architecture/ddd-design.md) — bounded
   contexts and module layout.

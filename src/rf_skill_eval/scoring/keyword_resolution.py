@@ -13,6 +13,12 @@ device, PlatynUI without a desktop session). The suite is parsed with
 A library import that is neither a standard library nor covered by a spec is
 reported as unresolved: the check cannot vouch for its keywords, so it fails.
 
+``min_calls`` compares against the library calls the tests and suite/test
+fixtures reach: a direct library call counts once, and a user-keyword call
+counts the library calls in that keyword's body, recursively (memoised; a
+keyword already being expanded adds nothing). User keywords that nothing calls
+add nothing, and standard-library calls never count.
+
 The approach mirrors ``scripts/check-skill-keywords.py`` (repository QA for
 the skills' own examples) but is self-contained: the harness package must not
 import repository scripts.
@@ -93,9 +99,14 @@ def _libdoc(source: str) -> tuple[str, tuple[str, ...]]:
     return str(doc.name), tuple(str(kw.name) for kw in doc.keywords)
 
 
+# Owner of a call: None for a test or a suite/test fixture, else the index of
+# the user keyword (in ``_Parsed.user_keywords``) whose body holds the call.
+_Owner = int | None
+
+
 @dataclass
 class _Parsed:
-    calls: list[tuple[str, str]] = field(default_factory=list)  # (keyword, location)
+    calls: list[tuple[str, str, _Owner]] = field(default_factory=list)  # (keyword, location, owner)
     user_keywords: list[str] = field(default_factory=list)
     libraries: list[str] = field(default_factory=list)
     resource_names: list[str] = field(default_factory=list)
@@ -106,11 +117,12 @@ def _make_visitor(path: Path, parsed: _Parsed, resources: list[Path]) -> Any:
     from robot.api.parsing import ModelVisitor
 
     rel = path.name
+    owner: list[_Owner] = [None]
 
     def fixture(self: Any, node: Any) -> None:
         name = getattr(node, "name", None)
         if name and name.upper() != "NONE":
-            parsed.calls.append((str(name), f"{rel}:{node.lineno}"))
+            parsed.calls.append((str(name), f"{rel}:{node.lineno}", owner[0]))
 
     class Visitor(ModelVisitor):  # type: ignore[misc]
         visit_SuiteSetup = fixture  # noqa: N815
@@ -134,11 +146,15 @@ def _make_visitor(path: Path, parsed: _Parsed, resources: list[Path]) -> Any:
 
         def visit_Keyword(self, node: Any) -> None:  # noqa: N802
             parsed.user_keywords.append(str(node.name))
-            self.generic_visit(node)
+            owner[0] = len(parsed.user_keywords) - 1
+            try:
+                self.generic_visit(node)
+            finally:
+                owner[0] = None
 
         def visit_KeywordCall(self, node: Any) -> None:  # noqa: N802
             if node.keyword:
-                parsed.calls.append((str(node.keyword), f"{rel}:{node.lineno}"))
+                parsed.calls.append((str(node.keyword), f"{rel}:{node.lineno}", owner[0]))
 
     return Visitor()
 
@@ -167,6 +183,7 @@ def _resource_model(path: Path) -> Any:
 class ResolutionResult:
     calls: int = 0
     library_calls: int = 0
+    counted_library_calls: int = 0
     unknown: list[str] = field(default_factory=list)
     unresolved_imports: list[str] = field(default_factory=list)
     missing_required: list[str] = field(default_factory=list)
@@ -180,11 +197,14 @@ class ResolutionResult:
             and not self.unknown
             and not self.unresolved_imports
             and not self.missing_required
-            and self.library_calls >= self.min_calls
+            and self.counted_library_calls >= self.min_calls
         )
 
     def summary(self) -> str:
-        parts = [f"calls={self.calls} library_calls={self.library_calls}"]
+        parts = [
+            f"calls={self.calls} library_calls={self.library_calls}"
+            f" counted_library_calls={self.counted_library_calls}"
+        ]
         if self.parse_error:
             parts.append(f"parse error: {self.parse_error}")
         if self.missing_required:
@@ -193,8 +213,11 @@ class ResolutionResult:
             parts.append(f"unresolved imports: {self.unresolved_imports}")
         if self.unknown:
             parts.append(f"unknown keywords: {self.unknown[:10]}")
-        if self.library_calls < self.min_calls:
-            parts.append(f"expected >= {self.min_calls} library keyword calls")
+        if self.counted_library_calls < self.min_calls:
+            parts.append(
+                f"expected >= {self.min_calls} library keyword calls"
+                " (counted through user keywords)"
+            )
         return "; ".join(parts)
 
 
@@ -224,26 +247,71 @@ def _candidates(raw: str, owners: set[str]) -> list[str]:
     return out
 
 
+# What a call resolves to: ("user", keyword index), ("library", 1),
+# ("standard", 0) or ("unknown", 0).
+_Target = tuple[str, int]
+
+
 def _resolve_calls(
     parsed: _Parsed, library_sets: dict[str, _KeywordSet], result: ResolutionResult
 ) -> None:
-    user = _keyword_set(parsed.user_keywords)
+    user = [_keyword_set([n]) for n in parsed.user_keywords]
     owners = {normalize(n) for n in [*library_sets, *parsed.resource_names]}
-    for raw, where in parsed.calls:
+    by_owner: dict[_Owner, list[_Target]] = {}
+    for raw, where, owner in parsed.calls:
         if raw.startswith(("${", "@{", "&{")):
             continue  # keyword name held in a variable: not statically resolvable
         result.calls += 1
         candidates = _candidates(raw, owners)
-        if any(user.matches(c) for c in candidates):
-            continue
-        hit = next(
-            (lib for lib, ks in library_sets.items() if any(ks.matches(c) for c in candidates)),
-            None,
-        )
-        if hit is None:
+        target = _resolve_one(candidates, user, library_sets)
+        if target[0] == "unknown":
             result.unknown.append(f"{raw} ({where})")
-        elif hit not in _STANDARD_LIBRARIES:
+        elif target[0] == "library":
             result.library_calls += 1
+        by_owner.setdefault(owner, []).append(target)
+    result.counted_library_calls = _count_from_roots(by_owner)
+
+
+def _resolve_one(
+    candidates: list[str], user: list[_KeywordSet], library_sets: dict[str, _KeywordSet]
+) -> _Target:
+    for idx, ks in enumerate(user):
+        if any(ks.matches(c) for c in candidates):
+            return ("user", idx)
+    hit = next(
+        (lib for lib, ks in library_sets.items() if any(ks.matches(c) for c in candidates)),
+        None,
+    )
+    if hit is None:
+        return ("unknown", 0)
+    return ("standard", 0) if hit in _STANDARD_LIBRARIES else ("library", 1)
+
+
+def _count_from_roots(by_owner: dict[_Owner, list[_Target]]) -> int:
+    """Library calls reached from tests and fixtures, expanding user keywords."""
+    memo: dict[int, int] = {}
+    stack: set[int] = set()
+
+    def weight(target: _Target) -> int:
+        kind, value = target
+        if kind == "library":
+            return 1
+        if kind == "user":
+            return expand(value)
+        return 0
+
+    def expand(idx: int) -> int:
+        if idx in memo:
+            return memo[idx]
+        if idx in stack:
+            return 0  # recursion: the outer expansion already counts this body
+        stack.add(idx)
+        total = sum(weight(t) for t in by_owner.get(idx, []))
+        stack.discard(idx)
+        memo[idx] = total
+        return total
+
+    return sum(weight(t) for t in by_owner.get(None, []))
 
 
 def resolve_suite_keywords(

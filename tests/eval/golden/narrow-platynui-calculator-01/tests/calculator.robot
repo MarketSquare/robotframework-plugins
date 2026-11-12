@@ -3,16 +3,16 @@ Library    PlatynUI.BareMetal
 
 
 *** Variables ***
-${CALCULATOR}    //control:Window[@Name='Calculator']
-${RESULT}        //control:Text[@AutomationId='CalculatorResults']
+${CALCULATOR}    //control:Window[@Name='Calculator' or @Name='Rechner']
+${RESULT}        //control:Text[@Id='CalculatorResults']
 
 
 *** Test Cases ***
 One Plus Two Is Three
     Activate Window    ${CALCULATOR}
-    Pointer Click    ${CALCULATOR}//control:Button[@Name='One']
-    Pointer Click    ${CALCULATOR}//control:Button[@Name='Plus']
-    Pointer Click    ${CALCULATOR}//control:Button[@Name='Two']
-    Pointer Click    ${CALCULATOR}//control:Button[@Name='Equals']
+    Pointer Click    ${CALCULATOR}//control:Button[@Id='num1Button']
+    Pointer Click    ${CALCULATOR}//control:Button[@Id='plusButton']
+    Pointer Click    ${CALCULATOR}//control:Button[@Id='num2Button']
+    Pointer Click    ${CALCULATOR}//control:Button[@Id='equalButton']
     ${shown}=    Get Attribute    ${RESULT}    Name
     Should Contain    ${shown}    3

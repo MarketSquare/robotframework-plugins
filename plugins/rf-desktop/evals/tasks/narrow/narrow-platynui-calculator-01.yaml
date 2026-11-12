@@ -3,8 +3,9 @@ skill: rf-platynui
 tier: narrow
 description: |
   Write a PlatynUI desktop test for a calculator flow (1 + 2 = 3). No desktop
-  session exists on the runner, so the gating check is static:
-  keywords_resolve against the committed PlatynUI.BareMetal libdoc spec.
+  session exists on the runner, so the gating checks are static:
+  keywords_resolve against the committed PlatynUI.BareMetal libdoc spec, and
+  platynui_locators for the @Id locators that work on a real desktop.
 prompt: |
   We automate desktop apps with Robot Framework and PlatynUI. README.md lists
   the Calculator element XPaths.
@@ -36,6 +37,12 @@ grader_checks:
     specs: [specs/PlatynUI.BareMetal.json]
     required_libraries: [PlatynUI.BareMetal]
     min_calls: 4
+  - type: custom_python
+    name: platynui_locators
+    func_ref: rf_skill_eval.scoring.custom.platynui:locators_ok
+    target: tests/calculator.robot
+    name_to_id: {One: num1Button, Two: num2Button, Plus: plusButton, Equals: equalButton}
+    gating: true
   - type: file_contains
     name: targets_calculator
     path: tests/calculator.robot

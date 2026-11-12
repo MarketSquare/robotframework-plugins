@@ -486,6 +486,57 @@ def test_remind_does_not_match_substring_in_unrelated_path(tmp_path: Path) -> No
     _expect_no_injection(out)
 
 
+def _tool_use(name: str, **inp: str) -> str:
+    return json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [
+        {"type": "tool_use", "name": name, "input": inp}]}})
+
+
+def test_remind_skips_after_a_dry_run_of_the_last_write(tmp_path: Path) -> None:
+    transcript = _write_transcript(tmp_path, [
+        _tool_use("Write", file_path="/w/tests/calculator.robot", content="*** Test Cases ***"),
+        _tool_use("Bash", command="robot --dryrun tests/calculator.robot"),
+    ])
+    out, _err, rc = _run(REMIND_SCRIPT, {"transcript_path": str(transcript)})
+    assert rc == 0
+    _expect_no_injection(out)
+
+
+@pytest.mark.parametrize("command", [
+    "uv run robotcode robot -bl Calculator",
+    "cd /w && python -m robot --outputdir results tests",
+    ".venv/bin/robot tests",
+])
+def test_remind_skips_after_any_robot_run(tmp_path: Path, command: str) -> None:
+    transcript = _write_transcript(tmp_path, [
+        _tool_use("Edit", file_path="/w/tests/login.robot", old_string="a", new_string="b"),
+        _tool_use("Bash", command=command),
+    ])
+    out, _err, rc = _run(REMIND_SCRIPT, {"transcript_path": str(transcript)})
+    _expect_no_injection(out)
+
+
+@pytest.mark.parametrize("command", ["grep -rn robot tests", "python -m robot.libdoc PlatynUI.BareMetal x.json",
+                                     "cat tests/login.robot"])
+def test_remind_not_fooled_by_commands_that_only_mention_robot(tmp_path: Path, command: str) -> None:
+    transcript = _write_transcript(tmp_path, [
+        _tool_use("Write", file_path="/w/tests/login.robot", content="x"),
+        _tool_use("Bash", command=command),
+    ])
+    out, _err, rc = _run(REMIND_SCRIPT, {"transcript_path": str(transcript)})
+    _expect_injection(out)
+
+
+def test_remind_fires_for_a_write_after_the_last_run(tmp_path: Path) -> None:
+    transcript = _write_transcript(tmp_path, [
+        _tool_use("Bash", command="robot tests/"),
+        _tool_use("Edit", file_path="/w/tests/login.robot", old_string="a", new_string="b"),
+    ])
+    out, _err, rc = _run(REMIND_SCRIPT, {"transcript_path": str(transcript)})
+    assert rc == 0
+    ctx = _expect_injection(out)["additionalContext"]
+    assert "1. Run the affected tests where they can run:" in ctx
+
+
 # --- Stop-hook loop safety (stop_hook_active) -----------------------------
 
 
@@ -688,6 +739,7 @@ def _hook_env(**extra: str) -> dict:
     env = {
         k: v for k, v in os.environ.items()
         if k not in ("TOOL_INPUT", "RF_AGENTSKILLS_DEPRECATION_CHECK", "RF_AGENTSKILLS_FILE_DRYRUN",
+                     "RF_AGENTSKILLS_FORMAT_CHECK",
                      "RF_AGENTSKILLS_HOOK_TIMEOUT_MS")
     }
     if sys.prefix != sys.base_prefix:
@@ -1795,3 +1847,45 @@ def test_keyword_written_later_is_not_reported(tmp_path: Path, pending_session: 
     resource.write_text("*** Keywords ***\nOpen Order Page\n    No Operation\n", encoding="utf-8")
     assert _edit(resource, tmp_path, pending_session)[2] == 0
     assert _stop(tmp_path, pending_session) == ("", "", 0)
+
+
+# --- formatting drift is opt-in (fix-desktop-eval-turn-overhead 5.1) -------------
+
+_BADLY_FORMATTED = "*** Test Cases ***\nT\n  Log  x   \n"
+
+
+def _logging_venv(tmp_path: Path) -> tuple[Path, Path]:
+    """A VIRTUAL_ENV whose python logs its arguments, then runs the test interpreter."""
+    venv, log = tmp_path / "logvenv", tmp_path / "python-calls.log"
+    (venv / "bin").mkdir(parents=True)
+    py = venv / "bin" / "python"
+    py.write_text(f'#!/bin/sh\necho "$*" >> "{log}"\nexec "{sys.executable}" "$@"\n', encoding="utf-8")
+    py.chmod(0o755)
+    return venv, log
+
+
+@_needs_robocop
+@pytest.mark.skipif(sys.platform == "win32", reason="shell wrapper interpreter")
+def test_format_check_enabled_shows_the_diff(tmp_path: Path, session_id: str) -> None:
+    suite = tmp_path / "fmt.robot"
+    suite.write_text(_BADLY_FORMATTED, encoding="utf-8")
+    env = _hook_env(RF_AGENTSKILLS_FORMAT_CHECK="1", RF_AGENTSKILLS_DEPRECATION_CHECK="off")
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path, session_id), env=env)
+    assert rc == 0, err
+    assert "Robocop suggests formatting changes" in _context(out)
+
+
+@_needs_robocop
+@pytest.mark.skipif(sys.platform == "win32", reason="shell wrapper interpreter")
+def test_format_check_unset_starts_no_formatter(tmp_path: Path, session_id: str) -> None:
+    suite = tmp_path / "fmt.robot"
+    suite.write_text(_BADLY_FORMATTED, encoding="utf-8")
+    venv, log = _logging_venv(tmp_path)
+    env = _hook_env(VIRTUAL_ENV=str(venv), RF_AGENTSKILLS_DEPRECATION_CHECK="off")
+    env.pop("RF_AGENTSKILLS_FORMAT_CHECK", None)
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path, session_id), env=env)
+    assert rc == 0, err
+    assert "formatting" not in _context(out)
+    calls = log.read_text(encoding="utf-8")
+    assert "robocop check" in calls  # the wrapper was used for tier 1
+    assert "robocop format" not in calls
