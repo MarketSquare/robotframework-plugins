@@ -259,6 +259,7 @@ markers = [
     "requires_claude: marks tests that require the `claude` CLI on PATH",
     "slow: marks slow benchmark tests (hook latency budget)",
     "rf61: marks tests that build a Robot Framework 6.1 venv with uv (skipped offline)",
+    "network: reaches the real network (GitHub); skipped unless selected with -m network",
 ]
 
 # --- Coverage ----------------------------------------------------------------
