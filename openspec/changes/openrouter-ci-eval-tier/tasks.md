@@ -32,7 +32,7 @@
 ## 5. CI workflow
 
 - [x] 5.1 Make preflight in `skill-evaluation.yml` output `provider`, `model`, `turns_factor` and the baseline subdirectory: OpenRouter when `OPENROUTER_API_KEY` is set, otherwise Claude, with a `provider` dispatch input overriding both. Keep the fork-PR rule. Verify with `tests/eval/test_ci_preflight.py` cases and by checking that the workflow still parses (`uv run python -c "import yaml; yaml.safe_load(open('.github/workflows/skill-evaluation.yml'))"`).
-- [ ] 5.2 Wire `pr-eval` and `full-eval` to the preflight outputs:
+- [x] 5.2 Wire `pr-eval` and `full-eval` to the preflight outputs:
   - the model and the turn-limit factor;
   - the credentials for the provider only;
   - separate OpenRouter caps (`*_CAP_USD_OPENROUTER`);
@@ -40,19 +40,27 @@
   - the candidate-baseline artifact names, which include the model.
 
   Verify on a PR from a branch in this repository: the eval job runs on DeepSeek and gates against the OpenRouter baselines.
-- [ ] 5.3 Add the steps for OpenRouter jobs:
+
+  Done: PR #2's eval run 43203324158 (head 73d1a74) ran every plugin's narrow tier on `deepseek/deepseek-v4.1-flash` with the OpenRouter caps and gated against `evals/baselines/openrouter/deepseek-v4.1-flash/`; all five gates passed.
+- [x] 5.3 Add the steps for OpenRouter jobs:
   - a one-session smoke step that fails fast;
   - "Spend before" and "Spend after" steps that read `/api/v1/key`;
   - a summary line with the key's spend during the job next to the priced total;
   - on the weekly job, a warning when they differ by more than 25%.
 
   Verify in the job summary of the PR run from 5.2.
+
+  Done: in run 43203324158 every PR eval job ran the smoke step, "Spend before" and "Spend after" successfully. The weekly warning is unit-tested; its first live check is the next weekly run.
 - [ ] 5.4 Check the no-credentials path: dispatch with provider `openrouter` from a fork, or with the secret temporarily unavailable through an environment that lacks it, and see "not run: no credentials". Verify from the run summary. If testing this needs a secret removed, ask the maintainer first.
 
 ## 6. Baselines
 
-- [ ] 6.1 Dispatch the evaluation with provider `openrouter`, all tiers, both arms, N=6 and factor 1.5, for every plugin with evals. Verify that the run completes within the OpenRouter caps and produces one candidate baseline per plugin.
-- [ ] 6.2 Review the candidate baselines (flaky tasks, turn-limit stops, and whether 1.5 is enough), commit them under `plugins/<plugin>/evals/baselines/openrouter/deepseek-v4.1-flash/` in a reviewed PR, and record the reviewed spend. Verify that the next PR eval run reports the gate as `pass`, not `rebaseline-needed`.
+- [x] 6.1 Dispatch the evaluation with provider `openrouter`, all tiers, both arms, N=6 and factor 1.5, for every plugin with evals. Verify that the run completes within the OpenRouter caps and produces one candidate baseline per plugin.
+
+  Done: run 42993062842 (all plugins, N=6, factor 1.5) produced one candidate baseline per plugin. OpenRouter charged $8.34 against a priced $12.58. An rf-desktop retry at factor 2.0 (run 43167186288, $1.51 charged, $1.70 priced) took more turns without improving the pass rate, so rf-desktop stays at 1.5.
+- [x] 6.2 Review the candidate baselines (flaky tasks, turn-limit stops, and whether 1.5 is enough), commit them under `plugins/<plugin>/evals/baselines/openrouter/deepseek-v4.1-flash/` in a reviewed PR, and record the reviewed spend. Verify that the next PR eval run reports the gate as `pass`, not `rebaseline-needed`.
+
+  Done: reviewed and committed in PR #3 (rf-api, rf-core, rf-mobile, rf-web, then rf-desktop at 1.5), merged into PR #2; run 43203324158 reported every gate as `pass`. Reviewed spend: $8.34 + $1.51. rf-desktop's skill arm scores below its baseline arm; the causes are tracked in `fix-desktop-eval-turn-overhead`.
 
 ## 7. Docs and clean-up
 
