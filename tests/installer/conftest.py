@@ -74,3 +74,13 @@ def two_plugin_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     ]}))
     monkeypatch.setattr(_assets, "bundle_root_traversable", lambda: bundle)
     return bundle
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Tests marked ``network`` reach GitHub: run them only with ``-m network``."""
+    if "network" in (config.getoption("-m") or ""):
+        return
+    skip = pytest.mark.skip(reason="reaches the real network; run with -m network")
+    for item in items:
+        if "network" in item.keywords:
+            item.add_marker(skip)

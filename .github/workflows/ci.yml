@@ -47,6 +47,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      # uv builds the installer wheel for the slow wheel tests in
+      # tests/installer/ (they skip without it).
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
       - name: Install dependencies
         # tests/installer/ imports robotframework_plugins; install it from the
         # in-repo package so the test collector can resolve it. The

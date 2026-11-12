@@ -90,9 +90,52 @@ robotframework-plugins doctor               # what works and what needs your att
 robotframework-plugins version              # this version and the bundled plugin versions
 ```
 
+## Python API
+
+Other tools can depend on `robotframework-plugins` and read the plugins it bundles, for example to serve the official skills from an MCP server. The public module is `robotframework_plugins.bundle`:
+
+| Name | What it gives you |
+|---|---|
+| `CATALOG_FORMAT` | The catalogue format, `1`. Check it at runtime. |
+| `catalog()` | The bundled plugins (active and deprecated): `name`, `version`, `status`, `tier`, `summary`, `libraries` (`name`, `package`, `versions`), `robotframework`, `dependencies`, `bundle`, `bundled`. A new list on each call. |
+| `skills_dirs()` | `{plugin: Path}` of each active plugin's `skills/` folder, `rf-core` first; bundles such as `rf-agentskills` are left out. The folders exist for the life of the process. |
+| `fetch(ref="stable")` | The same for a branch, tag or commit of this repository: a `Snapshot` with `ref`, `commit`, `catalog()` and `skills_dirs()`. Raises `FetchError` on any failure. |
+
+```python
+from packaging.specifiers import SpecifierSet
+from robotframework_plugins import bundle
+
+assert bundle.CATALOG_FORMAT == 1
+
+# Which plugins match the libraries a project has installed?
+installed = {"robotframework-browser": "20.1.0"}
+for plugin in bundle.catalog():
+    for lib in plugin["libraries"]:
+        if lib["package"] in installed:
+            print(plugin["name"], lib["name"], installed[lib["package"]] in SpecifierSet(lib["versions"]))
+
+# Skill folders, each holding <skill>/SKILL.md and references/
+skills = bundle.skills_dirs()
+
+# Optional: newer content from GitHub, with the bundled copy as the fallback
+try:
+    skills = bundle.fetch("main").skills_dirs()
+except bundle.FetchError:
+    pass
+```
+
+**Compatibility.** The names above are public. Removing or renaming one, or removing or changing the meaning of a listed catalogue field, bumps `CATALOG_FORMAT` and is named in the [changelog](CHANGELOG.md). New fields and new plugins don't. The skill folder layout (`<skills dir>/<skill>/SKILL.md`, with `references/` and other files next to it) follows the [Agent Skills format](https://agentskills.io) and is part of the contract. The calendar version moves every month, so pin a range such as `robotframework-plugins>=2026.11,<2027` and rely on `CATALOG_FORMAT`. Everything else in the package, including `robotframework_plugins._assets`, is private and can change in any release.
+
+**`fetch()` and the network.** `fetch()` is the only part of the API that uses the network, and only when you call it: importing the module, `catalog()` and `skills_dirs()` read the installed package. It resolves the ref to a commit on GitHub, downloads that commit's archive once, checks it (only plain files and folders, no paths outside the snapshot, a valid `catalog.yaml` and `plugin.json` for every plugin), and keeps it in `~/.cache/robotframework-plugins/snapshots/<commit>/` (`%LOCALAPPDATA%` on Windows; `cache_dir=` changes it). A commit SHA that is already cached needs no network. Nothing in a snapshot is run.
+
+Choose the ref deliberately:
+
+- `stable` holds released plugins. It only exists after the first plugin release; until then, `fetch()` raises `FetchError: ref 'stable' not found`.
+- `main` holds everything merged: reviewed and checked by CI, but not released. Plugin versions there can be ahead of any release, the full evaluations run later, and a change can still be reverted. Skills ship scripts that agents run, so serve `main` only where that is acceptable, and report `Snapshot.commit` so you know what you served.
+
 ## No telemetry
 
-The installer sends nothing anywhere. It only touches the network for the marketplace and package operations you ask for.
+The installer sends nothing anywhere. It only touches the network for the marketplace and package operations you ask for. The `bundle.fetch()` function of the Python API downloads from GitHub only when a program calls it; the installer's commands never do.
 
 ## More
 

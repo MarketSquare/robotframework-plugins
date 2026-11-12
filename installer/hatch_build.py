@@ -20,14 +20,13 @@ Reference: https://hatch.pypa.io/latest/plugins/build-hook/custom/
 
 from __future__ import annotations
 
-import json
+import importlib.util
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
-import yaml
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
-
 
 # The path layout assumed:
 #   <repo-root>/plugins/<name>/                ← canonical sources
@@ -39,14 +38,28 @@ from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 # level up.
 PLUGINS_REL = Path("..") / "plugins"
 ASSETS_REL = Path("src") / "robotframework_plugins" / "_assets"
-#: Statuses the installer bundles; ``removed`` plugins stay out.
-BUNDLED_STATUSES = ("active", "deprecated")
 _IGNORE_ANYWHERE = shutil.ignore_patterns(
     "__pycache__", "*.pyc", ".pytest_cache", ".mypy_cache", ".ruff_cache", "*.egg-info",
 )
-#: Plugin tests and evals are for this repository's CI, not for users. Only a
-#: plugin's own top-level folders: skills ship example ``tests/`` folders too.
-_PLUGIN_ONLY = {"tests", "evals"}
+CATALOG_SRC_REL = Path("src") / "robotframework_plugins" / "_catalog.py"
+
+
+def _load_catalog_module():
+    """The package's ``_catalog`` module, loaded by path: the package isn't
+    importable while its own wheel is being built. ``bundle.fetch()`` builds
+    snapshot catalogues with the same code."""
+    path = Path(__file__).resolve().parent / CATALOG_SRC_REL
+    spec = importlib.util.spec_from_file_location("_robotframework_plugins_catalog", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_catalog = _load_catalog_module()
+#: Re-exported for scripts and tests that read them from the hook.
+BUNDLED_STATUSES = _catalog.BUNDLED_STATUSES
+catalog_entries = _catalog.catalog_entries
 
 
 def plugin_ignore(plugin_root: Path):
@@ -56,42 +69,10 @@ def plugin_ignore(plugin_root: Path):
     def ignore(directory: str, names: list[str]) -> set[str]:
         ignored = set(_IGNORE_ANYWHERE(directory, names))
         if Path(directory).resolve() == root:
-            ignored |= _PLUGIN_ONLY & set(names)
+            ignored |= _catalog.PLUGIN_ONLY_DIRS & set(names)
         return ignored
 
     return ignore
-
-
-def catalog_entries(plugins_dir: Path) -> list[dict[str, Any]]:
-    """One entry per bundled plugin, from its catalog.yaml and plugin.json."""
-    entries = []
-    for d in sorted(p for p in plugins_dir.iterdir() if p.is_dir()):
-        manifest_path = d / "catalog.yaml"
-        if not manifest_path.is_file():
-            raise FileNotFoundError(f"{manifest_path} missing; run scripts/build-catalog.py --check")
-        m = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-        if m.get("status") not in BUNDLED_STATUSES:
-            continue
-        pj = json.loads((d / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        deps = [x if isinstance(x, str) else x["name"] for x in pj.get("dependencies", [])]
-        entry = {
-            "name": d.name,
-            "version": pj.get("version"),
-            "tier": m["tier"],
-            "status": m["status"],
-            "summary": m["summary"],
-            "libraries": m.get("libraries", []),
-            "dependencies": deps,
-            # A bundle ships a copy of other plugins (catalog.yaml ``bundle``) and
-            # no content of its own; file mode installs those plugins instead.
-            "bundle": bool(m.get("bundle")) and not _has_content(d),
-            "bundled": list(m.get("bundle", [])),
-        }
-        for key in ("replacement", "deprecated_since"):
-            if key in m:
-                entry[key] = str(m[key])
-        entries.append(entry)
-    return entries
 
 
 class CustomBuildHook(BuildHookInterface):  # type: ignore[misc]
@@ -136,20 +117,11 @@ class CustomBuildHook(BuildHookInterface):  # type: ignore[misc]
         for entry in entries:
             src = plugins_src / entry["name"]
             shutil.copytree(src, assets_dst / "plugins" / entry["name"], ignore=plugin_ignore(src))
-        (assets_dst / "catalog.json").write_text(
-            json.dumps({"plugins": entries}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        (assets_dst / "catalog.json").write_text(_catalog.catalog_document(entries), encoding="utf-8")
         self.app.display_info(
             f"robotframework-plugins: bundled {', '.join(e['name'] for e in entries)} → {assets_dst} "
             f"({_count_files(assets_dst)} files)"
         )
-
-
-def _has_content(plugin_dir: Path) -> bool:
-    """Ships a skill, a subagent or a hook."""
-    return (any((s / "SKILL.md").is_file() for s in (plugin_dir / "skills").glob("*"))
-            or any((plugin_dir / "agents").glob("*.md"))
-            or (plugin_dir / "hooks" / "hooks.json").is_file())
 
 
 def _count_files(root: Path) -> int:
