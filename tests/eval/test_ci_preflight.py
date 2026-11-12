@@ -347,13 +347,23 @@ def _run_select_legs(tmp_path: Path, plugins: list[str], **env: str) -> list[dic
     return json.loads(values["matrix"])
 
 
-def test_rf_desktop_gets_its_own_openrouter_turn_factor(tmp_path: Path) -> None:
-    legs = _run_select_legs(tmp_path, ["rf-api", "rf-desktop"], PROVIDER="openrouter", DEFAULT_FACTOR="1.5")
+_DESKTOP_OVERRIDE = '{"rf-desktop": "2.0"}'
+
+
+def test_a_plugin_can_get_its_own_openrouter_turn_factor(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-api", "rf-desktop"], PROVIDER="openrouter", DEFAULT_FACTOR="1.5",
+                            OPENROUTER_TURNS_FACTORS=_DESKTOP_OVERRIDE)
     assert {leg["plugin"]: leg["turns_factor"] for leg in legs} == {"rf-api": "1.5", "rf-desktop": "2.0"}
 
 
+def test_no_plugin_overrides_the_openrouter_turn_factor(tmp_path: Path) -> None:
+    legs = _run_select_legs(tmp_path, ["rf-api", "rf-desktop"], PROVIDER="openrouter", DEFAULT_FACTOR="1.5")
+    assert {leg["turns_factor"] for leg in legs} == {"1.5"}
+
+
 def test_claude_runs_ignore_the_openrouter_turn_factors(tmp_path: Path) -> None:
-    legs = _run_select_legs(tmp_path, ["rf-desktop"], PROVIDER="claude", DEFAULT_FACTOR="1.0")
+    legs = _run_select_legs(tmp_path, ["rf-desktop"], PROVIDER="claude", DEFAULT_FACTOR="1.0",
+                            OPENROUTER_TURNS_FACTORS=_DESKTOP_OVERRIDE)
     assert legs[0]["turns_factor"] == "1.0"
 
 

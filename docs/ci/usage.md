@@ -510,8 +510,8 @@ uv run rf-skill-eval gate --runs-dir eval/runs/or   # uses baselines/openrouter/
   `max_turns` (rounded up); the factor is stored with the runs and the
   baselines, and a different factor means `rebaseline-needed`. Reports show
   turn-limit stops per task and arm. `OPENROUTER_TURNS_FACTORS` in the
-  workflow overrides the factor per plugin: rf-desktop uses 2.0, because its
-  PlatynUI tasks stopped at the 1.5 limit in most sessions.
+  workflow can override the factor per plugin. None does now: rf-desktop at
+  2.0 used the extra turns and passed no more often.
 - **What it tells you.** Results say how the skills work with DeepSeek, not
   with Claude. Run a Claude check before a release (see RELEASING.md).
   Anthropic doesn't support non-Claude models in Claude Code, which prints

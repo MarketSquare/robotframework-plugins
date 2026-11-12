@@ -110,10 +110,10 @@ env:
   HAIKU_MODEL: claude-haiku-5-5
   OPENROUTER_MODEL: deepseek/deepseek-v4.1-flash
   OPENROUTER_TURNS_FACTOR: "1.5"
-  # Per-plugin overrides of the factor (JSON). rf-desktop's PlatynUI tasks
-  # stopped at the 1.5 limit in 3-5 of 6 sessions and swung between 0.33 and
-  # 0.83 across runs, so they get 2.0. The factor is stored in the baselines.
-  OPENROUTER_TURNS_FACTORS: '{"rf-desktop": "2.0"}'
+  # Per-plugin overrides of the factor (JSON), e.g. '{"rf-desktop": "2.0"}'.
+  # The factor is stored in the baselines. rf-desktop at 2.0 (run 43167186288)
+  # took more turns but passed no more often, so no plugin overrides it.
+  OPENROUTER_TURNS_FACTORS: '{}'
   # OpenRouter caps (priced at list prices, an upper bound); the key's credit
   # limit on OpenRouter is the hard cap. Tune after the first weekly run.
   PR_NARROW_CAP_USD_OPENROUTER: "2"
