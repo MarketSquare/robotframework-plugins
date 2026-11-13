@@ -10,5 +10,5 @@ design and compatibility matrix.
 
 from __future__ import annotations
 
-__version__ = "2026.11.0"
+__version__ = "2026.11.0.dev1"
 __all__ = ("__version__",)

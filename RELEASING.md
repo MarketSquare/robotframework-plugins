@@ -54,6 +54,8 @@ The installer version is the year and month of the release, then a patch number:
 
 A release candidate (`2026.11.0rc1`) goes through the same steps; it publishes to TestPyPI first, to check the flow.
 
+A dev release (`2026.11.0.dev1`) also goes through the same steps, but publishes to PyPI, marked as a pre-release on GitHub. pip and uv install it only with `--pre` (`uv tool install --prerelease allow`) or an exact pin, so users of the latest release don't get it, while a tool that depends on unreleased API changes can pin it. The first one also reserves the `robotframework-plugins` name on PyPI.
+
 ## What the version table says
 
 Each installer release bundles the active and deprecated plugins at their current versions. `build-catalog.py` writes that table into the README and `docs/catalog.md`, and `robotframework-plugins catalog --json` and `robotframework-plugins version` print it:

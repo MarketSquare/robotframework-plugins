@@ -13,7 +13,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "robotframework-plugins"
-version = "2026.11.0"
+version = "2026.11.0.dev1"
 description = "Cross-agent installer for Robot Framework agent plugins (Claude Code, Copilot, Codex, Cursor, Goose, OpenCode, Claude Desktop)"
 readme = "README.md"
 license = { text = "Apache-2.0" }
