@@ -137,6 +137,7 @@ def test_api_from_an_installed_wheel(tmp_path: Path) -> None:
     (wheel,) = dist.glob("robotframework_plugins-*.whl")
     names = zipfile.ZipFile(wheel).namelist()
     assert "robotframework_plugins/py.typed" in names
+    assert any(n.endswith(".dist-info/licenses/LICENSE") for n in names)
     assert "robotframework_plugins/bundle.py" in names
     assert json.loads(zipfile.ZipFile(wheel).read("robotframework_plugins/_assets/catalog.json"))["format"] == 1
     subprocess.run(["uv", "venv", "-q", "--python", sys.executable, str(venv)], check=True)
