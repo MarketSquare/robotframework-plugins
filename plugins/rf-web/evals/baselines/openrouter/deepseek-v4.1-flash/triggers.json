@@ -7,26 +7,26 @@
   "skills": {
     "rf-browser": {
       "train": {
-        "accuracy": 0.6087,
+        "accuracy": 0.8696,
         "fn": 0,
-        "fp": 9,
-        "negative_loads": 24,
+        "fp": 3,
+        "negative_loads": 12,
         "negative_runs": 33,
         "positive_loads": 36,
         "positive_runs": 36,
-        "precision": 0.5714,
+        "precision": 0.8,
         "queries": 23,
         "recall": 1.0,
-        "tn": 2,
+        "tn": 8,
         "tp": 12
       },
       "validation": {
         "accuracy": 0.875,
         "fn": 0,
         "fp": 1,
-        "negative_loads": 3,
+        "negative_loads": 2,
         "negative_runs": 12,
-        "positive_loads": 11,
+        "positive_loads": 12,
         "positive_runs": 12,
         "precision": 0.8,
         "queries": 8,
@@ -37,32 +37,32 @@
     },
     "rf-selenium": {
       "train": {
-        "accuracy": 0.6957,
-        "fn": 0,
-        "fp": 7,
-        "negative_loads": 20,
+        "accuracy": 0.7826,
+        "fn": 5,
+        "fp": 0,
+        "negative_loads": 0,
         "negative_runs": 33,
-        "positive_loads": 36,
+        "positive_loads": 21,
         "positive_runs": 36,
-        "precision": 0.6316,
+        "precision": 1.0,
         "queries": 23,
-        "recall": 1.0,
-        "tn": 4,
-        "tp": 12
+        "recall": 0.5833,
+        "tn": 11,
+        "tp": 7
       },
       "validation": {
-        "accuracy": 0.75,
-        "fn": 0,
-        "fp": 2,
-        "negative_loads": 6,
+        "accuracy": 0.625,
+        "fn": 3,
+        "fp": 0,
+        "negative_loads": 0,
         "negative_runs": 12,
-        "positive_loads": 12,
+        "positive_loads": 4,
         "positive_runs": 12,
-        "precision": 0.6667,
+        "precision": 1.0,
         "queries": 8,
-        "recall": 1.0,
-        "tn": 2,
-        "tp": 4
+        "recall": 0.25,
+        "tn": 4,
+        "tp": 1
       }
     }
   }
