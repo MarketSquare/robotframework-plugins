@@ -18,4 +18,4 @@
 
 - [x] 4.1 Explain the field in CONTRIBUTING.md's `catalog.yaml` step, including that it must change when a skill is added or renamed; verify `scripts/check-docs-voice.py` passes.
 - [x] 4.2 Run `pytest tests --ignore=tests/eval`, `scripts/build-catalog.py --check` and `scripts/check-drift.sh`; verify all pass. Done: `tests` 832 passed; `build-catalog.py --check`, `check-drift.sh` and `check-template.sh` pass, except `test_check_rf_environment_uses_project_venv`, which fails locally on a clean `main` too and passes in CI.
-- [ ] 4.3 Open a PR against `main` that closes #7 (ask before posting); verify the required checks pass.
+- [ ] 4.3 Open a PR against `main` that closes #7 (ask before posting); verify the required checks pass. Opened as #8; ticked once the required checks pass.
