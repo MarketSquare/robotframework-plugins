@@ -10,9 +10,11 @@ libraries:
   - name: RequestsLibrary
     package: robotframework-requests
     versions: ">=0.9.7"
+    skills: [rf-requests]
   - name: RESTinstance
     package: RESTinstance
     versions: ">=1.8,<2"
+    skills: [rf-restinstance]
 robotframework: ">=7.0"
 agents:
   - claude-code

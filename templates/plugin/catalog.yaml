@@ -7,7 +7,12 @@ status: active
 maintainers:
   - github: your-github-handle
     name: Your Name
-# The libraries the skills cover, with the versions you checked them against.
+# The libraries the skills cover, with the versions you checked them against,
+# and the skills of this plugin that cover each one, for example:
+#   - name: DatabaseLibrary
+#     package: robotframework-databaselibrary
+#     versions: ">=2"
+#     skills: [rf-template]
 libraries: []
 robotframework: ">=7.0"
 agents:

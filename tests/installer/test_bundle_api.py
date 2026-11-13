@@ -41,8 +41,8 @@ def test_import_makes_no_network_call(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_library_matching_data() -> None:
     web = next(p for p in bundle.catalog() if p["name"] == "rf-web")
-    assert {"name": "Browser", "package": "robotframework-browser", "versions": web["libraries"][0]["versions"]} \
-        in web["libraries"]
+    browser = next(lib for lib in web["libraries"] if lib["name"] == "Browser")
+    assert browser["package"] == "robotframework-browser" and browser["versions"]
     assert web["robotframework"].startswith(">=")
     for entry in bundle.catalog():
         assert {"name", "version", "status", "tier", "summary", "libraries", "robotframework",
@@ -146,7 +146,8 @@ def test_api_from_an_installed_wheel(tmp_path: Path) -> None:
         from robotframework_plugins import bundle
         assert bundle.CATALOG_FORMAT == 1 and callable(bundle.fetch)
         dirs = bundle.skills_dirs()
-        assert list(dirs) == {list(ACTIVE_CONTENT)!r}, list(dirs)
+        # Other plugins (the template in CI, a community plugin) may be bundled too.
+        assert list(dirs)[0] == "rf-core" and set(dirs) >= set({list(ACTIVE_CONTENT)!r}), list(dirs)
         for path in dirs.values():
             assert path.is_absolute() and path.is_dir() and any(path.glob("*/SKILL.md")), path
             assert "site-packages" in str(path), path
@@ -157,3 +158,17 @@ def test_api_from_an_installed_wheel(tmp_path: Path) -> None:
     out = subprocess.run([str(python), "-I", "-c", script], capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
     assert out.stdout.strip() == "ok"
+
+
+def test_libraries_name_their_skills() -> None:
+    """catalog-library-skills: ``libraries[].skills`` reaches tools unchanged (issue #7)."""
+    by_name = {p["name"]: p for p in bundle.catalog()}
+    web = {lib["name"]: lib for lib in by_name["rf-web"]["libraries"]}
+    assert web["Browser"]["skills"] == ["rf-browser"]
+    assert web["SeleniumLibrary"]["skills"] == ["rf-selenium"]
+    api = {lib["name"]: lib["skills"] for lib in by_name["rf-api"]["libraries"]}
+    assert api == {"RequestsLibrary": ["rf-requests"], "RESTinstance": ["rf-restinstance"]}
+    for name, path in bundle.skills_dirs().items():
+        for lib in by_name[name]["libraries"]:
+            for skill in lib.get("skills", []):
+                assert (path / skill / "SKILL.md").is_file(), (name, skill)

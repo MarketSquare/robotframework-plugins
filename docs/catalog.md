@@ -45,8 +45,8 @@ RequestsLibrary and RESTinstance skills for API tests.
 - **Version:** 1.0.0
 - **Robot Framework:** `>=7.0`
 - **Libraries:**
-  - RequestsLibrary (`robotframework-requests` `>=0.9.7`)
-  - RESTinstance (`RESTinstance` `>=1.8,<2`)
+  - RequestsLibrary (`robotframework-requests` `>=0.9.7`): `rf-requests`
+  - RESTinstance (`RESTinstance` `>=1.8,<2`): `rf-restinstance`
 - **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
 - **Maintainers:** [@manykarim](https://github.com/manykarim)
 - **Install (Claude Code):** `/plugin install rf-api@robotframework-plugins`
@@ -72,7 +72,7 @@ PlatynUI skill for desktop UI tests.
 - **Version:** 1.0.0
 - **Robot Framework:** `>=7.0`
 - **Libraries:**
-  - PlatynUI (`robotframework-PlatynUI` `>=0.12.0.dev0`)
+  - PlatynUI (`robotframework-PlatynUI` `>=0.12.0.dev0`): `rf-platynui`
 - **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
 - **Maintainers:** [@manykarim](https://github.com/manykarim)
 - **Install (Claude Code):** `/plugin install rf-desktop@robotframework-plugins`
@@ -86,7 +86,7 @@ AppiumLibrary skill for Android and iOS tests.
 - **Version:** 1.0.0
 - **Robot Framework:** `>=7.0`
 - **Libraries:**
-  - AppiumLibrary (`robotframework-appiumlibrary` `>=3,<4`)
+  - AppiumLibrary (`robotframework-appiumlibrary` `>=3,<4`): `rf-appium`
 - **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
 - **Maintainers:** [@manykarim](https://github.com/manykarim)
 - **Install (Claude Code):** `/plugin install rf-mobile@robotframework-plugins`
@@ -100,8 +100,8 @@ Browser Library and SeleniumLibrary skills for web tests.
 - **Version:** 1.0.0
 - **Robot Framework:** `>=7.0`
 - **Libraries:**
-  - Browser (`robotframework-browser` `>=20,<21`)
-  - SeleniumLibrary (`robotframework-seleniumlibrary` `>=6.9,<7`)
+  - Browser (`robotframework-browser` `>=20,<21`): `rf-browser`
+  - SeleniumLibrary (`robotframework-seleniumlibrary` `>=6.9,<7`): `rf-selenium`
 - **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
 - **Maintainers:** [@manykarim](https://github.com/manykarim)
 - **Install (Claude Code):** `/plugin install rf-web@robotframework-plugins`

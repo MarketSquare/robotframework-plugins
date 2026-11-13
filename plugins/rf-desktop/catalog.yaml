@@ -10,6 +10,7 @@ libraries:
   - name: PlatynUI
     package: robotframework-PlatynUI
     versions: ">=0.12.0.dev0"
+    skills: [rf-platynui]
 robotframework: ">=7.0"
 agents:
   - claude-code

@@ -241,3 +241,18 @@ def test_fetch_main_from_github(tmp_path: Path) -> None:
     assert next(iter(dirs)) == "rf-core"
     for path in dirs.values():
         assert any(path.glob("*/SKILL.md"))
+
+
+def test_snapshot_passes_library_skills_through(github: FakeGitHub, cache: Path) -> None:
+    """catalog-library-skills: a library with ``skills`` keeps them; one without gets no key."""
+    files = _tree()
+    files["plugins/rf-web/catalog.yaml"] = files["plugins/rf-web/catalog.yaml"].replace(
+        b"libraries: []\n",
+        b"libraries:\n"
+        b"  - {name: Browser, package: robotframework-browser, versions: '>=20', skills: [rf-web-skill]}\n"
+        b"  - {name: Other, package: robotframework-other, versions: '>=1'}\n")
+    github.archives[SHA] = _tarball(files)
+    web = next(p for p in bundle.fetch("main", cache_dir=cache).catalog() if p["name"] == "rf-web")
+    libs = {lib["name"]: lib for lib in web["libraries"]}
+    assert libs["Browser"]["skills"] == ["rf-web-skill"]
+    assert "skills" not in libs["Other"]
