@@ -4,7 +4,7 @@ The installer has calendar versions (`YYYY.M.PATCH`), independent of the plugins
 
 ## 2026.11.0.dev1 — 2026-11-13
 
-First upload to PyPI, as a pre-release: install it with `uv tool install --prerelease allow robotframework-plugins` or pin `robotframework-plugins==2026.11.0.dev1`. It has everything listed under 2026.11.0 below, including the Python API (`robotframework_plugins.bundle`) and `libraries[].skills` in the catalogue. Not yet included: the rf-desktop eval and validation-hook changes still under review (#4).
+First upload to PyPI, as a pre-release: install it with `uv tool install --prerelease allow robotframework-plugins` or pin `robotframework-plugins==2026.11.0.dev1`. It has everything listed under 2026.11.0 below, including the Python API (`robotframework_plugins.bundle`) and `libraries[].skills` in the catalogue. Not yet included: the rf-desktop eval and validation-hook changes still under review (#4). The wheel and sdist ship the Apache-2.0 `LICENSE`.
 
 ## 2026.11.0 — 2026-11-09
 

@@ -101,3 +101,8 @@ def test_manifest_records_the_plugin_of_each_file(fake_home: Path, tmp_path: Pat
     data = json.loads(path.read_text())
     files = [f for ins in data["installations"] for f in ins["files"]]
     assert files and {f["plugin"] for f in files} == {"rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop"}
+
+
+def test_installer_ships_the_repository_license() -> None:
+    """installer/LICENSE goes into the wheel and sdist; it must stay the repository's LICENSE."""
+    assert (REPO / "installer" / "LICENSE").read_bytes() == (REPO / "LICENSE").read_bytes()
