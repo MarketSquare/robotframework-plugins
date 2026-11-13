@@ -453,3 +453,102 @@ def test_feedback_form_lists_the_listed_plugins(tmp_path: Path) -> None:
     assert bc.main(["--check", "--root", str(root)]) == 1
     assert bc.main(["--root", str(root)]) == 0
     assert "        - rf-example\n" in form.read_text(encoding="utf-8")
+
+
+# --- libraries[].skills (catalog-library-skills; issue #7) -------------------------------
+
+
+def _library_variant(tmp_path: Path, extra: str) -> Path:
+    """The community fixture with ``extra`` lines added to its one library entry."""
+    text = (FIXTURES / "valid-community.yaml").read_text(encoding="utf-8").replace(
+        '    versions: ">=2"\n', '    versions: ">=2"\n' + extra)
+    path = tmp_path / "variant.yaml"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_skills_per_library_accepted(scratch: Path, tmp_path: Path) -> None:
+    _add_plugin(scratch, "rf-example", _library_variant(tmp_path, "    skills: [rf-example]\n"))
+    plugins = bc.load_plugins(scratch)
+    example = next(p for p in plugins if p.name == "rf-example")
+    assert example.manifest["libraries"][0]["skills"] == ["rf-example"]
+    assert bc.library_skill_problems([example]) == []
+
+
+@pytest.mark.parametrize(("extra", "field"), [
+    ("    skill: rf-example\n", "skill"),        # other unknown keys stay rejected
+    ("    skills: []\n", "skills"),             # minItems 1
+    ("    skills: [rf-example, rf-example]\n", "skills"),  # unique
+    ("    skills: [RF_Example]\n", "skills"),   # kebab-case
+])
+def test_invalid_skills_field_rejected(scratch: Path, tmp_path: Path, extra: str, field: str) -> None:
+    _add_plugin(scratch, "rf-example", _library_variant(tmp_path, extra))
+    with pytest.raises(bc.CatalogError) as exc:
+        bc.load_plugins(scratch)
+    assert any("rf-example/catalog.yaml" in p and ("libraries/0" in p) and field in p for p in exc.value.problems), \
+        exc.value.problems
+
+
+def test_missing_skill_reported(scratch: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    _add_plugin(scratch, "rf-example", _library_variant(tmp_path, "    skills: [rf-example, rf-example-auth]\n"))
+    example = next(p for p in bc.load_plugins(scratch) if p.name == "rf-example")
+    assert bc.library_skill_problems([example]) == [
+        "rf-example: library DatabaseLibrary lists skill rf-example-auth, but "
+        "plugins/rf-example/skills/rf-example-auth/SKILL.md doesn't exist"]
+
+
+def test_missing_skill_fails_the_check(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = tmp_path / "repo"
+    shutil.copytree(REPO, root, ignore=shutil.ignore_patterns(".git", ".venv", "node_modules", "__pycache__",
+                                                             "_assets", "eval", "openspec", "docs"))
+    (root / "docs").mkdir()
+    shutil.copy(REPO / "docs" / "catalog.md", root / "docs" / "catalog.md")
+    manifest = root / "plugins" / "rf-api" / "catalog.yaml"
+    manifest.write_text(manifest.read_text(encoding="utf-8").replace(
+        "skills: [rf-requests]", "skills: [rf-requests-auth]"), encoding="utf-8")
+    assert bc.main(["--check", "--root", str(root)]) == 1
+    err = capsys.readouterr().err
+    assert "rf-api: library RequestsLibrary lists skill rf-requests-auth" in err
+
+
+def test_removed_plugin_with_a_stale_skill_is_reported(scratch: Path, tmp_path: Path) -> None:
+    text = _library_variant(tmp_path, "    skills: [rf-gone]\n").read_text(encoding="utf-8").replace(
+        "status: active", 'status: removed\nreplacement: rf-core\ndeprecated_since: "2026-01-01"')
+    path = tmp_path / "removed.yaml"
+    path.write_text(text, encoding="utf-8")
+    _add_plugin(scratch, "rf-example", path, content=False)
+    example = next(p for p in bc.load_plugins(scratch) if p.name == "rf-example")
+    assert len(bc.library_skill_problems([example])) == 1
+
+
+def test_catalog_doc_names_the_skills_of_each_library() -> None:
+    text = (REPO / "docs" / "catalog.md").read_text(encoding="utf-8")
+    assert "  - Browser (`robotframework-browser` `>=20,<21`): `rf-browser`" in text
+    assert "  - SeleniumLibrary (`robotframework-seleniumlibrary` `>=6.9,<7`): `rf-selenium`" in text
+    assert bc._library_line({"name": "X", "package": "x", "versions": ">=1"}) == "X (`x` `>=1`)"
+
+
+def test_stale_catalog_doc_fails_after_a_skills_change(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = tmp_path / "repo"
+    shutil.copytree(REPO, root, ignore=shutil.ignore_patterns(".git", ".venv", "node_modules", "__pycache__",
+                                                             "_assets", "eval", "openspec"))
+    manifest = root / "plugins" / "rf-web" / "catalog.yaml"
+    manifest.write_text(manifest.read_text(encoding="utf-8").replace(
+        "skills: [rf-selenium]", "skills: [rf-selenium, rf-browser]"), encoding="utf-8")
+    assert bc.main(["--check", "--root", str(root)]) == 1
+    assert "docs/catalog.md is out of date" in capsys.readouterr().err
+
+
+def test_every_technology_library_names_its_skills() -> None:
+    """Each library of an active technology plugin names its skills, and
+    together they cover every skill the plugin ships."""
+    for p in bc.load_plugins(REPO):
+        if p.status != "active" or not p.manifest["libraries"]:
+            continue
+        named = set()
+        for lib in p.manifest["libraries"]:
+            assert lib.get("skills"), f"{p.name}: {lib['name']} names no skills"
+            named |= set(lib["skills"])
+        shipped = {d.name for d in (p.path / "skills").glob("*") if (d / "SKILL.md").is_file()}
+        assert named == shipped, p.name
+    assert bc.library_skill_problems(bc.load_plugins(REPO)) == []

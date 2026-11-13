@@ -10,6 +10,7 @@ libraries:
   - name: AppiumLibrary
     package: robotframework-appiumlibrary
     versions: ">=3,<4"
+    skills: [rf-appium]
 robotframework: ">=7.0"
 agents:
   - claude-code

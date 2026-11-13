@@ -6,6 +6,8 @@ You can add a plugin for a library or tool that isn't covered yet, or improve on
 
 1. Copy `templates/plugin/` to `plugins/<name>/`. Plugin names start with `rf-` and describe the technology, for example `rf-database`.
 2. Fill in `catalog.yaml`: a one-line summary, `tier: community`, `status: active`, yourself under `maintainers`, the libraries with the version ranges you checked, the Robot Framework range and the agents you tried. The schema is `schemas/catalog.schema.json`.
+
+   For each library, list under `skills` the skills of your plugin that cover it, so a tool that detects the library in a project can pick the right skill (for example `skills: [rf-browser]` for Browser in rf-web). Leave it out only when every skill of the plugin applies. When you add, rename or remove a skill, update `skills` too; the catalogue check fails on a skill that doesn't exist.
 3. Rename the example skill to `rf-<topic>` (the folder name and the `name` in `SKILL.md` must match) and write it. Skill and subagent names must be unique across every plugin.
 4. Add a line for your plugin to `.github/CODEOWNERS` with the same people as `maintainers`.
 5. Regenerate the catalogue and the marketplace: `python scripts/build-catalog.py`.

@@ -97,7 +97,7 @@ Other tools can depend on `robotframework-plugins` and read the plugins it bundl
 | Name | What it gives you |
 |---|---|
 | `CATALOG_FORMAT` | The catalogue format, `1`. Check it at runtime. |
-| `catalog()` | The bundled plugins (active and deprecated): `name`, `version`, `status`, `tier`, `summary`, `libraries` (`name`, `package`, `versions`), `robotframework`, `dependencies`, `bundle`, `bundled`. A new list on each call. |
+| `catalog()` | The bundled plugins (active and deprecated): `name`, `version`, `status`, `tier`, `summary`, `libraries` (`name`, `package`, `versions`, and `skills`: the plugin's skills that cover the library; absent means all of them), `robotframework`, `dependencies`, `bundle`, `bundled`. A new list on each call. |
 | `skills_dirs()` | `{plugin: Path}` of each active plugin's `skills/` folder, `rf-core` first; bundles such as `rf-agentskills` are left out. The folders exist for the life of the process. |
 | `fetch(ref="stable")` | The same for a branch, tag or commit of this repository: a `Snapshot` with `ref`, `commit`, `catalog()` and `skills_dirs()`. Raises `FetchError` on any failure. |
 
@@ -112,7 +112,8 @@ installed = {"robotframework-browser": "20.1.0"}
 for plugin in bundle.catalog():
     for lib in plugin["libraries"]:
         if lib["package"] in installed:
-            print(plugin["name"], lib["name"], installed[lib["package"]] in SpecifierSet(lib["versions"]))
+            print(plugin["name"], lib["name"], lib.get("skills", "all skills"),
+                  installed[lib["package"]] in SpecifierSet(lib["versions"]))
 
 # Skill folders, each holding <skill>/SKILL.md and references/
 skills = bundle.skills_dirs()

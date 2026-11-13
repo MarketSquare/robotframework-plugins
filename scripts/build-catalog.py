@@ -274,6 +274,14 @@ def _libraries(p: Plugin) -> str:
     return ", ".join(lib["name"] for lib in libs) if libs else "Robot Framework"
 
 
+def _library_line(lib: dict[str, Any]) -> str:
+    """``Browser (`robotframework-browser` `>=20,<21`): rf-browser`` in docs/catalog.md."""
+    line = f"{lib['name']} (`{lib['package']}` `{lib['versions']}`)"
+    if lib.get("skills"):
+        line += ": " + ", ".join(f"`{s}`" for s in lib["skills"])
+    return line
+
+
 def _maintainers(p: Plugin) -> str:
     return ", ".join(f"[@{m['github']}](https://github.com/{m['github']})" for m in p.manifest["maintainers"])
 
@@ -356,7 +364,7 @@ def render_catalog_doc(plugins: list[Plugin], version: str) -> str:
         out.append(f"- **Robot Framework:** `{m['robotframework']}`")
         if m["libraries"]:
             out.append("- **Libraries:**")
-            out += [f"  - {lib['name']} (`{lib['package']}` `{lib['versions']}`)" for lib in m["libraries"]]
+            out += [f"  - {_library_line(lib)}" for lib in m["libraries"]]
         out.append(f"- **Tested with:** {', '.join(m['agents'])}")
         out.append(f"- **Maintainers:** {_maintainers(p)}")
         out.append(f"- **Install (Claude Code):** `/plugin install {p.name}@robotframework-plugins`")
@@ -455,6 +463,22 @@ def lifecycle_problems(root: Path, plugins: list[Plugin], market: dict[str, Any]
                 f"{rel}: removed too early: deprecated since {since.isoformat()}, with {len(after)} installer "
                 f"release(s) since ({so_far}); removal needs {REMOVAL_RELEASES} releases and {REMOVAL_DAYS} days. "
                 f"Earliest: {when}, and not before {earliest_date.isoformat()}")
+    return problems
+
+
+def library_skill_problems(plugins: list[Plugin]) -> list[str]:
+    """A ``libraries[].skills`` entry must name a skill folder of the same plugin.
+
+    Checked for every manifest, removed ones too, so a stale entry is caught
+    before a plugin comes back."""
+    problems = []
+    for p in plugins:
+        for lib in p.manifest["libraries"]:
+            for skill in lib.get("skills", []):
+                if not (p.path / "skills" / skill / "SKILL.md").is_file():
+                    problems.append(
+                        f"{p.name}: library {lib['name']} lists skill {skill}, but "
+                        f"plugins/{p.name}/skills/{skill}/SKILL.md doesn't exist")
     return problems
 
 
@@ -567,7 +591,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.version_table:
             print(version_table(installer_version(root), plugins))
             return 0
-        problems = name_problems(plugins) + symlink_problems(root, plugins) + bundle_problems(plugins)
+        problems = (name_problems(plugins) + symlink_problems(root, plugins) + bundle_problems(plugins)
+                    + library_skill_problems(plugins))
         market = json.loads((root / MARKETPLACE_REL).read_text(encoding="utf-8"))
         # In --check mode the marketplace on disk must not list a removed plugin;
         # without it, the file is about to be regenerated.

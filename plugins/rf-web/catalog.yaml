@@ -10,9 +10,11 @@ libraries:
   - name: Browser
     package: robotframework-browser
     versions: ">=20,<21"
+    skills: [rf-browser]
   - name: SeleniumLibrary
     package: robotframework-seleniumlibrary
     versions: ">=6.9,<7"
+    skills: [rf-selenium]
 robotframework: ">=7.0"
 agents:
   - claude-code

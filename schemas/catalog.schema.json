@@ -43,7 +43,14 @@
         "properties": {
           "name": {"type": "string"},
           "package": {"description": "PyPI package name, used to detect the library in a project.", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
-          "versions": {"description": "Supported version range, PEP 440 specifier.", "type": "string", "minLength": 1}
+          "versions": {"description": "Supported version range, PEP 440 specifier.", "type": "string", "minLength": 1},
+          "skills": {
+            "description": "Skills of this plugin that cover the library (folder names under skills/). Omit when every skill of the plugin applies.",
+            "type": "array",
+            "items": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+            "minItems": 1,
+            "uniqueItems": true
+          }
         }
       }
     },
