@@ -28,7 +28,7 @@ from rf_skill_eval.domain.profile import Profile
 from rf_skill_eval.domain.results import aggregate_replicates
 from rf_skill_eval.domain.run import RunUsage
 from rf_skill_eval.domain.task import (
-    DEEPSEEK_FLASH_MODEL,
+    GLM_FLASH_MODEL,
     OPENROUTER_MODELS,
     Task,
     provider_for,
@@ -47,7 +47,7 @@ from .results_factory import make_result
 
 _REPO = Path(__file__).resolve().parents[2]
 _PLUGIN = staged_tree(_REPO / "plugins")
-DS = DEEPSEEK_FLASH_MODEL
+DS = GLM_FLASH_MODEL  # the OpenRouter model under test
 FAKE_KEY = "fake-openrouter-key-for-tests-never-stored"
 cli = CliRunner()
 
@@ -123,7 +123,7 @@ def test_openrouter_model_is_run_time_only() -> None:
 
 def test_unlisted_openrouter_model_names_the_permitted_ids() -> None:
     with pytest.raises(ModelNotAllowedError) as exc:
-        check_runtime_model("z-ai/glm-5.3-flash", allow_opus=False, max_cost_usd=None)
+        check_runtime_model("deepseek/deepseek-v4.1-flash", allow_opus=False, max_cost_usd=None)
     assert DS in str(exc.value)
 
 
@@ -395,7 +395,7 @@ def test_turn_limit_factor_is_bounded() -> None:
 
 def test_baseline_dir_per_model(tmp_path: Path) -> None:
     assert baselines_dir_for(tmp_path, "claude-haiku-5-5") == tmp_path
-    assert baselines_dir_for(tmp_path, DS) == tmp_path / "openrouter" / "deepseek-v4.1-flash"
+    assert baselines_dir_for(tmp_path, DS) == tmp_path / "openrouter" / "glm-5.3-flash"
     assert baselines_dir_for(tmp_path, None) == tmp_path
 
 
@@ -437,7 +437,7 @@ def test_gate_defaults_to_the_models_baseline(tmp_path: Path, monkeypatch: pytes
             r = _or_result(i, stopped=False)
             repo.save_run(r.run)  # type: ignore[attr-defined]
             repo.save_scorecard(r.scorecard)  # type: ignore[attr-defined]
-    target = evals / "baselines" / "openrouter" / "deepseek-v4.1-flash" / "narrow.json"
+    target = evals / "baselines" / "openrouter" / "glm-5.3-flash" / "narrow.json"
     result = cli.invoke(app, ["gate", "--runs-dir", str(runs)])
     # No baseline file yet: the gate looked for the DeepSeek one, not the Haiku one.
     assert not target.exists()

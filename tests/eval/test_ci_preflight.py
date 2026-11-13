@@ -139,7 +139,7 @@ def test_pr_job_is_treatment_only_runs_3_and_gated_on_the_preflight_model() -> N
     assert '--max-turns-factor "${TURNS_FACTOR}"' in text
     assert job["env"]["EVAL_MODEL"] == "${{ needs.preflight.outputs.model }}"
     assert wf["env"]["HAIKU_MODEL"] == "claude-haiku-5-5"
-    assert wf["env"]["OPENROUTER_MODEL"] == "deepseek/deepseek-v4.1-flash"
+    assert wf["env"]["OPENROUTER_MODEL"] == "z-ai/glm-5.3-flash"
     assert "rf-skill-eval gate" in text
     assert '--baseline "${BASELINES}narrow.json"' in text
     assert "--split validation" in text
@@ -166,9 +166,9 @@ def test_preflight_prefers_openrouter_when_its_key_is_set(tmp_path: Path) -> Non
     assert got == {
         "has_credentials": "true",
         "provider": "openrouter",
-        "model": "deepseek/deepseek-v4.1-flash",
+        "model": "z-ai/glm-5.3-flash",
         "turns_factor": "1.5",
-        "baseline_subdir": "openrouter/deepseek-v4.1-flash/",
+        "baseline_subdir": "openrouter/glm-5.3-flash/",
     }
 
 

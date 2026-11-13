@@ -1,0 +1,51 @@
+{
+  "claude_code_version": "2.1.323 (Claude Code)",
+  "entries": {
+    "adv-restinstance-expectation-leak|baseline": {
+      "arm": "baseline",
+      "cost_source": "priced",
+      "gating": false,
+      "incomplete": 0,
+      "mean_cost_usd": 0.012659,
+      "mean_duration_s": 70.38,
+      "mean_input_tokens": 390641.0,
+      "mean_output_tokens": 5362.0,
+      "mean_turns": 23.0,
+      "model": "z-ai/glm-5.3-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-restinstance",
+      "task_hash": "aecee21f71999774880b80b2509398574df8bf8917c053dcc3858b04ad0b0971",
+      "task_id": "adv-restinstance-expectation-leak",
+      "turn_limit_stops": 2,
+      "turns_factor": 1.5
+    },
+    "adv-restinstance-expectation-leak|treatment": {
+      "arm": "treatment",
+      "cost_source": "priced",
+      "gating": false,
+      "incomplete": 0,
+      "mean_cost_usd": 0.014311,
+      "mean_duration_s": 74.93,
+      "mean_input_tokens": 438416.2,
+      "mean_output_tokens": 5177.5,
+      "mean_turns": 22.17,
+      "model": "z-ai/glm-5.3-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-restinstance",
+      "task_hash": "aecee21f71999774880b80b2509398574df8bf8917c053dcc3858b04ad0b0971",
+      "task_id": "adv-restinstance-expectation-leak",
+      "turn_limit_stops": 1,
+      "turns_factor": 1.5
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "adversarial"
+}

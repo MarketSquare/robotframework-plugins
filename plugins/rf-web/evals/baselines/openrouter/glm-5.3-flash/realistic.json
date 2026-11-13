@@ -1,0 +1,51 @@
+{
+  "claude_code_version": "2.1.323 (Claude Code)",
+  "entries": {
+    "realistic-browser-login-01|baseline": {
+      "arm": "baseline",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.002983,
+      "mean_duration_s": 18.77,
+      "mean_input_tokens": 88274.0,
+      "mean_output_tokens": 1702.3,
+      "mean_turns": 7.5,
+      "model": "z-ai/glm-5.3-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-browser",
+      "task_hash": "1487dcd2cb2a712432868bb46d5006bd75580edfe803f09acfd5cc4e13ca40e5",
+      "task_id": "realistic-browser-login-01",
+      "turn_limit_stops": 0,
+      "turns_factor": 1.5
+    },
+    "realistic-browser-login-01|treatment": {
+      "arm": "treatment",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.004778,
+      "mean_duration_s": 28.89,
+      "mean_input_tokens": 143570.3,
+      "mean_output_tokens": 2645.2,
+      "mean_turns": 10.33,
+      "model": "z-ai/glm-5.3-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-browser",
+      "task_hash": "1487dcd2cb2a712432868bb46d5006bd75580edfe803f09acfd5cc4e13ca40e5",
+      "task_id": "realistic-browser-login-01",
+      "turn_limit_stops": 0,
+      "turns_factor": 1.5
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "realistic"
+}

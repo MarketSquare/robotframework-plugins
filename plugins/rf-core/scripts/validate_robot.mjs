@@ -35,8 +35,10 @@
 //     any other value (including a legacy `block`) means `warn`.
 //     No parsable line from a failing Robocop run = tool failure = silence.
 //
-//   Tier 2 (formatting drift): `robocop format --check --diff`. Informational
-//     additionalContext only.
+//   Tier 2 (opt-in, RF_AGENTSKILLS_FORMAT_CHECK=1, formatting drift):
+//     `robocop format --check --diff`. Informational additionalContext only.
+//     Off by default: a formatting diff leads the agent to reformat and
+//     re-check a file that is otherwise correct.
 //
 //   Tier 3 (opt-in, RF_AGENTSKILLS_FILE_DRYRUN=1): `robot --dryrun` on the
 //     edited suite (.robot only, not __init__.robot). Advisory context only.
@@ -451,7 +453,7 @@ const advisory = [];
 const robocopPy = STOP_RECHECK ? null : findInterpreterWith("robocop", cwd);
 const analyzeRun = startAnalyze();
 const robocopRun = robocopPy ? startRobocop(robocopPy) : Promise.resolve(null);
-const formatRun = robocopPy
+const formatRun = robocopPy && isTruthy(process.env.RF_AGENTSKILLS_FORMAT_CHECK)
   ? spawnAsync(robocopPy, ["-m", "robocop", "format", "--no-cache", "--check", "--diff", "--no-overwrite", filePath],
     ROBOCOP_TIMEOUT_MS)
   : Promise.resolve(null);
@@ -482,7 +484,7 @@ if (robocopPy) {
       if (text) advisory.push(text);
     }
 
-    // ── Tier 2: formatting drift (informational only) ──
+    // ── Tier 2 (opt-in): formatting drift (informational only) ──
     const fmt = await formatRun;
     if (fmt && !fmt.error && fmt.status !== 0 && fmt.status !== null && (fmt.stdout ?? "").trim()) {
       let diff = fmt.stdout.trim();

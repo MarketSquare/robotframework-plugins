@@ -29,8 +29,10 @@ CLAUDE_MODELS: frozenset[str] = frozenset({HAIKU_MODEL, SONNET_MODEL, OPUS_MODEL
 
 #: OpenRouter models, run time only (openrouter-ci-eval-tier D2). Each needs
 #: an entry in ``domain.pricing.PROVIDER_PRICES`` and its own baselines.
-DEEPSEEK_FLASH_MODEL: str = "deepseek/deepseek-v4.1-flash"
-OPENROUTER_MODELS: frozenset[str] = frozenset({DEEPSEEK_FLASH_MODEL})
+#: GLM 5.3 Flash replaced DeepSeek V4.1 Flash on 2026-11-13: its output tokens
+#: cost a fifteenth as much.
+GLM_FLASH_MODEL: str = "z-ai/glm-5.3-flash"
+OPENROUTER_MODELS: frozenset[str] = frozenset({GLM_FLASH_MODEL})
 
 #: Every model a run may use (``--model``).
 ALLOWED_MODELS: frozenset[str] = CLAUDE_MODELS | OPENROUTER_MODELS

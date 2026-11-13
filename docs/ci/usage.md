@@ -413,8 +413,8 @@ amendment).
 | Trigger | Jobs | Scope | Arms | N | Model | Cap |
 |---|---|---|---|---|---|---|
 | `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `deepseek/deepseek-v4.1-flash` when `OPENROUTER_API_KEY` is set, else `claude-haiku-5-5` | OpenRouter: `PR_NARROW_CAP_USD_OPENROUTER`=2, `PR_TRIGGER_CAP_USD_OPENROUTER`=2; Claude: `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
-| `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | DeepSeek when its key is set, else tier defaults | OpenRouter: `WEEKLY_CAP_USD_OPENROUTER`=3 per invocation; Claude: 12 + 12 + 8 + 8 = $40 |
-| `workflow_dispatch` | `preflight` → `full-eval` | inputs `provider`, `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | `provider: claude` + `model`, or DeepSeek | `max_cost_usd` per invocation |
+| `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | GLM 5.3 Flash when the OpenRouter key is set, else tier defaults | OpenRouter: `WEEKLY_CAP_USD_OPENROUTER`=3 per invocation; Claude: 12 + 12 + 8 + 8 = $40 |
+| `workflow_dispatch` | `preflight` → `full-eval` | inputs `provider`, `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | `provider: claude` + `model`, or GLM 5.3 Flash | `max_cost_usd` per invocation |
 | all | `harness-tests` | ruff, mypy, `pytest tests/eval` (no API calls) | – | – | – | – |
 
 - Preflight picks the provider once: OpenRouter when `OPENROUTER_API_KEY` is
@@ -422,7 +422,7 @@ amendment).
   eval job gets only that provider's credentials.
 - The PR job gates against the provider's baselines
   (`plugins/<plugin>/evals/baselines/narrow.json` for Claude,
-  `plugins/<plugin>/evals/baselines/openrouter/deepseek-v4.1-flash/narrow.json`
+  `plugins/<plugin>/evals/baselines/openrouter/glm-5.3-flash/narrow.json`
   for OpenRouter) and posts one PR comment (report + gate result + trigger
   report, and the OpenRouter spend).
 - The weekly job uploads the report and a `candidate-baseline-<run>`
@@ -467,25 +467,28 @@ gh workflow run skill-evaluation.yml -f provider=openrouter -f runs=6 -f plugins
   It never runs on PRs or the weekly schedule (≈5× Sonnet per token).
 - Retired ids (`claude-haiku-4-5`, `claude-sonnet-4-6`) are rejected with a
   migration hint.
-- OpenRouter models (`deepseek/deepseek-v4.1-flash`) are run time only; a task
+- OpenRouter models (`z-ai/glm-5.3-flash`) are run time only; a task
   YAML that declares one fails to load. See [OpenRouter tier](#openrouter-tier).
 
 ---
 
 ## OpenRouter tier
 
-The harness can run every session on DeepSeek V4.1 Flash through OpenRouter,
-so the evals run from an OpenRouter key instead of a Claude subscription. CI
-uses it by default when the `OPENROUTER_API_KEY` secret is set. A spike run of
-the rf-core narrow tier (both arms, N=3, 72 sessions) cost $0.84.
+The harness can run every session on GLM 5.3 Flash (`z-ai/glm-5.3-flash`)
+through OpenRouter, so the evals run from an OpenRouter key instead of a
+Claude subscription. CI uses it by default when the `OPENROUTER_API_KEY`
+secret is set. It replaced DeepSeek V4.1 Flash on 2026-11-13: its output
+tokens cost $0.078 per million instead of $1.20. Under DeepSeek, a spike run
+of the rf-core narrow tier (both arms, N=3, 72 sessions) cost $0.84, and a
+full re-baseline of all plugins (both arms, N=6) about $10.
 
 ```bash
 export OPENROUTER_API_KEY=sk-or-v1-...           # or put it in .env
 uv run rf-skill-eval doctor --provider openrouter
 uv run rf-skill-eval run-batch --tier narrow --arms treatment --runs 3 \
-  --model deepseek/deepseek-v4.1-flash --max-turns-factor 1.5 --max-cost-usd 2 \
+  --model z-ai/glm-5.3-flash --max-turns-factor 1.5 --max-cost-usd 2 \
   --output eval/runs/or
-uv run rf-skill-eval gate --runs-dir eval/runs/or   # uses baselines/openrouter/deepseek-v4.1-flash/
+uv run rf-skill-eval gate --runs-dir eval/runs/or   # uses baselines/openrouter/glm-5.3-flash/
 ```
 
 - **Provider.** An OpenRouter model id selects the OpenRouter provider;
@@ -495,7 +498,7 @@ uv run rf-skill-eval gate --runs-dir eval/runs/or   # uses baselines/openrouter/
   pass `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` to the session. A run
   whose usage names any other model is recorded as incomplete
   (`provider_model`).
-- **Allowed models.** Only `deepseek/deepseek-v4.1-flash`. Adding one is a
+- **Allowed models.** Only `z-ai/glm-5.3-flash`. Adding one is a
   code change: an entry in `OPENROUTER_MODELS`, a price in
   `src/rf_skill_eval/domain/pricing.py`, and its own baselines.
 - **Cost.** Claude Code prices every session as Claude (the spike reported
@@ -505,14 +508,14 @@ uv run rf-skill-eval gate --runs-dir eval/runs/or   # uses baselines/openrouter/
   charged). `--max-cost-usd` uses the estimate. CI also records the key's
   real spend before and after each job; the key's credit limit is the hard
   cap.
-- **Turn limits.** DeepSeek takes more turns than Haiku: 25 of the 72 spike
-  sessions stopped at the limit. `--max-turns-factor 1.5` scales each task's
+- **Turn limits.** OpenRouter models took more turns than Haiku: on
+  DeepSeek, 25 of the 72 spike sessions stopped at the limit. `--max-turns-factor 1.5` scales each task's
   `max_turns` (rounded up); the factor is stored with the runs and the
   baselines, and a different factor means `rebaseline-needed`. Reports show
   turn-limit stops per task and arm. `OPENROUTER_TURNS_FACTORS` in the
-  workflow can override the factor per plugin. None does now: rf-desktop at
-  2.0 used the extra turns and passed no more often.
-- **What it tells you.** Results say how the skills work with DeepSeek, not
+  workflow can override the factor per plugin. None does now: on DeepSeek,
+  rf-desktop at 2.0 used the extra turns and passed no more often.
+- **What it tells you.** Results say how the skills work with GLM, not
   with Claude. Run a Claude check before a release (see RELEASING.md).
   Anthropic doesn't support non-Claude models in Claude Code, which prints
   `unrecognized_model` on each session; a Claude Code release could break this
@@ -543,6 +546,8 @@ to prefer which.
 
 - [local-testing.md](local-testing.md) — pre-push checklist and
   troubleshooting.
+- [desktop-live-check.md](desktop-live-check.md) — running rf-desktop's
+  eval suites against the real Calculator on Windows.
 - [faq.md](faq.md) — common questions, rate limits, rotation.
 - [architecture/ddd-design.md](architecture/ddd-design.md) — bounded
   contexts and module layout.

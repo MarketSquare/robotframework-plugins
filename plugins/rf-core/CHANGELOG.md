@@ -9,3 +9,5 @@ First release, split out of `rf-agentskills` 3.0.0: `rf-language`, `rf-setup` an
 - **Library install steps moved to the library skills.** `rf-setup` keeps environments, uv, pip, Poetry, robotcode, Robocop and troubleshooting, and a table naming each library's package, install command, skill and plugin.
 - **Library migration tables moved** to `rf-browser` (plugin `rf-web`) and `rf-restinstance` (plugin `rf-api`); `rf-migration-guide` routes library moves there.
 - **Core names the plugin of every library skill**, and the subagents, hooks and `rf-setup` suggest installing the plugin when its skill is missing.
+- **Formatting drift is opt-in.** The per-file hook runs `robocop format --check --diff` only with `RF_AGENTSKILLS_FORMAT_CHECK=1`. Shown a diff, agents reformatted files that were otherwise correct.
+- **The Stop test reminder stays quiet once the suite has run** (`robot`, `python -m robot` or `robotcode robot`, dry runs included) after the last `.robot`/`.resource` write. Its first step now says to run the tests where they can run.

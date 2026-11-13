@@ -23,11 +23,17 @@ grader_checks:
   name: suggests_plugin_or_passes
   func_ref: rf_skill_eval.scoring.custom.partial_install:suggests_plugin_or_passes
   plugin: rf-desktop
-  check:
-    type: keywords_resolve
+  checks:
+  - type: keywords_resolve
+    name: platynui_keywords_resolve
     target: tests/calculator.robot
     specs: [specs/PlatynUI.BareMetal.json]
     required_libraries: [PlatynUI.BareMetal]
     min_calls: 4
+  - type: custom_python
+    name: platynui_locators
+    func_ref: rf_skill_eval.scoring.custom.platynui:locators_ok
+    target: tests/calculator.robot
+    name_to_id: {One: num1Button, Two: num2Button, Plus: plusButton, Equals: equalButton}
   gating: true
 fixture: sut-platynui

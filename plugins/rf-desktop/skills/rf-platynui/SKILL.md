@@ -74,6 +74,8 @@ Library    PlatynUI.BareMetal    auto_activate=${True}    pointer_profile=${POIN
 
 Library scope is **SUITE**. The native runtime is created lazily on first keyword use (so `libdoc` and import work without a desktop).
 
+**Check a keyword** before you use it: `robotcode doc keyword PlatynUI.BareMetal "<Keyword>"` prints its arguments, and `robotcode doc keywords PlatynUI.BareMetal "<text>"` searches by name. Use them instead of parsing a libdoc file or reading the library source.
+
 ## Essential Concepts
 
 ### The normalized desktop UI model

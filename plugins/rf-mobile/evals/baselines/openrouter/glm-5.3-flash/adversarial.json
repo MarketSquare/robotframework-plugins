@@ -1,0 +1,51 @@
+{
+  "claude_code_version": "2.1.323 (Claude Code)",
+  "entries": {
+    "adv-appium-deprecated-visibility|baseline": {
+      "arm": "baseline",
+      "cost_source": "priced",
+      "gating": false,
+      "incomplete": 0,
+      "mean_cost_usd": 0.006338,
+      "mean_duration_s": 37.93,
+      "mean_input_tokens": 192007.3,
+      "mean_output_tokens": 2900.5,
+      "mean_turns": 13.0,
+      "model": "z-ai/glm-5.3-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-appium",
+      "task_hash": "d42a7ea8bb1e41559d26e50e33c6618c166557ca92ff7080527b35bafd6ca889",
+      "task_id": "adv-appium-deprecated-visibility",
+      "turn_limit_stops": 0,
+      "turns_factor": 1.5
+    },
+    "adv-appium-deprecated-visibility|treatment": {
+      "arm": "treatment",
+      "cost_source": "priced",
+      "gating": false,
+      "incomplete": 0,
+      "mean_cost_usd": 0.008355,
+      "mean_duration_s": 62.59,
+      "mean_input_tokens": 244035.3,
+      "mean_output_tokens": 6661.2,
+      "mean_turns": 15.67,
+      "model": "z-ai/glm-5.3-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-appium",
+      "task_hash": "d42a7ea8bb1e41559d26e50e33c6618c166557ca92ff7080527b35bafd6ca889",
+      "task_id": "adv-appium-deprecated-visibility",
+      "turn_limit_stops": 0,
+      "turns_factor": 1.5
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "adversarial"
+}

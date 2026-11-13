@@ -1,0 +1,51 @@
+{
+  "claude_code_version": "2.1.323 (Claude Code)",
+  "entries": {
+    "realistic-api-testing-01|baseline": {
+      "arm": "baseline",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.00372,
+      "mean_duration_s": 24.8,
+      "mean_input_tokens": 107607.5,
+      "mean_output_tokens": 1886.3,
+      "mean_turns": 8.67,
+      "model": "z-ai/glm-5.3-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-requests",
+      "task_hash": "ef138fe68471123497708f07e44d03e641d2c75374da7c04248239ed3c83e5dd",
+      "task_id": "realistic-api-testing-01",
+      "turn_limit_stops": 0,
+      "turns_factor": 1.5
+    },
+    "realistic-api-testing-01|treatment": {
+      "arm": "treatment",
+      "cost_source": "priced",
+      "gating": true,
+      "incomplete": 0,
+      "mean_cost_usd": 0.006961,
+      "mean_duration_s": 60.73,
+      "mean_input_tokens": 206326.8,
+      "mean_output_tokens": 5288.3,
+      "mean_turns": 12.67,
+      "model": "z-ai/glm-5.3-flash",
+      "outcome_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "provider": "openrouter",
+      "runs": 6,
+      "skill": "rf-requests",
+      "task_hash": "ef138fe68471123497708f07e44d03e641d2c75374da7c04248239ed3c83e5dd",
+      "task_id": "realistic-api-testing-01",
+      "turn_limit_stops": 0,
+      "turns_factor": 1.5
+    }
+  },
+  "harness_version": "0.1.0",
+  "kind": "tier-baseline",
+  "schema_version": 1,
+  "tier": "realistic"
+}

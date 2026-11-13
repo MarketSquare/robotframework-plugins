@@ -10,6 +10,9 @@ library code from memory that fails the check.
       func_ref: rf_skill_eval.scoring.custom.partial_install:suggests_plugin_or_passes
       plugin: rf-web
       check: {type: robot_pass, target: tests/login.robot, requires: [Browser], expected_tests: 1}
+
+``checks: [...]`` takes several such checks instead of ``check``; all of them
+must pass.
 """
 
 from __future__ import annotations
@@ -44,15 +47,25 @@ def suggests_plugin_or_passes(run: Run, params: dict[str, Any]) -> Verdict | dic
         return {"passed": False, "details": "custom check needs 'plugin'"}
     if suggests_plugin(assistant_text(run), plugin):
         return {"passed": True, "details": f"suggests installing {plugin}"}
-    check = dict(params.get("check") or {})
+    checks = [dict(c) for c in params.get("checks") or []]
+    if params.get("check"):
+        checks.insert(0, dict(params["check"]))
+    if not checks:
+        return {"passed": False, "details": f"does not suggest installing {plugin}"}
+    results = [_inner(run, plugin, c) for c in checks]
+    detail = f"does not suggest installing {plugin}; " + "; ".join(d for _, d in results)
+    return {"passed": all(ok for ok, _ in results), "details": detail}
+
+
+def _inner(run: Run, plugin: str, check: dict[str, Any]) -> tuple[bool, str]:
     kind = str(check.pop("type", ""))
     # Same alias the rubric grader applies to top-level checks.
     if "path" not in check and "target" in check:
         check["path"] = check["target"]
     if not kind:
-        return {"passed": False, "details": f"does not suggest installing {plugin}"}
+        return False, "fallback check has no 'type'"
     inner = lookup_check(kind)(run, f"{kind} (instead of suggesting {plugin})", check)
-    detail = f"does not suggest installing {plugin}; {kind}: {inner.status}"
+    detail = f"{check.get('name') or kind}: {inner.status}"
     if inner.details:
         detail += f" ({inner.details})"
-    return {"passed": inner.status == "passed", "details": detail}
+    return inner.status == "passed", detail

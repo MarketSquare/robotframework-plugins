@@ -50,7 +50,7 @@ def test_doctor_passes_ping_that_stops_at_the_turn_limit(monkeypatch) -> None:
         returncode=1,
         stdout='{"type":"system","subtype":"init"}\n'
         '{"type":"result","subtype":"error_max_turns","is_error":true,"num_turns":2}',
-        stderr='{"model":"deepseek/deepseek-v4.1-flash","query_source":"unrecognized_model"}',
+        stderr='{"model":"z-ai/glm-5.3-flash","query_source":"unrecognized_model"}',
     )
     with patch("rf_skill_eval.cli.shutil.which", return_value="/fake/claude"), patch(
         "rf_skill_eval.cli.subprocess.run", return_value=fake_completed
