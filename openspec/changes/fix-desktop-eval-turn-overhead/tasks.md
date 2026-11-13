@@ -48,20 +48,20 @@
 
 - [x] 10.1 Record the rf-core and rf-desktop changes for release; verify `scripts/validate-marketplace.py` passes. Done: neither plugin has a release tag, so 1.0.0 is still unreleased; the changes go into the 1.0.0 (unreleased) CHANGELOG entries instead of a 1.1.0 bump, and `rf-platynui` stays at the plugin's 1.0.0 (validate-skills requires the two to match).
 - [x] 10.2 Run `uv run pytest tests/eval plugins/rf-core/tests`, `ruff check src tests/eval` and `scripts/check-governance.py`; verify all pass. Done: `tests`, `plugins/rf-core/tests` and `plugins/rf-desktop/tests` pass, ruff and governance pass. `test_check_rf_environment_uses_project_venv` fails locally on a clean `main` checkout too (it passes in CI), so it isn't caused by this change.
-- [ ] 10.3 Open the PR against `main` (ask before posting); verify the required checks pass.
+- [x] 10.3 Open the PR against `main` (ask before posting); verify the required checks pass. Done: #4; all 34 checks pass, including the PR evals on GLM against the GLM baselines, apart from `required-reviews`.
 
 ## 11. Re-baseline (D9)
 
 - [x] 11.1 Dispatch `skill-evaluation.yml -f provider=openrouter -f runs=6` on the PR branch and commit the candidate baselines for every plugin; verify the follow-up PR eval reports pass, not rebaseline-needed. Done: run 43263363544 (all five plugins, both arms, N=6) succeeded; its candidate baselines replace every plugin's OpenRouter baselines. The follow-up PR eval runs on the push.
-- [ ] 11.2 From the run's transcripts, report rf-desktop's per-arm pass rates, turns per session, `robocop format` runs and `robotcode doc` calls against run 42993062842; verify the report is in the PR description.
-- [ ] 11.3 Run the live check (9.3) on the new run's artifacts; verify its per-arm pass rates are in the PR description next to the static ones.
+- [x] 11.2 From the run's transcripts, report rf-desktop's per-arm pass rates, turns per session, `robocop format` runs and `robotcode doc` calls against run 42993062842; verify the report is in the PR description. Done (in the PR description): on DeepSeek, run 43263363544 against 42993062842, narrow gate 3/6 → 6/6 without the skill and 2/6 → 5/6 with it; `robocop format` runs in the skill arms 1.17/0.67 → 0 per session; skill-arm turns 23.5 → 21.3 (narrow) and 22.8 → 19.0 (partial); `robotcode doc` 0 → 0.33 per narrow skill session; `python -c` on the spec 5–11 per session, unchanged.
+- [x] 11.3 Run the live check (9.3) on the new run's artifacts; verify its per-arm pass rates are in the PR description next to the static ones. Done 2026-11-13 on run 43263363544 (DeepSeek): all 22 suites and the skill example pass live (German display language); before the fixes, 0 of 63.
 - [ ] 11.4 Ask the maintainer to dispatch `provider=claude` for all plugins, and commit those candidate baselines; verify the Claude baselines in the PR carry the new harness version.
 
 ## 13. CI eval model: GLM 5.3 Flash (D10)
 
 - [x] 13.1 Switch `OPENROUTER_MODELS`, the price table, the workflow's `OPENROUTER_MODEL`, tests and docs (usage, local testing, ADR-005) to `z-ai/glm-5.3-flash`; verify `uv run pytest tests/eval` passes and no DeepSeek id is left outside history and archived changes. Done: 654 tests pass.
 - [x] 13.2 After OpenRouter credits are topped up, dispatch `skill-evaluation.yml -f provider=openrouter -f runs=6` on this branch (GLM); commit the candidate baselines under `baselines/openrouter/glm-5.3-flash/` and remove `baselines/openrouter/deepseek-v4.1-flash/`. Verify the follow-up PR eval passes. Done: run 43397156347 (GLM, all plugins, both arms, N=6) succeeded for $5.86 of key spend (the DeepSeek re-baseline cost $10.14); its baselines are under `baselines/openrouter/glm-5.3-flash/`, and the DeepSeek folders are removed.
-- [ ] 13.3 Repeat the rf-desktop report (11.2) and the live check (11.3) on the GLM run; verify both tables are in the PR description.
+- [x] 13.3 Repeat the rf-desktop report (11.2) and the live check (11.3) on the GLM run; verify both tables are in the PR description. Done: GLM run 43397156347 passes the static gate in 24 of 24 rf-desktop sessions (12.7–17.8 turns, 1 turn-limit stop), and all 24 suites plus the skill example pass live on Windows (2026-11-13). Both tables are in the PR description.
 
 ## 12. Upstream (separate from the PR)
 
