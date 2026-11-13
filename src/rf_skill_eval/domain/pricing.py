@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .task import DEEPSEEK_FLASH_MODEL
+from .task import GLM_FLASH_MODEL
 
 
 @dataclass(frozen=True)
@@ -27,10 +27,11 @@ class TokenPrices:
     output: float
 
 
-#: OpenRouter list prices, checked 2026-11-10 (``GET /api/v1/models``).
+#: OpenRouter list prices, checked 2026-11-13 (``GET /api/v1/models``). The API
+#: lists no cache-write price for GLM 5.3 Flash, so cache writes are priced as input.
 #: Every id in ``task.OPENROUTER_MODELS`` needs an entry here.
 PROVIDER_PRICES: dict[str, TokenPrices] = {
-    DEEPSEEK_FLASH_MODEL: TokenPrices(input=0.30, cache_read=0.006, cache_write=0.30, output=1.20),
+    GLM_FLASH_MODEL: TokenPrices(input=0.0399, cache_read=0.03, cache_write=0.0399, output=0.0784),
 }
 
 

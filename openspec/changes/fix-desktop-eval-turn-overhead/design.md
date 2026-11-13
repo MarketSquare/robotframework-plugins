@@ -103,6 +103,10 @@ Alternatives:
 
 The change branches from `main` after PR #2 (OpenRouter tier) and PR #3 (its baselines) have merged. All parts land in one PR, then one OpenRouter dispatch (`runs=6`) regenerates every plugin's OpenRouter baselines, and one `provider: claude` dispatch, started by the maintainer, regenerates the Claude ones. Both go in the same PR so the gate never compares the new grader or hooks against old baselines.
 
+### D10. The CI eval model switches to GLM 5.3 Flash
+
+The maintainer chose GLM 5.3 Flash for all CI evals (2026-11-13). The switch goes into this change, so no CI run uses DeepSeek again and the one re-baseline of D9 runs on GLM: `OPENROUTER_MODELS` holds only `z-ai/glm-5.3-flash`, the price table gets its list prices (input $0.0399, cache read $0.03, output $0.0784 per million; cache writes priced as input, since OpenRouter lists none), the workflow's `OPENROUTER_MODEL` changes, and baselines move to `baselines/openrouter/glm-5.3-flash/`. The DeepSeek baselines of run 43263363544 are removed; git keeps them. The turn factor stays 1.5 until GLM's turn-limit stops are known from the re-baseline.
+
 ## Risks / Trade-offs
 
 - [D1 makes `min_calls` easier to meet: a wrapper called four times with one library call inside passes `min_calls: 4`] → `min_calls` is a floor against empty suites, not a coverage check; the tasks' `file_contains` checks still require the result check and the target window.

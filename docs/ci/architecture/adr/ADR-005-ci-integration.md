@@ -17,12 +17,13 @@ are; only the model and the credentials change.
 - **Provider.** Preflight picks `openrouter` when the OpenRouter key is set,
   `claude` otherwise; a manual dispatch input `provider` overrides it. Each
   eval job gets only that provider's credentials.
-- **Model.** `deepseek/deepseek-v4.1-flash` for every tier, with turn-limit
+- **Model.** `z-ai/glm-5.3-flash` for every tier (DeepSeek V4.1 Flash until
+  2026-11-13; GLM's output tokens cost about a fifteenth), with turn-limit
   factor 1.5 (`--max-turns-factor`). Claude runs (Haiku, Sonnet, Opus) are a
   manual dispatch with `provider: claude`, and part of the release checklist.
 - **Baselines.** Kept per model: `plugins/<plugin>/evals/baselines/` for
-  Claude, `plugins/<plugin>/evals/baselines/openrouter/deepseek-v4.1-flash/`
-  for DeepSeek. The gate never compares one model with another.
+  Claude, `plugins/<plugin>/evals/baselines/openrouter/glm-5.3-flash/`
+  for GLM. The gate never compares one model with another.
 - **Cost.** The harness prices OpenRouter runs at list prices (Claude Code's
   own figure prices them as Claude); caps are `PR_NARROW_CAP_USD_OPENROUTER`,
   `PR_TRIGGER_CAP_USD_OPENROUTER` and `WEEKLY_CAP_USD_OPENROUTER`. Each job

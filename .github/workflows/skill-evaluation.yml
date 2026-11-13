@@ -13,9 +13,9 @@ name: Skill Evaluation
 # Every harness invocation carries an explicit --max-cost-usd cap.
 #
 # Provider (openrouter-ci-eval-tier): when the OPENROUTER_API_KEY secret is set,
-# PR and weekly runs use the OpenRouter tier (DeepSeek V4.1 Flash, turn-limit
+# PR and weekly runs use the OpenRouter tier (GLM 5.3 Flash, turn-limit
 # factor 1.5) and gate against plugins/<plugin>/evals/baselines/openrouter/
-# deepseek-v4.1-flash/. Claude runs are a manual dispatch (provider: claude).
+# glm-5.3-flash/. Claude runs are a manual dispatch (provider: claude).
 
 on:
   pull_request:
@@ -108,11 +108,11 @@ permissions:
 
 env:
   HAIKU_MODEL: claude-haiku-5-5
-  OPENROUTER_MODEL: deepseek/deepseek-v4.1-flash
+  OPENROUTER_MODEL: z-ai/glm-5.3-flash
   OPENROUTER_TURNS_FACTOR: "1.5"
   # Per-plugin overrides of the factor (JSON), e.g. '{"rf-desktop": "2.0"}'.
-  # The factor is stored in the baselines. rf-desktop at 2.0 (run 43167186288)
-  # took more turns but passed no more often, so no plugin overrides it.
+  # The factor is stored in the baselines. rf-desktop at 2.0 (run 43167186288,
+  # on DeepSeek) took more turns but passed no more often, so no plugin overrides it.
   OPENROUTER_TURNS_FACTORS: '{}'
   # OpenRouter caps (priced at list prices, an upper bound); the key's credit
   # limit on OpenRouter is the hard cap. Tune after the first weekly run.

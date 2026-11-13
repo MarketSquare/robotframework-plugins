@@ -33,6 +33,7 @@ Raising rf-desktop's turn factor to 2.0 didn't help (the sessions used the extra
 - **All plugins are re-baselined on both tiers once, after these land together.**
   - The grader and task changes move the rf-desktop and rf-mobile results.
   - The hook changes move every skill arm.
+- **The CI eval model becomes GLM 5.3 Flash (`z-ai/glm-5.3-flash`)**, replacing DeepSeek V4.1 Flash, at the maintainer's request (2026-11-13): its output tokens cost $0.078 per million instead of $1.20. The re-baseline therefore runs on GLM, and the DeepSeek baselines are removed.
 - **Out of scope, tracked separately:** the robotcode crash on `robotcode doc keywords <libdoc .json path>` (`AttributeError: 'ResourceFile' object has no attribute 'specversion'`), to be reported upstream.
 
 ## Capabilities

@@ -57,6 +57,12 @@
 - [ ] 11.3 Run the live check (9.3) on the new run's artifacts; verify its per-arm pass rates are in the PR description next to the static ones.
 - [ ] 11.4 Ask the maintainer to dispatch `provider=claude` for all plugins, and commit those candidate baselines; verify the Claude baselines in the PR carry the new harness version.
 
+## 13. CI eval model: GLM 5.3 Flash (D10)
+
+- [x] 13.1 Switch `OPENROUTER_MODELS`, the price table, the workflow's `OPENROUTER_MODEL`, tests and docs (usage, local testing, ADR-005) to `z-ai/glm-5.3-flash`; verify `uv run pytest tests/eval` passes and no DeepSeek id is left outside history and archived changes. Done: 654 tests pass.
+- [ ] 13.2 After OpenRouter credits are topped up, dispatch `skill-evaluation.yml -f provider=openrouter -f runs=6` on this branch (GLM); commit the candidate baselines under `baselines/openrouter/glm-5.3-flash/` and remove `baselines/openrouter/deepseek-v4.1-flash/`. Verify the follow-up PR eval passes.
+- [ ] 13.3 Repeat the rf-desktop report (11.2) and the live check (11.3) on the GLM run; verify both tables are in the PR description.
+
 ## 12. Upstream (separate from the PR)
 
 - [x] 12.1 Draft a robotcode issue for `robotcode doc keywords <libdoc .json>` failing with `AttributeError: 'ResourceFile' object has no attribute 'specversion'`, with a minimal reproduction and the AI-use disclosure; the maintainer reviews and posts it. Done: drafted as an enhancement, not a bug, because `robotcode doc --help` names only libraries, resources and suites as TARGET. It reproduces on 2.8.0 and 2.9.0.dev186; an XML `.libspec` fails too, and no existing issue covers it. Posted after review as robotcodedev/robotcode#689.

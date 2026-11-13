@@ -185,18 +185,20 @@ lock integrity and should have caught it.
 
 ### Running on OpenRouter
 
-Without a Claude subscription, run on DeepSeek V4.1 Flash through OpenRouter.
+With a Claude subscription, run local evals through Claude Code on it, with
+Haiku 5.5 (the narrow tier's default). Without one, run on GLM 5.3 Flash
+through OpenRouter, the model CI uses.
 Set `OPENROUTER_API_KEY` (in `.env` or exported), give the key a credit limit
 at openrouter.ai, and pass the model and the turn-limit factor CI uses:
 
 ```bash
 uv run rf-skill-eval doctor --provider openrouter
 uv run rf-skill-eval run-batch --tier narrow --arms treatment --runs 3 \
-  --model deepseek/deepseek-v4.1-flash --max-turns-factor 1.5 --max-cost-usd 2 \
+  --model z-ai/glm-5.3-flash --max-turns-factor 1.5 --max-cost-usd 2 \
   --output eval/runs/or-$(date +%s)
 ```
 
-Compare the results with the DeepSeek baselines (`gate` finds them from the
+Compare the results with the GLM baselines (`gate` finds them from the
 runs' model), not the Haiku ones. The costs in the report are estimates at
 OpenRouter's list prices; the key's activity page on openrouter.ai shows what
 was charged. See [usage.md](usage.md#openrouter-tier).
