@@ -1,23 +1,23 @@
 {
   "harness_version": "0.1.0",
   "kind": "trigger-baseline",
-  "model": "deepseek/deepseek-v4.1-flash",
+  "model": "z-ai/glm-5.3-flash",
   "provider": "openrouter",
   "schema_version": 1,
   "skills": {
     "rf-browser": {
       "train": {
-        "accuracy": 0.8696,
+        "accuracy": 0.913,
         "fn": 0,
-        "fp": 3,
-        "negative_loads": 12,
+        "fp": 2,
+        "negative_loads": 7,
         "negative_runs": 33,
         "positive_loads": 36,
         "positive_runs": 36,
-        "precision": 0.8,
+        "precision": 0.8571,
         "queries": 23,
         "recall": 1.0,
-        "tn": 8,
+        "tn": 9,
         "tp": 12
       },
       "validation": {
@@ -37,32 +37,32 @@
     },
     "rf-selenium": {
       "train": {
-        "accuracy": 0.7826,
-        "fn": 5,
-        "fp": 0,
-        "negative_loads": 0,
+        "accuracy": 0.9565,
+        "fn": 0,
+        "fp": 1,
+        "negative_loads": 6,
         "negative_runs": 33,
-        "positive_loads": 21,
+        "positive_loads": 36,
         "positive_runs": 36,
-        "precision": 1.0,
+        "precision": 0.9231,
         "queries": 23,
-        "recall": 0.5833,
-        "tn": 11,
-        "tp": 7
+        "recall": 1.0,
+        "tn": 10,
+        "tp": 12
       },
       "validation": {
         "accuracy": 0.625,
-        "fn": 3,
-        "fp": 0,
-        "negative_loads": 0,
+        "fn": 0,
+        "fp": 3,
+        "negative_loads": 8,
         "negative_runs": 12,
-        "positive_loads": 4,
+        "positive_loads": 12,
         "positive_runs": 12,
-        "precision": 1.0,
+        "precision": 0.5714,
         "queries": 8,
-        "recall": 0.25,
-        "tn": 4,
-        "tp": 1
+        "recall": 1.0,
+        "tn": 1,
+        "tp": 4
       }
     }
   }

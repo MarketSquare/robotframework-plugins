@@ -1,37 +1,37 @@
 {
   "harness_version": "0.1.0",
   "kind": "trigger-baseline",
-  "model": "deepseek/deepseek-v4.1-flash",
+  "model": "z-ai/glm-5.3-flash",
   "provider": "openrouter",
   "schema_version": 1,
   "skills": {
     "rf-appium": {
       "train": {
-        "accuracy": 0.7826,
+        "accuracy": 1.0,
         "fn": 0,
-        "fp": 5,
-        "negative_loads": 14,
+        "fp": 0,
+        "negative_loads": 2,
         "negative_runs": 33,
         "positive_loads": 36,
         "positive_runs": 36,
-        "precision": 0.7059,
+        "precision": 1.0,
         "queries": 23,
         "recall": 1.0,
-        "tn": 6,
+        "tn": 11,
         "tp": 12
       },
       "validation": {
-        "accuracy": 0.75,
+        "accuracy": 0.875,
         "fn": 0,
-        "fp": 2,
-        "negative_loads": 4,
+        "fp": 1,
+        "negative_loads": 3,
         "negative_runs": 12,
         "positive_loads": 12,
         "positive_runs": 12,
-        "precision": 0.6667,
+        "precision": 0.8,
         "queries": 8,
         "recall": 1.0,
-        "tn": 2,
+        "tn": 3,
         "tp": 4
       }
     }

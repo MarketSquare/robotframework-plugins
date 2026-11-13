@@ -60,7 +60,7 @@
 ## 13. CI eval model: GLM 5.3 Flash (D10)
 
 - [x] 13.1 Switch `OPENROUTER_MODELS`, the price table, the workflow's `OPENROUTER_MODEL`, tests and docs (usage, local testing, ADR-005) to `z-ai/glm-5.3-flash`; verify `uv run pytest tests/eval` passes and no DeepSeek id is left outside history and archived changes. Done: 654 tests pass.
-- [ ] 13.2 After OpenRouter credits are topped up, dispatch `skill-evaluation.yml -f provider=openrouter -f runs=6` on this branch (GLM); commit the candidate baselines under `baselines/openrouter/glm-5.3-flash/` and remove `baselines/openrouter/deepseek-v4.1-flash/`. Verify the follow-up PR eval passes.
+- [x] 13.2 After OpenRouter credits are topped up, dispatch `skill-evaluation.yml -f provider=openrouter -f runs=6` on this branch (GLM); commit the candidate baselines under `baselines/openrouter/glm-5.3-flash/` and remove `baselines/openrouter/deepseek-v4.1-flash/`. Verify the follow-up PR eval passes. Done: run 43397156347 (GLM, all plugins, both arms, N=6) succeeded for $5.86 of key spend (the DeepSeek re-baseline cost $10.14); its baselines are under `baselines/openrouter/glm-5.3-flash/`, and the DeepSeek folders are removed.
 - [ ] 13.3 Repeat the rf-desktop report (11.2) and the live check (11.3) on the GLM run; verify both tables are in the PR description.
 
 ## 12. Upstream (separate from the PR)
