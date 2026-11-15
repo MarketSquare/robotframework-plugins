@@ -15,7 +15,7 @@ Use this when a UI test fails because an element is not found, is hidden or has 
 
 ## Pick a locator that survives a redesign
 
-- Use the accessible role and name, for example `role=button[name="Save"]`. A test id is more stable still when the team adds one.
+- Prefer, in order: test ids (`[data-testid="save"]`), accessible roles (`role=button[name="Save"]`), short CSS, text (`text=Save`), XPath last. This is the order in `SKILL.md`.
 - Check the match count with an operator in the getter, for example `Get Element Count    role=button[name="Save"]    ==    1`.
 - Avoid long CSS paths and `nth-child` chains. They break when the markup changes.
 - Read `references/locators.md` for the full order of locator strategies.
@@ -26,5 +26,5 @@ Use this when a UI test fails because an element is not found, is hidden or has 
 
 ## New and flaky tests
 
-- Run a new UI test at least three times before you count it as green. A test that passes only on a retry is flaky.
+- To decide whether one failing test is flaky or a real defect, rerun that test three times with no code change. A test that passes on some runs and fails on others is flaky; one that fails every run points at the selector or the app.
 - Quarantine a flaky test with a tag and a tracked issue. Do not add retries or longer timeouts to hide the cause.
