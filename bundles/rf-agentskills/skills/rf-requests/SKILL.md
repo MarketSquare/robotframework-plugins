@@ -98,6 +98,7 @@ Escape hatch: for one or two calls to full URLs, use the sessionless keywords (`
 | references/authentication.md | basic, digest, NTLM, client-certificate or token authentication |
 | references/troubleshooting.md | a request fails with an error you don't recognise |
 | references/async-jobs.md | a job or another async operation must finish before the test checks its result |
+| references/loose-assertions.md | choosing what a test asserts, or reviewing a test that checks only the status or that a value is not empty |
 
 Examples in `assets/examples/`: `basic-crud.robot`, `session-handling.robot`, `authentication-patterns.robot`, `file-upload.robot`.
 
