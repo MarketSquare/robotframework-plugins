@@ -64,6 +64,7 @@ Escape hatch: for one or two calls to full URLs, use the sessionless keywords (`
 | Assert body or headers | `Should Be Equal    ${resp.json()}[id]    ${1}`, `${resp.headers}[Content-Type]` | references/response-validation.md |
 | Basic / digest / NTLM / client cert | `Create Session … auth=`, `Create Digest Session`, `Create Ntlm Session`, `Create Client Cert Session` | references/authentication.md |
 | Bearer token for all later calls | `Update Session    api    headers=${auth}` | references/authentication.md |
+| Wait for an async job to finish | bounded WHILE poll, no Sleep | references/async-jobs.md |
 | Unexpected error message | — | references/troubleshooting.md |
 
 ## Agent workflow
@@ -96,6 +97,7 @@ Escape hatch: for one or two calls to full URLs, use the sessionless keywords (`
 | references/response-validation.md | asserting JSON bodies, lists, headers and cookies of a `requests.Response` |
 | references/authentication.md | basic, digest, NTLM, client-certificate or token authentication |
 | references/troubleshooting.md | a request fails with an error you don't recognise |
+| references/async-jobs.md | a job or another async operation must finish before the test checks its result |
 
 Examples in `assets/examples/`: `basic-crud.robot`, `session-handling.robot`, `authentication-patterns.robot`, `file-upload.robot`.
 
