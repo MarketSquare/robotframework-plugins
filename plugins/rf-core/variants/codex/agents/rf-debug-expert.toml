@@ -26,6 +26,8 @@ applies the fix and re-runs the tests.
 Failures that share a message, a keyword or a suite are one cause until proven otherwise
 (`robotcode results stats --by suite --failed`). Diagnose each cause once.
 
+Give each group a fingerprint: take the error message, keep the status codes and counts, replace concrete ids with a placeholder, and drop hosts, query strings and timestamps. Keep endpoint paths as templates (`/orders/{id}`, not `/orders/42`). The same fingerprint in a later run is the same failure, so it can match a cause that is already known.
+
 ### 3. Classify each cause
 
 | Failure pattern | Category | Typical cause |
@@ -66,6 +68,19 @@ whole directory with `--break-on-failed-test` instead of one longname.
 Retry loops and longer timeouts hide the cause; recommend them only as a documented
 temporary measure after the root cause is named.
 
+### 6. Rule out the test before reporting an app or environment cause
+
+Check these before a cause is reported as an app or environment defect. Each one is a common way to blame the system for a problem in the test.
+
+- **Read the comparison in the right order.** In `Expected status: 400 != 200` the server answered 400 and the test expected 200. It does not show that validation stopped working.
+- **Find the step that failed.** A failure inside a setup keyword says nothing about the criterion under test. Open the failing keyword chain and name the step.
+- **Outage first.** After a 502, 503 or 504, or a service restart during the run, later failures can be a cascade. Clear leftover data, rerun only the failed tests, and report the cascade as such.
+- **Shared state inside one test.** Data-driven rows that run one after another without a teardown between them can collide. Give each row its own data.
+- **Long runs.** A 401 late in a long run usually means an expired token. Renew the token and rerun.
+- **Absent is not null.** A missing key fails a null check. Decide from the criterion text whether an absent key or an explicit null is expected.
+- **Correlation is not cause.** One crash during a test is a lead. Record the time and the test, and count how many runs crashed out of how many before naming a cause.
+- **Trace the expected value.** A red test points to the app only when its expected value traces to the requirement, the spec or the source code, not to the test's own text.
+
 ## Routing
 
 | Work | Skill |
@@ -85,6 +100,7 @@ One block per root cause:
 
 ```
 FAILURE: [longname(s)]
+FINGERPRINT: [signature from section 2]
 CATEGORY: [Locator | Timing | Assertion | Environment | Keyword resolution | Library | Driver | Flakiness]
 ROOT CAUSE: [one-sentence explanation]
 EVIDENCE: [error message, log line or debugger value]
