@@ -105,6 +105,7 @@ Paths start at the last instance: `response status`, `response body user name`, 
 | references/schema-validation.md | Using schema files, learning schemas with `Output Schema`, expectations, or an OpenAPI `spec=` |
 | references/authentication.md | Adding tokens, API keys, basic/digest auth or client certificates |
 | references/troubleshooting.md | A request or assertion fails with an error you don't understand |
+| references/loose-assertions.md | choosing what a test asserts, or reviewing checks that test only a status, a type or a key |
 
 Examples in `assets/examples/`: `basic-rest.robot` (requests, paths, chaining, negative status), `schema-validation.robot` (learned schema, schema file, expectations).
 
