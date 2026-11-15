@@ -119,6 +119,7 @@ Prefer, in order: test ids (`[data-testid="save"]`), accessible roles (`role=but
 | `references/authentication-storage.md` | reusing a login, HTTP auth, cookies or local/session storage |
 | `references/downloads-uploads.md` | a test uploads or downloads files |
 | `references/troubleshooting.md` | a run fails with an error message you need to decode |
+| `references/selector-drift.md` | a selector stopped matching after a UI change, matches several elements, or a test passes only some runs |
 
 Examples in `assets/examples/`: `basic-web-test.robot`, `form-handling.robot`, `authentication-flow.robot`, `iframe-shadow-dom.robot`.
 

@@ -18,7 +18,7 @@ Use this when a UI test fails because an element is not found, is hidden or has 
 - Prefer, in order: test ids (`[data-testid="save"]`), accessible roles (`role=button[name="Save"]`), short CSS, text (`text=Save`), XPath last. This is the order in `SKILL.md`.
 - Check the match count with an operator in the getter, for example `Get Element Count    role=button[name="Save"]    ==    1`.
 - Avoid long CSS paths and `nth-child` chains. They break when the markup changes.
-- Read `references/locators.md` for the full order of locator strategies.
+- The full order of locator strategies is in the locators reference listed in `SKILL.md`.
 
 ## Elements outside the viewport and menus
 
