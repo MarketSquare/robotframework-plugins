@@ -26,7 +26,7 @@ applies the fix and re-runs the tests.
 Failures that share a message, a keyword or a suite are one cause until proven otherwise
 (`robotcode results stats --by suite --failed`). Diagnose each cause once.
 
-Give each group a fingerprint: take the error message, keep the status codes and counts, replace concrete ids with a placeholder, and drop hosts, query strings and timestamps. Keep endpoint paths as templates (`/orders/{id}`, not `/orders/42`). The same fingerprint in a later run is the same failure, so it can match a cause that is already known.
+Give each group a fingerprint: take the error message, keep the status codes and counts, replace concrete ids with a placeholder, and drop hosts, query strings and timestamps. Keep endpoint paths as templates (`/orders/{id}`, not `/orders/42`). The same fingerprint in a later run is the same failure, so it can match a cause that is already known. Put the fingerprint in the bug title or the BUGS.md entry, not only in a file name.
 
 ### 3. Classify each cause
 
@@ -72,7 +72,7 @@ temporary measure after the root cause is named.
 
 Check these before a cause is reported as an app or environment defect. Each one is a common way to blame the system for a problem in the test.
 
-- **Read the comparison in the right order.** In `Expected status: 400 != 200` the server answered 400 and the test expected 200. It does not show that validation stopped working.
+- **Read the comparison in the right order.** RequestsLibrary puts the actual value first: in `Expected status: 400 != 200` the server answered 400 and the test expected 200. Other libraries order it differently, so check the library before reading the message. It does not show that validation stopped working.
 - **Find the step that failed.** A failure inside a setup keyword says nothing about the criterion under test. Open the failing keyword chain and name the step.
 - **Outage first.** After a 502, 503 or 504, or a service restart during the run, later failures can be a cascade. Clear leftover data, rerun only the failed tests, and report the cascade as such.
 - **Shared state inside one test.** Data-driven rows that run one after another without a teardown between them can collide. Give each row its own data.
