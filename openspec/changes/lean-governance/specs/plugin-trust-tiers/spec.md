@@ -1,6 +1,16 @@
 ## MODIFIED Requirements
 
-### Requirement: Verified tier entry criteria
+### Requirement: Review follows a published checklist
+
+Every PR SHALL use a PR template that lists the automated checks the PR must pass and asks the author for what the checks can't show: what the change is for, and anything a reviewer should look at by hand. The template SHALL NOT ask authors or reviewers to tick items that a required check already verifies.
+
+#### Scenario: New plugin PR shows the checklist
+- **WHEN** a contributor opens a PR that adds a plugin
+- **THEN** the PR description lists the required checks and the two questions, and has no checkbox for a property a required check enforces
+
+## ADDED Requirements
+
+### Requirement: Verified tier is decided by evidence
 
 A plugin SHALL have tier `verified` only when it meets every community criterion and also:
 - ships trigger query sets for each skill and narrow eval tasks in the `rf-skill-eval` harness;
@@ -16,16 +26,6 @@ The tier check SHALL decide from this evidence alone. It SHALL NOT require a num
 #### Scenario: One maintainer is enough
 - **WHEN** a `verified` plugin has one maintainer and all the evidence above
 - **THEN** the tier check passes
-
-### Requirement: Review follows a published checklist
-
-Every PR SHALL use a PR template that lists the automated checks the PR must pass and asks the author for what the checks can't show: what the change is for, and anything a reviewer should look at by hand. The template SHALL NOT ask authors or reviewers to tick items that a required check already verifies.
-
-#### Scenario: New plugin PR shows the template
-- **WHEN** a contributor opens a PR that adds a plugin
-- **THEN** the PR description lists the required checks and the two questions, and has no checkbox for a property a required check enforces
-
-## ADDED Requirements
 
 ### Requirement: Review is one maintainer approval, and checks do the rest
 
@@ -57,6 +57,12 @@ The ownership and tier checks SHALL give the same result for the same repository
 - **THEN** both runs give the same result
 
 ## REMOVED Requirements
+
+### Requirement: Verified tier entry criteria
+
+**Reason**: It asks for two maintainers, one of them in a Foundation reviewers team that doesn't exist, and for a Foundation reviewer's approval of the promotion. Under this change the tier is decided by evidence alone.
+
+**Migration**: Replaced by "Verified tier is decided by evidence". The evidence (trigger sets, narrow tasks, baselines, eval gate) stays; the security gate and the keyword check are named explicitly; the maintainer count, team membership and approval for the promotion are dropped.
 
 ### Requirement: Every change is reviewed by an owner of the plugin
 

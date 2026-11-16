@@ -83,9 +83,12 @@ jobs:
         env:
           SCANNERS: ${{ runner.temp }}/scanners/bin
           PLUGIN: ${{ matrix.plugin }}
+          # The scheduled and manual scans of main fail on baseline entries
+          # that expire within 30 days; PRs only list them.
+          FAIL_ON_WARN: ${{ github.event_name != 'pull_request' && '--fail-on-warn' || '' }}
         run: |
           status=0
-          scripts/security-scan.sh "$PLUGIN" "$RUNNER_TEMP/scan" || status=$?
+          scripts/security-scan.sh "$PLUGIN" "$RUNNER_TEMP/scan" $FAIL_ON_WARN || status=$?
           cat "$RUNNER_TEMP/scan/summary.md" >> "$GITHUB_STEP_SUMMARY"
           exit $status
       - name: Upload SARIF

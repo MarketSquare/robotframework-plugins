@@ -2,7 +2,7 @@
 # Scan one plugin's shipped content with the gate's scanners and compare the
 # findings with its baseline (spec content-security-scanning; design D6, D8).
 #
-# Usage: scripts/security-scan.sh <plugin> <outdir> [--draft] [--deep]
+# Usage: scripts/security-scan.sh <plugin> <outdir> [--draft] [--deep] [--fail-on-warn]
 #
 # Scans only what the plugin ships: its tracked files without the top-level
 # tests/ and evals/ (as the installer build does), copied to <outdir>/tree.
@@ -25,11 +25,12 @@ set -euo pipefail
 plugin=${1:?plugin name}
 out=${2:?output directory}
 shift 2
-draft="" deep=""
+draft="" deep="" fail_on_warn=""
 for opt in "$@"; do
   case "$opt" in
     --draft) draft=1 ;;
     --deep) deep=1 ;;
+    --fail-on-warn) fail_on_warn=1 ;;
     *) echo "security-scan: unknown option $opt" >&2; exit 2 ;;
   esac
 done
@@ -103,4 +104,5 @@ for member in $members; do
   args+=(--baseline "$root/security/baselines/$member.yaml" --map "plugins/$member/=$src/")
 done
 [ -n "$draft" ] && args+=(--draft "$out/draft.yaml")
+[ -n "$fail_on_warn" ] && args+=(--fail-on-warn)
 python3 "$here/scripts/compare-findings.py" "${args[@]}"

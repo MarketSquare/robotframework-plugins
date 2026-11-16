@@ -20,12 +20,11 @@ A plugin enters as `community` when:
 
 A `verified` plugin meets every community criterion and also:
 
-- has at least two maintainers, one of them in the Foundation reviewers team;
-- ships trigger query sets for each skill and eval tasks in the `rf-skill-eval` harness;
+- ships trigger query sets for each skill and narrow eval tasks in the `rf-skill-eval` harness;
 - has eval baselines measured on the current models, and passes the eval gate;
-- was approved for the tier by a Foundation reviewer, in the PR that sets `tier: verified`.
+- passes the security gate and the library-skill keyword check.
 
-`scripts/check-governance.py` checks the evidence in CI. A plugin that lacks some of it can stay `verified` only under a dated entry in `.github/governance.yaml`, which names what's missing; after the date, the check fails. The launch plugins have such an entry until 2027-01-31, for their second maintainer.
+The tier is decided by this evidence alone, not by the number of maintainers. `scripts/check-governance.py` checks the evals and baselines in CI; the security gate and the keyword check are required checks on every PR. A bundle is `verified` when every plugin it bundles is. No check fails because a date has passed, except the security baseline's expiry (see [SECURITY.md](SECURITY.md)).
 
 ### What a tier doesn't promise
 
@@ -33,14 +32,14 @@ A tier describes the evidence behind a plugin. It isn't a warranty: the checks a
 
 ## Review
 
-Every change to a plugin needs an approval from one of its maintainers (listed in `catalog.yaml` and `.github/CODEOWNERS`, which must agree). On top of that:
+The checks do most of the review. The maintainers of the repository are the people with the Maintain or Admin role; `.github/CODEOWNERS` names them as the owners of every path. Two rulesets protect `main`:
 
-| The PR | also needs |
-|---|---|
-| changes a `verified` plugin, or promotes one to `verified` | a Foundation reviewer (`@MarketSquare/robotframework-plugins-reviewers`) |
-| changes security-relevant content: hooks, scripts, MCP configuration, manifests, subagent `tools`, skill `allowed-tools`, workflows, `security/` | a security reviewer (`@MarketSquare/robotframework-plugins-security`) |
+- **Checks:** every required check must pass before a PR merges. Nobody can bypass this, maintainers included.
+- **Review:** a PR needs one approval from a maintainer. A maintainer can merge their own PR without one, through the PR page, once the checks pass. Nobody pushes to `main` directly.
 
-The `required-reviews` check enforces this; the author's own approval doesn't count. Reviewers work through the checklist in the PR template and don't approve while an item is unticked without a reason.
+Security-relevant content (hooks, scripts, MCP configuration, manifests, subagent `tools`, skill `allowed-tools`, workflows, `security/`) goes through the security gate like everything else; there is no separate security approval. A maintainer can add the `security-deep-scan` label for the model-assisted scans.
+
+A plugin's maintainers in `catalog.yaml` answer for it, but GitHub only counts approvals from people with write access, so their approval isn't required. Mention them in the PR so they can comment.
 
 ## What maintainers commit to
 
@@ -72,4 +71,4 @@ Each demotion is a PR that states the reason and stays open for at least 14 days
 
 ### Handing over
 
-A maintainer steps down with a PR that removes them from `catalog.yaml` and CODEOWNERS. A plugin left without maintainers is deprecated unless a new maintainer is added within 30 days; the catalogue check refuses an active plugin with nobody listed.
+A maintainer steps down with a PR that removes them from `catalog.yaml`. A plugin left without maintainers is deprecated unless a new maintainer is added within 30 days; the catalogue check refuses an active plugin with nobody listed.
