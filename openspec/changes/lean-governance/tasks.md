@@ -36,23 +36,23 @@
 ## 4. GitHub settings (maintainer step; ask before each change)
 
 - [x] 4.1 Save the current ruleset with `gh api repos/MarketSquare/robotframework-plugins/rulesets/26891587 > ruleset-main-before.json` (scratch, not committed). No team (D1, confirmed 2026-11-16). Verify that the JSON file is saved. Done: saved to the scratchpad as `ruleset-main-before.json` (ruleset `main`, active).
-- [ ] 4.2 With the maintainer's approval, create the two rulesets from D2 and delete ruleset 26891587:
+- [x] 4.2 With the maintainer's approval, create the two rulesets from D2 and delete ruleset 26891587:
   - `main-checks`: today's required checks minus `required-reviews`, no deletion, no force push, no bypass;
-  - `main-review`: 1 approval, code owner review, dismiss stale approvals, bypass for the Maintain and Admin roles in `pull_request` mode.
+  - `main-review`: 1 approval, code owner review, dismiss stale approvals, bypass for the Maintain and Admin roles in `pull_request` mode. Done 2026-11-16: `main-checks` (id 27388961, 11 required checks, no bypass) and `main-review` (id 27388964, 1 code-owner approval, stale approvals dismissed, bypass for Maintain and Admin in `pull_request` mode) are active; ruleset 26891587 is deleted; `required-reviews` is not a required check.
 
   Verify with `gh api .../rulesets` that both rulesets are active and that `required-reviews` is no longer a required check.
-- [ ] 4.3 Approved on 2026-11-16 (D6); confirm the timing with the maintainer, then enable repository auto-merge, secret scanning, push protection and Dependabot security updates. Verify that `gh api repos/MarketSquare/robotframework-plugins --jq '.allow_auto_merge, .security_and_analysis'` shows all of them enabled.
+- [x] 4.3 Approved on 2026-11-16 (D6); confirm the timing with the maintainer, then enable repository auto-merge, secret scanning, push protection and Dependabot security updates. Verify that `gh api repos/MarketSquare/robotframework-plugins --jq '.allow_auto_merge, .security_and_analysis'` shows all of them enabled. Done 2026-11-16: auto-merge, secret scanning, push protection, vulnerability alerts and Dependabot security updates are enabled (0 secret-scanning alerts).
 
 ## 5. Dry run and carried-over launch tasks
 
-- [ ] 5.1 Merge the PR with tasks 2–3 through the maintainer bypass. Then verify:
+- [x] 5.1 Merge the PR with tasks 2–3 through the maintainer bypass. Then verify:
   - a maintainer test PR (a docs typo) merges with no approval once its checks pass;
   - a test PR from a fork, or from an account without write access, shows "1 approving review required";
-  - a test PR with a failing check can't be merged, even with the bypass.
+  - a test PR with a failing check can't be merged, even with the bypass. Done 2026-11-16: #25 merged through the maintainer bypass with no approval; the fork PRs #11–#18 show "review required"; the bypass merge of the dry-run PR #26 (a docs voice failure) was refused with "9 of 11 required status checks have not succeeded", and #26 was closed unmerged. `gh workflow list` no longer shows the two review workflows (task 3.1).
 
   Close both test PRs without merging.
-- [ ] 5.2 (Launch 5.5) Find out why the `security-deep-scan.yml` push runs on `main` fail, fix it, and verify with a labelled test PR that the comment appears and that an unlabelled PR doesn't run the job.
-- [ ] 5.3 (Launch 8.1) After the next weekly `adoption-collect.yml` run, verify that the `adoption-data` branch has daily view and clone data; switch to a fine-grained token if `GITHUB_TOKEN` is refused.
+- [ ] 5.2 (Launch 5.5) Find out why the `security-deep-scan.yml` push runs on `main` fail, fix it, and verify with a labelled test PR that the comment appears and that an unlabelled PR doesn't run the job. In progress: the push runs fail because the repository has no `SECURITY_SCAN_ANTHROPIC_API_KEY` secret, so `security-scan.sh --deep` stops and the next `cat` of the missing summary fails the job. The workflow now reports "not run" without a key (warning, an `error` status and a comment on a labelled PR) and handles a missing summary. The maintainer chose OpenRouter with a dedicated key (`SECURITY_SCAN_OPENROUTER_API_KEY`, added 2026-11-16): `security-scan.sh` gets `SECURITY_SCAN_PROVIDER` (openrouter by default, model `z-ai/glm-5.3-flash`; anthropic stays available), and the workflow passes the new key. A local run with stub scanners shows both scanners get the OpenRouter settings. Still open: after merge, the push run on `main` must pass, and a labelled test PR that plants the C4 hook (`fetch(..., process.env)`) must be flagged with the comment; if GLM 5.3 Flash misses it, switch `vars.SECURITY_SCAN_MODEL` to a stronger OpenRouter model.
+- [ ] 5.3 (Launch 8.1) After the next weekly `adoption-collect.yml` run, verify that the `adoption-data` branch has daily view and clone data; switch to a fine-grained token if `GITHUB_TOKEN` is refused. In progress: a manual run on 2026-11-16 got HTTP 403 from the traffic API with `GITHUB_TOKEN`. The maintainer adds an `ADOPTION_TOKEN` secret (fine-grained, this repository, Administration: read); then a run is verified.
 - [ ] 5.4 (Launch 10.2) Release `rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop` at 1.0.0, the `rf-agentskills` 4.0.0 bundle and the first CalVer release of `robotframework-plugins`. Verify installs from the marketplace on Claude Code, Copilot CLI and Codex, and `uvx robotframework-plugins install --agent claude-code --yes`, in isolated homes.
 - [ ] 5.5 (Launch 10.3) Build and publish the forwarding `rf-agentskills` 0.9.0 from `legacy/rf-agentskills/`, then delete that folder. Verify that `uvx rf-agentskills install --agent claude-code --yes` prints the notice and installs.
 - [ ] 5.6 (Launch 10.4) Push the final README notice to `manykarim/robotframework-agentskills` and archive it. Verify that a marketplace add pinned to `v3.0.0` still installs and that the README shows the notice.
