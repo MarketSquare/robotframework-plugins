@@ -86,18 +86,36 @@ jobs:
       - name: Scan with the model passes
         id: scan
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.SECURITY_SCAN_ANTHROPIC_API_KEY }}
-          SECURITY_SCAN_MODEL: ${{ vars.SECURITY_SCAN_MODEL || 'claude-sonnet-5-5' }}
+          # A key of its own, with its own credit limit, so the scan can't
+          # spend the eval budget.
+          SECURITY_SCAN_PROVIDER: openrouter
+          SECURITY_SCAN_OPENROUTER_API_KEY: ${{ secrets.SECURITY_SCAN_OPENROUTER_API_KEY }}
+          SECURITY_SCAN_MODEL: ${{ vars.SECURITY_SCAN_MODEL || 'z-ai/glm-5.3-flash' }}
           SCANNERS: ${{ runner.temp }}/scanners/bin
           SCAN_ROOT: ${{ github.workspace }}/${{ steps.select.outputs.tree }}
           PLUGINS: ${{ steps.select.outputs.plugins }}
         run: |
           status=0
           report="$RUNNER_TEMP/deep-scan.md"
+          if [ -z "$SECURITY_SCAN_OPENROUTER_API_KEY" ]; then
+            # No model key: say so instead of failing every push to main. Not
+            # a passing result; the PR gate's static scans still ran.
+            echo "**Not run:** the repository has no \`SECURITY_SCAN_OPENROUTER_API_KEY\` secret, so the model passes can't run. This is not a passing result." > "$report"
+            echo "::warning::deep scan not run: no SECURITY_SCAN_OPENROUTER_API_KEY secret"
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            echo "status=not-run" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "Model-assisted scan of \`${HEAD_SHA:0:7}\` with $SECURITY_SCAN_MODEL." > "$report"
           for plugin in $(python3 -c 'import json, os; print(" ".join(json.loads(os.environ["PLUGINS"])))'); do
             base/scripts/security-scan.sh "$plugin" "$RUNNER_TEMP/scan/$plugin" --deep || status=1
-            { echo; cat "$RUNNER_TEMP/scan/$plugin/summary.md"; } >> "$report"
+            summary="$RUNNER_TEMP/scan/$plugin/summary.md"
+            if [ -f "$summary" ]; then
+              { echo; cat "$summary"; } >> "$report"
+            else
+              printf '\n## Security gate: %s, failed\n\nThe scan stopped before writing a summary; see the run log.\n' "$plugin" >> "$report"
+              status=1
+            fi
           done
           cat "$report" >> "$GITHUB_STEP_SUMMARY"
           echo "status=$status" >> "$GITHUB_OUTPUT"
@@ -120,16 +138,20 @@ jobs:
             let body = fs.existsSync(path) ? fs.readFileSync(path, "utf8") : "The deep scan did not finish; see the run log.";
             if (body.length > 60000) body = body.slice(0, 60000) + "\n\n(Cut short; the full report is in the job summary.)";
             const ok = process.env.SCAN_STATUS === "0";
+            const notRun = process.env.SCAN_STATUS === "not-run";
+            const verdict = ok ? "passed" : notRun ? "not run" : "failed";
             await github.rest.issues.createComment({
               owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
-              body: `### Security deep scan: ${ok ? "passed" : "failed"}\n\n${body}`,
+              body: `### Security deep scan: ${verdict}\n\n${body}`,
             });
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner, repo: context.repo.repo, sha: process.env.HEAD_SHA,
-              state: ok ? "success" : "failure", context: "security-deep-scan",
-              description: ok ? "No new HIGH or CRITICAL findings" : "New HIGH or CRITICAL findings, or a baseline problem",
+              state: ok ? "success" : notRun ? "error" : "failure", context: "security-deep-scan",
+              description: ok ? "No new HIGH or CRITICAL findings"
+                : notRun ? "Not run: no model key configured"
+                : "New HIGH or CRITICAL findings, or a baseline problem",
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });
       - name: Fail on new findings
-        if: steps.scan.outputs.status != '0'
+        if: steps.scan.outputs.status != '0' && steps.scan.outputs.status != 'not-run'
         run: exit 1

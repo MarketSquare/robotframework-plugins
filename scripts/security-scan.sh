@@ -19,7 +19,11 @@
 # baselines are read as data, while this script, compare-findings.py and the
 # cc-audit configuration come from the checkout this script is in.
 # --deep turns on the model passes (SkillSpector without --no-llm, Cisco
-# --use-llm); they read ANTHROPIC_API_KEY and SECURITY_SCAN_MODEL.
+# --use-llm). SECURITY_SCAN_PROVIDER picks the provider:
+#   openrouter (default): SECURITY_SCAN_OPENROUTER_API_KEY, model
+#                         SECURITY_SCAN_MODEL (default z-ai/glm-5.3-flash)
+#   anthropic:            ANTHROPIC_API_KEY, model SECURITY_SCAN_MODEL
+#                         (default claude-sonnet-5-5)
 set -euo pipefail
 
 plugin=${1:?plugin name}
@@ -57,13 +61,29 @@ git -C "$root" ls-files -z -- "$src" \
   | grep -zv -E "^$src/(tests|evals)/" \
   | (cd "$root" && xargs -0 cp -P --parents -t "$out/tree")  # -P: copy a symlink as a link, never its target
 
-model=${SECURITY_SCAN_MODEL:-claude-sonnet-5-5}
+provider=${SECURITY_SCAN_PROVIDER:-openrouter}
 cisco_llm=() spector_llm=(--no-llm)
 if [ -n "$deep" ]; then
-  : "${ANTHROPIC_API_KEY:?--deep needs ANTHROPIC_API_KEY}"
-  cisco_llm=(--use-llm --llm-provider anthropic)
   spector_llm=()
-  export SKILL_SCANNER_LLM_MODEL="$model" SKILLSPECTOR_PROVIDER=anthropic SKILLSPECTOR_MODEL="$model"
+  case "$provider" in
+    openrouter)
+      : "${SECURITY_SCAN_OPENROUTER_API_KEY:?--deep needs SECURITY_SCAN_OPENROUTER_API_KEY}"
+      model=${SECURITY_SCAN_MODEL:-z-ai/glm-5.3-flash}
+      base_url=https://openrouter.ai/api/v1
+      cisco_llm=(--use-llm --llm-provider openai-compatible)
+      export SKILL_SCANNER_LLM_API_KEY="$SECURITY_SCAN_OPENROUTER_API_KEY" SKILL_SCANNER_LLM_BASE_URL="$base_url" \
+        SKILL_SCANNER_LLM_MODEL="$model" SKILLSPECTOR_PROVIDER=openai_compatible \
+        SKILLSPECTOR_COMPAT_API_KEY="$SECURITY_SCAN_OPENROUTER_API_KEY" SKILLSPECTOR_COMPAT_BASE_URL="$base_url" \
+        SKILLSPECTOR_MODEL="$model"
+      ;;
+    anthropic)
+      : "${ANTHROPIC_API_KEY:?--deep with SECURITY_SCAN_PROVIDER=anthropic needs ANTHROPIC_API_KEY}"
+      model=${SECURITY_SCAN_MODEL:-claude-sonnet-5-5}
+      cisco_llm=(--use-llm --llm-provider anthropic)
+      export SKILL_SCANNER_LLM_MODEL="$model" SKILLSPECTOR_PROVIDER=anthropic SKILLSPECTOR_MODEL="$model"
+      ;;
+    *) echo "security-scan: unknown SECURITY_SCAN_PROVIDER $provider" >&2; exit 2 ;;
+  esac
 fi
 
 sarif=()
