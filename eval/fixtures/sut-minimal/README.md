@@ -1,10 +1,8 @@
 # sut-minimal
 
-Minimal Robot Framework fixture used by narrow-tier evaluation tasks. It
-contains a shared resource file, a handful of pre-existing test files with
-intentionally duplicated setup blocks (for resource-extraction scenarios), a
-sample `output.xml` for the rf-results task, and a static JSON fixture for
-the API task. No browser or network dependency.
+A small Robot Framework project: a shared resource file, a few test files, a
+sample `output.xml` and mocked API data in `data/`. No browser or network
+dependency.
 
 Run the smoke test:
 

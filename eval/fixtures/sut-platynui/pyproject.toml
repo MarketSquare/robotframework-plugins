@@ -1,7 +1,7 @@
 [project]
 name = "sut-platynui"
 version = "0.0.1"
-description = "Spec-only PlatynUI fixture for the rf-agentskills eval harness."
+description = "Desktop calculator tests with PlatynUI."
 requires-python = ">=3.12"
 dependencies = [
   "robotframework>=7.0",

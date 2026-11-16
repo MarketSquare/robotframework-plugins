@@ -1,7 +1,7 @@
 [project]
 name = "sut-selenium"
 version = "0.0.1"
-description = "SeleniumLibrary Robot Framework fixture for the rf-agentskills eval harness."
+description = "Web page tests with SeleniumLibrary."
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.0",

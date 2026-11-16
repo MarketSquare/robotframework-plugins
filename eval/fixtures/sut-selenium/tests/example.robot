@@ -1,6 +1,5 @@
 *** Settings ***
 Documentation    Smoke test that proves SeleniumLibrary can open the local login page.
-...              Irrelevant to any eval task; exists only as a sanity check.
 Library          SeleniumLibrary
 Suite Teardown   Close All Browsers
 

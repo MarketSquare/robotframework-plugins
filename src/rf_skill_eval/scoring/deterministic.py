@@ -32,6 +32,7 @@ from .session_based import (
 )
 
 _log = logging.getLogger(__name__)
+_REPO = Path(__file__).resolve().parents[3]
 
 
 def _resolve_base(run: Run, params: dict[str, Any]) -> Path:
@@ -237,7 +238,15 @@ def check_keywords_resolve(run: Run, name: str, params: dict[str, Any]) -> Verdi
     if not target:
         raise GraderError("keywords_resolve requires a 'path' param")
     base = _resolve_base(run, params)
-    spec_base = Path(params["spec_dir"]) if params.get("spec_dir") else base
+    # A relative spec_dir is grader data in the repository (eval/graders/specs),
+    # kept out of the agent's workspace.
+    spec_dir = Path(params["spec_dir"]) if params.get("spec_dir") else None
+    if spec_dir is None:
+        spec_base = base
+    elif spec_dir.is_absolute():
+        spec_base = spec_dir
+    else:
+        spec_base = _REPO / spec_dir
     spec_paths = [spec_base / str(s) for s in specs]
     missing_specs = [str(p) for p in spec_paths if not p.is_file()]
     if missing_specs:
