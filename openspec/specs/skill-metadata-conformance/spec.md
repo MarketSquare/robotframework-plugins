@@ -5,22 +5,21 @@ Makes every skill shipped by this repository conform to the agentskills.io SKILL
 
 ## Requirements
 
-
 ### Requirement: One identifier per skill across all channels
 
-Each skill SHALL have exactly one identifier of the form `rf-<topic>`. In the root `skills/` directory, and in `plugins/rf-agentskills/skills/`, the skill's directory name MUST equal the `name` field of its `SKILL.md` frontmatter, and that value MUST be the same in both channels.
+Each skill SHALL have exactly one identifier of the form `rf-<topic>`, unique across the catalogue. In `plugins/<plugin>/skills/`, the skill's directory name MUST equal the `name` field of its `SKILL.md` frontmatter, and every channel built from the plugin (installer assets, release tarballs, Desktop ZIPs) MUST use the same directory name.
 
 #### Scenario: Directory equals name in every channel
-- **WHEN** any `SKILL.md` under `skills/` or `plugins/rf-agentskills/skills/` is inspected
+- **WHEN** any `SKILL.md` under `plugins/*/skills/` or in a built channel is inspected
 - **THEN** its frontmatter `name` equals the name of the directory that contains it
 
 #### Scenario: Same identifier in every channel
-- **WHEN** the set of skill directory names in the two channels is compared
+- **WHEN** the skill directory names of a plugin and of a channel built from it are compared
 - **THEN** the two sets are identical and every entry starts with `rf-`
 
 #### Scenario: Plugin skill is namespaced by the plugin
 - **WHEN** the Claude Code plugin is loaded
-- **THEN** each skill is addressable as `rf-agentskills:<name>` where `<name>` is the same `rf-<topic>` identifier used by the standalone channels
+- **THEN** each skill is addressable as `<plugin>:<name>`, for example `rf-web:rf-browser` (or `rf-agentskills:rf-browser` through the bundle), where `<name>` is the same identifier used by the standalone channels
 
 ### Requirement: Frontmatter conforms to the agentskills.io field rules
 
@@ -40,7 +39,7 @@ Every `SKILL.md` in every channel SHALL satisfy these rules. `name` is 1–64 ch
 
 ### Requirement: Skills declare runtime compatibility, license and metadata
 
-Every skill SHALL declare `license: Apache-2.0`, a `compatibility` field that states the runtimes and packages it needs (Python floor, Robot Framework floor, library package and any external runtime such as Node.js, the Appium server, robotcode or uv), and `metadata` with at least `author` and `version`. `metadata.version` MUST equal the content version in the repository `VERSION` file.
+Every skill SHALL declare `license: Apache-2.0`, a `compatibility` field that states the runtimes and packages it needs (Python floor, Robot Framework floor, library package and any external runtime such as Node.js, the Appium server, robotcode or uv), and `metadata` with at least `author` and `version`. `metadata.version` MUST equal the version in its plugin's `.claude-plugin/plugin.json`.
 
 #### Scenario: Script-based skill states its Python dependencies
 - **WHEN** the frontmatter of a skill that ships a Python script (for example `rf-language` or `rf-python-library`) is read
@@ -55,32 +54,20 @@ Every skill SHALL declare `license: Apache-2.0`, a `compatibility` field that st
 - **THEN** `compatibility` names `robotcode[all]>=2.8` in the project environment
 
 #### Scenario: Version stays in step with the bundle
-- **WHEN** `scripts/bump-version.sh` bumps the content version
-- **THEN** every root skill's `metadata.version` is updated to the new value, and the validator fails if any skill disagrees with `VERSION`
+- **WHEN** `scripts/bump-version.sh rf-core minor` runs
+- **THEN** the plugin's `plugin.json` and every one of its skills' `metadata.version` carry the new value, and the validator fails if any skill disagrees with its plugin
 
 ### Requirement: Skill validation runs in CI for all channels
 
-The repository SHALL provide a skill validator that can run offline with no third-party dependencies and enforces the frontmatter and name/directory rules for all three channels. CI MUST run the validator on every push and pull request, and a violation MUST fail the build.
+The repository SHALL provide a skill validator that can run offline with no third-party dependencies and enforces the frontmatter and name/directory rules for every plugin's skills and the channels built from them. CI MUST run the validator on every push and pull request, and a violation MUST fail the build.
 
 #### Scenario: CI fails on a mismatched directory
-- **WHEN** a pull request adds `skills/rf-foo/SKILL.md` with `name: rf-bar`
+- **WHEN** a pull request adds `plugins/rf-web/skills/rf-foo/SKILL.md` with `name: rf-bar`
 - **THEN** the CI skill-validation job fails and reports the mismatch
 
 #### Scenario: Validator is exercised by tests
 - **WHEN** the test suite runs
 - **THEN** it includes cases that feed the validator a valid skill and invalid skills (bad charset, dir mismatch, long description, long compatibility, XML tag, unknown key) and asserts the expected outcome
-
-### Requirement: Sync propagates skills without renaming and removes stale copies
-
-`scripts/sync-skills.sh` SHALL copy each root skill to the plugin channel under the same directory name and with the same `name`, applying only the plugin script-path rewrite. It SHALL remove any skill directory in a generated channel that has no counterpart in root `skills/`. `scripts/check-drift.sh` SHALL report drift when a generated channel has an extra, missing or differing skill.
-
-#### Scenario: Renamed skill leaves no stale copy
-- **WHEN** a root skill directory is renamed or deleted and sync runs
-- **THEN** the old directory no longer exists under `plugins/rf-agentskills/skills/`
-
-#### Scenario: Drift check catches an orphaned channel skill
-- **WHEN** `plugins/rf-agentskills/skills/` contains a directory that has no counterpart in root `skills/`
-- **THEN** `scripts/check-drift.sh` exits non-zero and names the directory
 
 ### Requirement: Repository references use the canonical identifiers
 

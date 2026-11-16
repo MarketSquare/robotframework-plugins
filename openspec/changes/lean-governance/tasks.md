@@ -1,29 +1,29 @@
 ## 1. Close `launch-plugin-programme` (D8)
 
-- [ ] 1.1 For launch task 1.3, compare `git rev-parse <tag>^{commit}` in the new repository with `manykarim/robotframework-agentskills` for every listed tag; verify they all match, then tick 1.3 with the result.
-- [ ] 1.2 In `openspec/changes/launch-plugin-programme/tasks.md`:
+- [x] 1.1 For launch task 1.3, compare `git rev-parse <tag>^{commit}` in the new repository with `manykarim/robotframework-agentskills` for every listed tag; verify they all match, then tick 1.3 with the result. Done: all 14 tags match (`git ls-remote` of both repositories, 2026-11-16).
+- [x] 1.2 In `openspec/changes/launch-plugin-programme/tasks.md`:
   - tick 5.4, 5.6, 6.4, 9.2, 9.3, 9.4 and 10.1, each with its evidence from design D8;
   - mark 6.1 "superseded by `lean-governance`";
-  - mark 5.5, 8.1 and 10.2–10.4 "carried over to `lean-governance`".
+  - mark 5.5, 8.1 and 10.2–10.4 "carried over to `lean-governance`". Done.
 
-  Verify that `openspec list` shows no unticked task in the change other than 10.5.
-- [ ] 1.3 Archive `launch-plugin-programme` with its specs synced (`/opsx:archive`). Verify that `openspec validate --specs --strict` passes and that `openspec validate lean-governance` no longer reports "target spec does not exist".
+  Verify that the only unticked tasks left in the change are 6.1 (superseded), the carried-over 5.5, 8.1 and 10.2–10.4 (each with its note), and 10.5.
+- [x] 1.3 Archive `launch-plugin-programme` with its specs synced (`/opsx:archive`). Verify that `openspec validate --specs --strict` passes and that `openspec validate lean-governance` no longer reports "target spec does not exist". Done: archived as `2026-11-16-launch-plugin-programme` (+37, ~11, -6 requirements); `openspec validate --specs --strict` passes 31/31. The `plugin-trust-tiers` delta here now removes "Verified tier entry criteria" and adds "Verified tier is decided by evidence", because a MODIFIED block can't drop the old "Tier promotion needs a Foundation reviewer" scenario.
 
 ## 2. Checks and scripts (D4, D5)
 
-- [ ] 2.1 Reduce `scripts/check-governance.py` to the tier evidence: drop the maintainer count, Foundation membership, `tier_grace`, `--today`, `--team-members` and the CODEOWNERS agreement. Update `tests/test_governance.py`: keep "Verified without evals is refused", and add "One maintainer is enough" and "Same tree, later date" (run with the clock patched to 2027-02-01). Verify that `pytest tests/test_governance.py` passes and `python scripts/check-governance.py` prints no warning.
-- [ ] 2.2 Add `--warn-days` (default 30) and `--fail-on-warn` to `scripts/compare-findings.py`, and pass `--fail-on-warn` from `security-gate.yml` only on `schedule` and `workflow_dispatch` runs. Add tests in `tests/test_compare_findings.py` for "Expiry is flagged ahead": a 20-day entry gives a warning and exit 0, and exit 1 with `--fail-on-warn`. Verify that `pytest tests/test_compare_findings.py` passes.
-- [ ] 2.3 Delete `scripts/required-reviews.py`, the required-review tests in `tests/test_governance.py`, `tests/fixtures/required-reviews/` and `.github/governance.yaml`. Remove `.github/governance.yaml` and `scripts/required-reviews.py` from every list that names them (CODEOWNERS, `check_content_rules.py` or `security-scan.sh` path lists, if any). Verify that `grep -rn "required-reviews\|governance.yaml" --exclude-dir=openspec .` only finds the workflow files deleted in 3.1.
-- [ ] 2.4 Replace `.github/CODEOWNERS` with a default owner line for the maintainers (D1), and update `scripts/check-template.sh` and `templates/plugin/` if they mention CODEOWNERS lines per plugin. Verify that `bash scripts/check-template.sh` passes.
+- [x] 2.1 Reduce `scripts/check-governance.py` to the tier evidence: drop the maintainer count, Foundation membership, `tier_grace`, `--today`, `--team-members` and the CODEOWNERS agreement. Update `tests/test_governance.py`: keep "Verified without evals is refused", and add "One maintainer is enough" and "Same tree, later date" (run with the clock patched to 2027-02-01). Verify that `pytest tests/test_governance.py` passes and `python scripts/check-governance.py` prints no warning. Done: 6 tests pass; the check prints `governance: tier evidence OK`.
+- [x] 2.2 Add `--warn-days` (default 30) and `--fail-on-warn` to `scripts/compare-findings.py`, and pass `--fail-on-warn` from `security-gate.yml` only on `schedule` and `workflow_dispatch` runs. Add tests in `tests/test_compare_findings.py` for "Expiry is flagged ahead": a 20-day entry gives a warning and exit 0, and exit 1 with `--fail-on-warn`. Verify that `pytest tests/test_compare_findings.py` passes. Done: `security-scan.sh --fail-on-warn` passes the flag through; tests pass. Earliest real expiry is 2027-11-08, so the nightly scan doesn't fail today.
+- [x] 2.3 Delete `scripts/required-reviews.py`, the required-review tests in `tests/test_governance.py`, `tests/fixtures/required-reviews/` and `.github/governance.yaml`. Remove `.github/governance.yaml` and `scripts/required-reviews.py` from every list that names them (CODEOWNERS, `check_content_rules.py` or `security-scan.sh` path lists, if any). Verify that `grep -rn "required-reviews\|governance.yaml" --exclude-dir=openspec .` only finds the workflow files deleted in 3.1. Done: the grep only finds `tests/test_governance.py`, which asserts the file is gone.
+- [x] 2.4 Replace `.github/CODEOWNERS` with a default owner line for the maintainers (D1), and update `scripts/check-template.sh` and `templates/plugin/` if they mention CODEOWNERS lines per plugin. Verify that `bash scripts/check-template.sh` passes. Done: `* @manykarim`; `check-template.sh` no longer adds a CODEOWNERS line and passes.
 
 ## 3. Workflows, template and docs (D3, D7)
 
-- [ ] 3.1 Delete `.github/workflows/required-reviews.yml` and `.github/workflows/review-relay.yml`, and update the ci.yml comment at the `check-governance.py` step. Verify that `actionlint` (or `gh workflow list` after merge) shows neither workflow.
-- [ ] 3.2 Rewrite `.github/pull_request_template.md` as in D7: "What this changes", "Checked by CI" with no checkboxes, and "For the reviewer". Leave a marked spot for the AI disclosure line from `ai-contributor-docs`. Verify that the template names only checks that exist in `ci.yml` and `security-gate.yml`.
-- [ ] 3.3 Rewrite GOVERNANCE.md:
+- [x] 3.1 Delete `.github/workflows/required-reviews.yml` and `.github/workflows/review-relay.yml`, and update the ci.yml comment at the `check-governance.py` step. Verify that `actionlint` (or `gh workflow list` after merge) shows neither workflow. Done: workflows deleted; the ci.yml step is now "Tier evidence". actionlint isn't installed locally (the YAML parses); `gh workflow list` is checked after merge.
+- [x] 3.2 Rewrite `.github/pull_request_template.md` as in D7: "What this changes", "Checked by CI" with no checkboxes, and "For the reviewer". Leave a marked spot for the AI disclosure line from `ai-contributor-docs`. Verify that the template names only checks that exist in `ci.yml` and `security-gate.yml`. Done.
+- [x] 3.3 Rewrite GOVERNANCE.md:
   - Tiers: evidence only.
   - Review: the two rulesets, one approval for external PRs, maintainers merge on green.
-  - Keep the commitments and the lifecycle as they are.
+  - Keep the commitments and the lifecycle as they are. Done: the voice check passes and the grep finds nothing.
 
   Then update:
   - the CONTRIBUTING.md "Review" section and step 4 of "Adding a plugin", which drops the CODEOWNERS line and mentions the plugin's maintainers in the PR instead;
@@ -31,11 +31,11 @@
   - the SECURITY.md sentence about security reviewers.
 
   Verify that `python scripts/check-docs-voice.py` passes, and that `grep -rn "Foundation reviewer\|security reviewer\|required-reviews" README.md CONTRIBUTING.md GOVERNANCE.md SECURITY.md` finds nothing.
-- [ ] 3.4 Run `pytest tests --ignore=tests/eval`, `python scripts/build-catalog.py --check` and `bash scripts/check-template.sh`; verify that all of them pass.
+- [x] 3.4 Run `pytest tests --ignore=tests/eval`, `python scripts/build-catalog.py --check` and `bash scripts/check-template.sh`; verify that all of them pass. Done: `pytest tests --ignore=tests/eval` 804 passed, 40 skipped (libraries not installed locally); `build-catalog.py --check` and `check-template.sh` pass.
 
 ## 4. GitHub settings (maintainer step; ask before each change)
 
-- [ ] 4.1 Save the current ruleset with `gh api repos/MarketSquare/robotframework-plugins/rulesets/26891587 > ruleset-main-before.json` (scratch, not committed). No team (D1, confirmed 2026-11-16). Verify that the JSON file is saved.
+- [x] 4.1 Save the current ruleset with `gh api repos/MarketSquare/robotframework-plugins/rulesets/26891587 > ruleset-main-before.json` (scratch, not committed). No team (D1, confirmed 2026-11-16). Verify that the JSON file is saved. Done: saved to the scratchpad as `ruleset-main-before.json` (ruleset `main`, active).
 - [ ] 4.2 With the maintainer's approval, create the two rulesets from D2 and delete ruleset 26891587:
   - `main-checks`: today's required checks minus `required-reviews`, no deletion, no force push, no bypass;
   - `main-review`: 1 approval, code owner review, dismiss stale approvals, bypass for the Maintain and Admin roles in `pull_request` mode.

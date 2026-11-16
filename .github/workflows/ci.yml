@@ -200,9 +200,9 @@ jobs:
         # Banned corporate phrases and at most one exclamation mark per
         # document (programme-documentation; the rest is a review item).
         run: python scripts/check-docs-voice.py
-      - name: Ownership and tier evidence
-        # CODEOWNERS matches catalog.yaml maintainers; verified plugins have
-        # their evidence or a dated grace entry (.github/governance.yaml).
+      - name: Tier evidence
+        # Verified plugins have trigger sets, narrow tasks and baselines for
+        # every skill (plugin-trust-tiers); no date or head count is involved.
         run: python scripts/check-governance.py
       - name: Validate manifests and SKILL.md frontmatter
         # Includes the marketplace/plugin manifest consistency checks.

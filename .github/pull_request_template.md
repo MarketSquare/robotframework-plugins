@@ -2,18 +2,21 @@
 
 <!-- One or two sentences: what a user of the plugin gets from this PR. -->
 
-## Review checklist
+<!-- ai-disclosure: the AI assistance line goes here (change ai-contributor-docs). -->
 
-Tick each item, or write "n/a: <reason>" after it. Reviewers don't approve a PR
-with an unticked item that has no reason (see CONTRIBUTING.md, "Review").
+## Checked by CI
 
-- [ ] **Purpose.** Each new or changed skill and subagent says what it is for and when to use it, in its description.
-- [ ] **Supported versions.** `catalog.yaml` lists the libraries and version ranges the content was checked against, and the Robot Framework range.
-- [ ] **Examples.** `.robot` examples pass `robot --dryrun`; Python examples run.
-- [ ] **Security-relevant changes.** Hooks, scripts, MCP configuration, manifests, subagent `tools` and skill `allowed-tools` changes are listed below; the security gate passes, and any new baseline entry has a reason.
-- [ ] **Tool permissions.** Every subagent declares an explicit `tools` list; no `allowed-tools` entry grants unrestricted shell access.
-- [ ] **Documentation voice.** Text follows the writing rules in CONTRIBUTING.md and passes the docs voice check.
+These run on every PR and must pass before it can merge. You don't need to tick anything.
 
-### Security-relevant changes
+- **Security gate result:** house content rules, the scanners on each changed plugin against its baseline, and secrets in the diff.
+- **Validate plugin structure:** the catalogue, docs voice, tier evidence, manifests, SKILL.md frontmatter, per-agent variants and the skills of every plugin.
+- **Check library-skill keywords:** every keyword a library skill teaches exists and isn't deprecated.
+- **Validate .robot examples:** dry runs of the examples.
+- **Check generated variants and plugin layout**, **Validate SKILL.md frontmatter (agentskills.io)**, **Lint**, **Test** and **Template plugin passes the PR checks**.
 
-<!-- List them, or write "none". -->
+## For the reviewer
+
+<!-- Anything the checks can't see: a behaviour change, a new tool permission
+     or allowed-tools entry, a new hook, a judgement call. Write "nothing" if
+     there is none. If the PR changes a plugin, mention its catalog.yaml
+     maintainers here. -->

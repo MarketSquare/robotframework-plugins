@@ -5,7 +5,6 @@ Define which skills, helper scripts and MCP tools the rf-agentskills content bun
 
 ## Requirements
 
-
 ### Requirement: No references to retired skills remain in shipped content
 
 Shipped content SHALL NOT name, link to or instruct the agent to use a retired skill, a retired subagent, their scripts or their MCP tools. This covers every `SKILL.md` and reference file, the subagent prompts, the hook scripts and their injected text, plugin/marketplace/extension descriptions, the README, and current-behaviour docs and test fixtures. Historical records (archived OpenSpec changes, dated plans and reports, eval run outputs) are exempt.
@@ -32,14 +31,14 @@ Retired skills are the generator skills (`rf-keyword-builder`, `rf-testcase-buil
 
 ### Requirement: Distribution tooling rejects orphaned copies
 
-The sync script SHALL make each distribution channel mirror the root `skills/` tree, removing plugin skill directories and plugin scripts that have no root source. The drift check SHALL fail when a plugin skill directory, or plugin helper script exists without a corresponding root skill or script.
+Every distribution channel SHALL be built from the plugin's own `plugins/<name>/` tree: the installer's bundled assets, the release tarballs and the Claude Desktop ZIPs. A build SHALL contain no skill directory, subagent or helper script that the plugin tree does not have. The drift check SHALL fail when a generated Codex or OpenCode variant is missing, stale, or has no source subagent.
 
 #### Scenario: Sync removes a retired skill's copies
-- **WHEN** a skill directory is deleted from root `skills/` and `scripts/sync-skills.sh` runs
-- **THEN** its plugin skill directory and its plugin script(s) no longer exist
+- **WHEN** a skill directory is deleted from `plugins/<plugin>/skills/` and the installer and release packages are built
+- **THEN** none of them contains that skill or its scripts
 
 #### Scenario: Drift check catches an orphan
-- **WHEN** a plugin skill directory or plugin Python helper script exists that no root skill provides
+- **WHEN** a Codex or OpenCode variant exists for a subagent the plugin no longer ships
 - **THEN** `scripts/check-drift.sh` exits non-zero and names the orphan
 
 ### Requirement: Evaluation assets cover only shipped skills
@@ -56,12 +55,12 @@ Eval tasks SHALL only target skills that ship. Every task's `skill:` field SHALL
 
 ### Requirement: Retirements are released as a breaking content change
 
-Removing a skill, a subagent or an MCP tool SHALL bump the content channel's major version (every plugin and marketplace manifest in lockstep) and SHALL be recorded in the content and installer CHANGELOGs with what was removed, why, and what to use instead.
+Removing a skill, a subagent or an MCP tool from a plugin SHALL bump that plugin's major version in its `plugin.json`, and SHALL be recorded in the plugin's CHANGELOG and in the release notes of the next installer release, with what was removed, why, and what to use instead.
 
 #### Scenario: Version and changelog reflect the retirement
-- **WHEN** the release containing this change is prepared
-- **THEN** `plugins/rf-agentskills/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` carry the same new major version
-- **AND** the CHANGELOG entry lists the removed skills (`rf-robotcode`, `rf-libdoc`, `rf-results`), the removed subagent (`rf-keyword-consultant`), the removed scripts, and the replacement (`robotcode doc`, `robotcode results`, the robotcode plugin, and the `robotcode[all]>=2.8` prerequisite)
+- **WHEN** the release containing a retirement is prepared
+- **THEN** `plugins/<name>/.claude-plugin/plugin.json` carries a new major version and the marketplace entry carries no version
+- **AND** the plugin's CHANGELOG entry lists the removed items and their replacements
 
 ### Requirement: The bundle ships no MCP server
 
