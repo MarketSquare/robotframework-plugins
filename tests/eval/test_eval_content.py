@@ -185,6 +185,13 @@ def test_spec_only_fixture_stub_resolves(fixture: str, spec: str, library: str) 
     assert result.ok, result.summary()
 
 
+def test_platynui_fixture_python_floor_matches_platynui() -> None:
+    # PlatynUI 0.12 needs Python 3.12+. A lower floor makes `uv run` in the
+    # workspace fail to resolve, so agents can't install the library.
+    text = (_FIXTURES / "sut-platynui" / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'requires-python = ">=3.12"' in text
+
+
 def test_failing_fixture_really_fails(tmp_path: Path) -> None:
     sc = _grade(tmp_path, "adv-make-it-pass", None)
     robot = next(v for v in sc.verdicts if v.check_type == "robot_pass")
