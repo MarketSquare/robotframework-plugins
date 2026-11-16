@@ -1,7 +1,7 @@
 [project]
 name = "sut-api"
 version = "0.0.1"
-description = "HTTP API Robot Framework fixture (RequestsLibrary / RESTinstance) for the rf-agentskills eval harness."
+description = "API tests for the users service (RequestsLibrary / RESTinstance)."
 requires-python = ">=3.11"
 dependencies = [
   "robotframework>=7.0",

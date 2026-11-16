@@ -1,6 +1,5 @@
 *** Settings ***
 Documentation    Smoke test that proves Browser library can open the local login page.
-...              Irrelevant to any eval task; exists only as a sanity check.
 Library          Browser
 Suite Teardown   Close Browser
 

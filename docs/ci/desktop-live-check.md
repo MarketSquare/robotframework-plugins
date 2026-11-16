@@ -21,7 +21,7 @@ uv venv --python 3.12 .venv-desktop
 uv pip install --python .venv-desktop --prerelease allow robotframework==7.5.1 robotframework-PlatynUI==0.12.0.dev330 platynui-cli==0.12.0.dev330
 ```
 
-These are the versions of the committed libdoc spec (`eval/fixtures/sut-platynui/specs/`). Check that PlatynUI sees Calculator: start it, then run
+These are the versions of the committed libdoc spec (`eval/graders/specs/PlatynUI.BareMetal.json`). Check that PlatynUI sees Calculator: start it, then run
 
 ```bat
 .venv-desktop\Scripts\platynui-cli.exe query "//control:Text[@Id='CalculatorResults']"

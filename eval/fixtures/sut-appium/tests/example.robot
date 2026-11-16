@@ -1,7 +1,6 @@
 *** Settings ***
-Documentation    Static stub for the Demo Login Android app (see app/SCREENS.md).
-...              Not executed in CI (no device); graded with keywords_resolve
-...              against specs/AppiumLibrary.json.
+Documentation    Smoke test for the Demo Login Android app (see app/SCREENS.md).
+...              Needs an emulator and the Appium server.
 Library          AppiumLibrary
 Suite Teardown   Close All Applications
 

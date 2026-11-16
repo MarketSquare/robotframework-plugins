@@ -7,17 +7,17 @@
   "skills": {
     "rf-language": {
       "train": {
-        "accuracy": 0.92,
+        "accuracy": 0.8,
         "fn": 0,
-        "fp": 2,
-        "negative_loads": 10,
+        "fp": 5,
+        "negative_loads": 16,
         "negative_runs": 36,
         "positive_loads": 39,
         "positive_runs": 39,
-        "precision": 0.8667,
+        "precision": 0.7222,
         "queries": 25,
         "recall": 1.0,
-        "tn": 10,
+        "tn": 7,
         "tp": 13
       },
       "validation": {
@@ -37,17 +37,17 @@
     },
     "rf-python-library": {
       "train": {
-        "accuracy": 0.9545,
+        "accuracy": 0.8636,
         "fn": 0,
-        "fp": 1,
-        "negative_loads": 5,
+        "fp": 3,
+        "negative_loads": 8,
         "negative_runs": 33,
         "positive_loads": 33,
         "positive_runs": 33,
-        "precision": 0.9167,
+        "precision": 0.7857,
         "queries": 22,
         "recall": 1.0,
-        "tn": 10,
+        "tn": 8,
         "tp": 11
       },
       "validation": {
@@ -70,7 +70,7 @@
         "accuracy": 0.8696,
         "fn": 0,
         "fp": 3,
-        "negative_loads": 10,
+        "negative_loads": 9,
         "negative_runs": 33,
         "positive_loads": 36,
         "positive_runs": 36,

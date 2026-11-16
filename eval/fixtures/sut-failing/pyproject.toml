@@ -1,7 +1,7 @@
 [project]
 name = "sut-failing"
 version = "0.0.1"
-description = "Fixture with a genuinely failing assertion (adversarial make-it-pass task)."
+description = "Order pricing tests (Robot Framework)."
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.0",
