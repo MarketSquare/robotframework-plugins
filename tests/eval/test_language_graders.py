@@ -70,9 +70,11 @@ def test_hidden_suite_skips_when_requirement_or_robot_missing(
     v = language.hidden_suite(_run(tmp_path, ws),
                               {"suite": "env_dev.robot", "requires": ["no_such_module_xyz"]})
     assert v.status == "skipped" and "no_such_module_xyz" in v.reason
-    monkeypatch.setattr(language, "_tool", lambda name: None)
+    from rf_skill_eval.grader import robot_runner
+
+    monkeypatch.setattr(robot_runner, "robotcode_binary", lambda: None)
     v = language.hidden_suite(_run(tmp_path, ws), {"suite": "env_dev.robot"})
-    assert v.status == "skipped" and "robot" in v.reason
+    assert v.status == "skipped" and "robotcode" in v.reason
 
 
 def test_hidden_suite_missing_variable_file_fails(tmp_path: Path) -> None:

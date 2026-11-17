@@ -1,19 +1,22 @@
-"""keywords_resolve check (strengthen-skill-eval-harness 4.1)."""
+"""keywords_resolve check: robotcode analyze code against the installed
+libraries (spec skill-eval-harness, "Static keyword resolution uses the
+installed libraries")."""
 
 from __future__ import annotations
 
-import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from rf_skill_eval.domain.run import Run
+from rf_skill_eval.domain.task import Task
+from rf_skill_eval.grader.robot_runner import robotcode_binary
 from rf_skill_eval.scoring.deterministic import check_keywords_resolve
 from rf_skill_eval.scoring.keyword_resolution import resolve_suite_keywords
 
-_REPO = Path(__file__).resolve().parents[2]
-_APPIUM_SPEC = _REPO / "eval" / "graders" / "specs" / "AppiumLibrary.json"
+pytestmark = pytest.mark.skipif(robotcode_binary() is None, reason="robotcode not installed")
 
 
 def _run(workspace: Path) -> Run:
@@ -31,10 +34,10 @@ def _run(workspace: Path) -> Run:
 
 @pytest.fixture
 def ws(tmp_path: Path) -> Path:
-    (tmp_path / "specs").mkdir()
-    (tmp_path / "specs" / "AppiumLibrary.json").write_bytes(_APPIUM_SPEC.read_bytes())
+    pytest.importorskip("AppiumLibrary")
     (tmp_path / "resources").mkdir()
     (tmp_path / "resources" / "app.resource").write_text(
+        "*** Settings ***\nLibrary    AppiumLibrary\n\n"
         "*** Keywords ***\n"
         "Log In As ${user}\n"
         "    Input Text    accessibility_id=username_input    ${user}\n"
@@ -60,7 +63,7 @@ Login
 def _check(ws: Path, suite: str, **params: object) -> tuple[str, str]:
     (ws / "tests").mkdir(exist_ok=True)
     (ws / "tests" / "t.robot").write_text(suite)
-    base = {"path": "tests/t.robot", "specs": ["specs/AppiumLibrary.json"]}
+    base: dict[str, object] = {"path": "tests/t.robot"}
     base.update(params)
     v = check_keywords_resolve(_run(ws), "kr", base)
     return v.status, v.details
@@ -78,17 +81,36 @@ def test_unknown_keyword_fails(ws: Path) -> None:
     assert "Close The Whole App" in details
 
 
-def test_missing_spec_is_skipped(ws: Path) -> None:
-    status, details = _check(ws, _GOOD, specs=["specs/Nope.json"])
-    assert status == "skipped"
-    assert "spec missing" in details
+def test_spec_params_rejected() -> None:
+    # Scenario "Spec params rejected".
+    for params in ({"specs": ["AppiumLibrary.json"]}, {"spec_dir": "eval/graders/specs"}):
+        with pytest.raises(ValidationError) as exc_info:
+            Task(id="t", skill="rf-appium", prompt="x",
+                 grader_checks=[{"type": "keywords_resolve", "target": "t.robot", **params}])
+        assert next(iter(params)) in str(exc_info.value)
 
 
-def test_library_without_spec_is_unresolved(ws: Path) -> None:
-    suite = _GOOD.replace("Library     AppiumLibrary", "Library     AppiumLibrary\nLibrary     SeleniumLibrary")
+def test_library_that_does_not_install_is_unresolved(ws: Path) -> None:
+    suite = _GOOD.replace("Library     AppiumLibrary", "Library     AppiumLibrary\nLibrary     NoSuchLibZz")
     status, details = _check(ws, suite)
     assert status == "failed"
-    assert "SeleniumLibrary" in details
+    assert "NoSuchLibZz" in details
+
+
+def test_misspelled_keyword_fails(ws: Path) -> None:
+    # Scenario "Misspelled keyword fails".
+    suite = _GOOD.replace("Should Be Equal    a    a", "Convert To Uper Case    a")
+    status, details = _check(ws, suite)
+    assert status == "failed"
+    assert "Convert To Uper Case" in details and "KeywordNotFound" in details
+
+
+def test_wrong_argument_count_fails(ws: Path) -> None:
+    suite = _GOOD.replace("Library     AppiumLibrary", "Library     AppiumLibrary\nLibrary     String").replace(
+        "Should Be Equal    a    a", "Convert To Upper Case    a    b    c")
+    status, details = _check(ws, suite)
+    assert status == "failed"
+    assert "argument errors" in details and "expected 1 argument, got 3" in details
 
 
 def test_required_library_must_be_imported(ws: Path) -> None:
@@ -104,22 +126,9 @@ def test_min_library_calls_enforced(ws: Path) -> None:
     assert "expected >= 10" in details
 
 
-def test_relative_spec_dir_is_grader_data_in_the_repo(ws: Path) -> None:
-    # Tasks keep specs out of the agent's workspace: spec_dir is relative to the repo.
-    shutil.rmtree(ws / "specs")
-    (ws / "tests").mkdir()
-    (ws / "tests" / "t.robot").write_text(_GOOD)
-    v = check_keywords_resolve(
-        _run(ws),
-        "kr",
-        {"path": "tests/t.robot", "spec_dir": "eval/graders/specs", "specs": ["AppiumLibrary.json"]},
-    )
-    assert v.status == "passed", v.details
-
-
 def test_missing_suite_fails_not_skips(ws: Path) -> None:
     v = check_keywords_resolve(
-        _run(ws), "kr", {"path": "tests/none.robot", "specs": ["specs/AppiumLibrary.json"]}
+        _run(ws), "kr", {"path": "tests/none.robot"}
     )
     assert v.status == "failed"
 
@@ -130,20 +139,29 @@ def test_directory_target_and_missing_resource(ws: Path) -> None:
         "*** Settings ***\nResource    ../resources/missing.resource\n"
         "*** Test Cases ***\nT\n    Log    x\n"
     )
-    result = resolve_suite_keywords(ws / "tests", [_APPIUM_SPEC], min_calls=0)
+    result = resolve_suite_keywords(ws / "tests", min_calls=0)
     assert not result.ok
     assert any("missing.resource" in u for u in result.unresolved_imports)
 
 
 # --- library calls through user keywords (fix-desktop-eval-turn-overhead 3.1) ----
 
-_PLATYNUI_SPEC = _REPO / "eval" / "graders" / "specs" / "PlatynUI.BareMetal.json"
-
-
 def _resolve(tmp_path: Path, suite: str, min_calls: int = 4):  # type: ignore[no-untyped-def]
+    pytest.importorskip("PlatynUI")
     path = tmp_path / "calc.robot"
     path.write_text(suite)
-    return resolve_suite_keywords(path, [_PLATYNUI_SPEC], min_calls=min_calls)
+    return resolve_suite_keywords(path, min_calls=min_calls)
+
+
+def test_platynui_resolves_without_a_desktop(tmp_path: Path) -> None:
+    # Scenario "PlatynUI resolves without a desktop" (no display needed).
+    suite = (
+        "*** Settings ***\nLibrary    PlatynUI.BareMetal\n\n"
+        "*** Test Cases ***\nT\n    Pointer Click    //control:Button[@Id='num1Button']\n"
+    )
+    result = _resolve(tmp_path, suite, min_calls=1)
+    assert result.counted_library_calls == 1
+    assert result.ok, result.summary()
 
 
 _WRAPPED = """*** Settings ***

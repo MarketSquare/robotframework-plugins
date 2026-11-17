@@ -1,36 +1,33 @@
-"""Static keyword resolution for the ``keywords_resolve`` check (design D8).
+"""Static keyword resolution for the ``keywords_resolve`` check.
 
-Used where a library cannot run on the CI runner (AppiumLibrary without a
-device, PlatynUI without a desktop session). The suite is parsed with
-``robot.api.get_model``; every keyword call must resolve against:
+Spec skill-eval-harness, "Static keyword resolution uses the installed
+libraries". Used where a library cannot run on the CI runner (AppiumLibrary
+without a device, PlatynUI without a desktop session), but installs and loads:
 
-1. user keywords defined in the suite files and their (recursive) resources,
-   embedded arguments included;
-2. the libdoc JSON specs passed to the check (committed per fixture under
-   ``specs/``), for libraries the suite imports;
-3. Robot Framework standard libraries the suite imports (BuiltIn always).
-
-A library import that is neither a standard library nor covered by a spec is
-reported as unresolved: the check cannot vouch for its keywords, so it fails.
-
-``min_calls`` compares against the library calls the tests and suite/test
-fixtures reach: a direct library call counts once, and a user-keyword call
-counts the library calls in that keyword's body, recursively (memoised; a
-keyword already being expanded adds nothing). User keywords that nothing calls
-add nothing, and standard-library calls never count.
-
-The approach mirrors ``scripts/check-skill-keywords.py`` (repository QA for
-the skills' own examples) but is self-contained: the harness package must not
-import repository scripts.
+- ``robotcode analyze code`` resolves every call against the libraries in the
+  grader environment. ``KeywordNotFound``, argument errors and failed imports
+  fail the check.
+- ``min_calls`` counts the library calls the tests and suite/test fixtures
+  reach: a direct library call counts once, and a user-keyword call counts the
+  library calls in that keyword's body, recursively (memoised; a keyword
+  already being expanded adds nothing). User keywords that nothing calls add
+  nothing, and standard-library calls never count. RobotCode has no call
+  graph, so the walk over the parsed model stays here; the library keyword
+  names come from ``robotcode doc keywords --format json``.
 """
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import subprocess
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+from ..grader.robot_runner import RobotcodeMissingError, robotcode_binary
 
 _STANDARD_LIBRARIES = frozenset(
     {
@@ -91,12 +88,56 @@ def _keyword_set(names: list[str]) -> _KeywordSet:
 
 
 @lru_cache(maxsize=64)
-def _libdoc(source: str) -> tuple[str, tuple[str, ...]]:
-    """(library name, keyword names) for a spec path or standard library."""
-    from robot.libdocpkg import LibraryDocumentation
+def _library_keywords(library: str, cwd: str) -> tuple[str, ...] | None:
+    """Keyword names of ``library`` from ``robotcode doc keywords``; None when it doesn't load."""
+    robotcode = robotcode_binary()
+    if robotcode is None:
+        raise RobotcodeMissingError("robotcode is not installed")
+    proc = subprocess.run([robotcode, "--format", "json", "doc", "keywords", library],
+                          capture_output=True, text=True, check=False, timeout=180, cwd=cwd)
+    try:
+        data = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return None
+    return tuple(str(kw["name"]) for kw in data.get("keywords", []))
 
-    doc = LibraryDocumentation(source)
-    return str(doc.name), tuple(str(kw.name) for kw in doc.keywords)
+
+@dataclass(frozen=True)
+class Diagnostic:
+    path: str
+    line: int
+    code: str
+    message: str
+    severity: int
+
+
+def analyze(targets: list[Path], cwd: Path, cache_dir: Path | None = None) -> list[Diagnostic]:
+    """``robotcode --format json analyze code`` on ``targets``; diagnostics with 1-based lines.
+
+    ``cache_dir`` keeps RobotCode's analysis cache out of the analysed folder.
+    """
+    robotcode = robotcode_binary()
+    if robotcode is None:
+        raise RobotcodeMissingError("robotcode is not installed")
+    env = dict(os.environ)
+    if cache_dir is not None:
+        env["ROBOTCODE_CACHE_DIR"] = str(cache_dir)
+    proc = subprocess.run([robotcode, "--format", "json", "analyze", "code", *[str(t) for t in targets]],
+                          capture_output=True, text=True, check=False, timeout=600, cwd=cwd, env=env)
+    try:
+        data = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"robotcode analyze code gave no JSON: {(proc.stderr or proc.stdout)[-300:]}") from exc
+    found = []
+    for path, diags in (data.get("diagnostics") or {}).items():
+        for d in diags:
+            found.append(Diagnostic(str(path), int(d["range"]["start"]["line"]) + 1, str(d.get("code") or ""),
+                                    str(d.get("message") or "").splitlines()[0], int(d.get("severity") or 0)))
+    return found
+
+
+def is_import_failure(diag: Diagnostic) -> bool:
+    return diag.code == "DataError" and diag.message.startswith("Importing ")
 
 
 # Owner of a call: None for a test or a suite/test fixture, else the index of
@@ -185,6 +226,7 @@ class ResolutionResult:
     library_calls: int = 0
     counted_library_calls: int = 0
     unknown: list[str] = field(default_factory=list)
+    argument_errors: list[str] = field(default_factory=list)
     unresolved_imports: list[str] = field(default_factory=list)
     missing_required: list[str] = field(default_factory=list)
     min_calls: int = 1
@@ -195,6 +237,7 @@ class ResolutionResult:
         return (
             not self.parse_error
             and not self.unknown
+            and not self.argument_errors
             and not self.unresolved_imports
             and not self.missing_required
             and self.counted_library_calls >= self.min_calls
@@ -212,7 +255,9 @@ class ResolutionResult:
         if self.unresolved_imports:
             parts.append(f"unresolved imports: {self.unresolved_imports}")
         if self.unknown:
-            parts.append(f"unknown keywords: {self.unknown[:10]}")
+            parts.append(f"unknown keywords (KeywordNotFound): {self.unknown[:10]}")
+        if self.argument_errors:
+            parts.append(f"argument errors: {self.argument_errors[:10]}")
         if self.counted_library_calls < self.min_calls:
             parts.append(
                 f"expected >= {self.min_calls} library keyword calls"
@@ -221,19 +266,15 @@ class ResolutionResult:
         return "; ".join(parts)
 
 
-def _library_sets(
-    imported: list[str], specs: dict[str, tuple[str, ...]], result: ResolutionResult
-) -> dict[str, _KeywordSet]:
+def _library_sets(imported: list[str], cwd: Path) -> dict[str, _KeywordSet]:
+    """Keyword sets of the imported libraries that load; import failures come from the analysis."""
     sets: dict[str, _KeywordSet] = {}
     for lib in imported:
         if lib in sets:
             continue
-        if lib in specs:
-            sets[lib] = _keyword_set(list(specs[lib]))
-        elif lib in _STANDARD_LIBRARIES:
-            sets[lib] = _keyword_set(list(_libdoc(lib)[1]))
-        else:
-            result.unresolved_imports.append(f"Library {lib} (no libdoc spec given)")
+        names = _library_keywords(lib, str(cwd))
+        if names is not None:
+            sets[lib] = _keyword_set(list(names))
     return sets
 
 
@@ -258,15 +299,13 @@ def _resolve_calls(
     user = [_keyword_set([n]) for n in parsed.user_keywords]
     owners = {normalize(n) for n in [*library_sets, *parsed.resource_names]}
     by_owner: dict[_Owner, list[_Target]] = {}
-    for raw, where, owner in parsed.calls:
+    for raw, _where, owner in parsed.calls:
         if raw.startswith(("${", "@{", "&{")):
             continue  # keyword name held in a variable: not statically resolvable
         result.calls += 1
         candidates = _candidates(raw, owners)
         target = _resolve_one(candidates, user, library_sets)
-        if target[0] == "unknown":
-            result.unknown.append(f"{raw} ({where})")
-        elif target[0] == "library":
+        if target[0] == "library":
             result.library_calls += 1
         by_owner.setdefault(owner, []).append(target)
     result.counted_library_calls = _count_from_roots(by_owner)
@@ -316,17 +355,23 @@ def _count_from_roots(by_owner: dict[_Owner, list[_Target]]) -> int:
 
 def resolve_suite_keywords(
     suite: Path,
-    spec_paths: list[Path],
     *,
     min_calls: int = 1,
     required_libraries: tuple[str, ...] = (),
+    cwd: Path | None = None,
+    cache_dir: Path | None = None,
 ) -> ResolutionResult:
-    """Resolve every keyword call in ``suite`` (a file or a directory)."""
+    """Resolve every keyword call in ``suite`` (a file or a directory) with RobotCode.
+
+    ``cwd`` is the project root whose ``robot.toml`` applies (default: the
+    suite's folder). Raises :class:`RobotcodeMissingError` without robotcode.
+    """
     result = ResolutionResult(min_calls=min_calls)
     files = sorted(p for p in suite.rglob("*.robot") if p.is_file()) if suite.is_dir() else [suite]
     if not files:
         result.parse_error = f"no .robot files under {suite}"
         return result
+    root = cwd or (suite if suite.is_dir() else suite.parent)
     parsed = _Parsed()
     seen: set[Path] = set()
     try:
@@ -335,10 +380,17 @@ def resolve_suite_keywords(
     except Exception as exc:  # robot parser errors are data errors for the agent
         result.parse_error = f"{type(exc).__name__}: {exc}"
         return result
-    specs = dict(_libdoc(str(sp)) for sp in spec_paths)
+    for diag in analyze([suite], root, cache_dir):
+        where = f"{Path(diag.path).name}:{diag.line}"
+        if diag.code == "KeywordNotFound":
+            result.unknown.append(f"{diag.message} ({where})")
+        elif is_import_failure(diag):
+            result.unresolved_imports.append(f"{diag.message} ({where})")
+        elif diag.code == "DataError":
+            result.argument_errors.append(f"{diag.message} ({where})")
     imported = ["BuiltIn", *parsed.libraries]
     result.missing_required = [r for r in required_libraries if r not in imported]
-    library_sets = _library_sets(imported, specs, result)
     result.unresolved_imports.extend(parsed.unresolved_imports)
+    library_sets = _library_sets(imported, root)
     _resolve_calls(parsed, library_sets, result)
     return result

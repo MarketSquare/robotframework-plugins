@@ -27,8 +27,6 @@ grader_checks:
   - type: keywords_resolve
     name: platynui_keywords_resolve
     target: tests/calculator.robot
-    spec_dir: eval/graders/specs
-    specs: [PlatynUI.BareMetal.json]
     required_libraries: [PlatynUI.BareMetal]
     min_calls: 4
   - type: custom_python

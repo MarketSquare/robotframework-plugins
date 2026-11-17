@@ -682,10 +682,11 @@ def grader_requirements(tasks: list[Task]) -> dict[str, set[str]]:
         for c in t.grader_checks:
             params = c.params
             if c.type in ("robot_pass", "robot_dryrun"):
-                needs.setdefault("tool:robot", set()).add(t.id)
+                needs.setdefault("tool:robotcode", set()).add(t.id)
             if c.type == "lint_clean":
                 needs.setdefault("tool:robocop", set()).add(t.id)
             if c.type == "keywords_resolve":
+                needs.setdefault("tool:robotcode", set()).add(t.id)
                 needs.setdefault("module:robot", set()).add(t.id)
             for mod in params.get("requires") or ():
                 needs.setdefault(f"module:{mod}", set()).add(t.id)
@@ -755,8 +756,8 @@ def doctor(
     claude = _which("claude")
     _row("claude CLI on PATH", claude is not None, claude or "not found")
 
-    robot = _which("robot")
-    _row("robot CLI on PATH", robot is not None, robot or "not found (robot checks skip)")
+    robotcode = _which("robotcode")
+    _row("robotcode CLI on PATH", robotcode is not None, robotcode or "not found (robot checks skip)")
 
     uv_bin = _which("uv")
     _row("uv on PATH", uv_bin is not None, uv_bin or "install https://astral.sh/uv")

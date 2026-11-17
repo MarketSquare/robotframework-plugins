@@ -164,13 +164,14 @@ def test_lint_clean_robocop_missing_is_skipped_not_passed(
 def test_robot_pass_robot_missing_is_skipped(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from rf_skill_eval.grader import robot_runner
     from rf_skill_eval.scoring import deterministic
 
     (tmp_path / "t.robot").write_text("*** Test Cases ***\nT\n    Log    x\n")
-    monkeypatch.setattr(deterministic, "_robot_binary", lambda: None)
+    monkeypatch.setattr(robot_runner, "robotcode_binary", lambda: None)
     v = deterministic.check_robot_pass(_run(tmp_path), "rp", {"path": "t.robot"})
     assert v.status == "skipped"
-    assert "robot CLI not installed" in v.reason
+    assert "robotcode not installed" in v.reason
 
 
 def test_robot_pass_library_not_importable_is_skipped(tmp_path: Path) -> None:
@@ -340,10 +341,11 @@ def test_robot_dryrun_exact_count_with_args(tmp_path: Path) -> None:
 def test_robot_dryrun_robot_missing_is_skipped(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from rf_skill_eval.grader import robot_runner
     from rf_skill_eval.scoring import deterministic
 
     (tmp_path / "t.robot").write_text("*** Test Cases ***\nT\n    Log    x\n")
-    monkeypatch.setattr(deterministic, "_robot_binary", lambda: None)
+    monkeypatch.setattr(robot_runner, "robotcode_binary", lambda: None)
     v = deterministic.check_robot_dryrun(
         _run(tmp_path), "d", {"path": "t.robot", "expected_tests": 1, "expected_tests_exact": True}
     )

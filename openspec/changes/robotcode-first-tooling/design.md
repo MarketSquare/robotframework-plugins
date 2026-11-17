@@ -63,7 +63,9 @@ Alternative: keep the specs as a fallback for libraries that don't install. Reje
 
 A single helper replaces `robot_runner.run_robot`, `_parse_output_xml` and `python_library._statuses`. It runs `robotcode robot --outputdir <dir> [--dryrun] [args] <path>` and then `robotcode --format json results show -o <dir>/output.xml`. It returns counts and per-test status and message. `robotcode` is found next to `sys.executable` first, then on PATH, as `_robot_binary()` does today.
 
-For pinned Robot Framework versions (`language.py`, task on `sut-rf71`), the helper runs `uvx --from robotframework==X --with "robotcode[runner]" robotcode robot …` if robotcode 2.8's runner supports that version (to verify for 7.1). If not, the `uvx … robot` call stays, allowlisted with the reason, and results are still read with `robotcode results` from the harness environment.
+For pinned Robot Framework versions (`language.py`, task on `sut-rf71`), the helper runs `uvx --from "robotcode[runner]==<harness version>" --with robotframework==X robotcode robot …`, and results are read with `robotcode results` from the harness environment. Checked on 2026-11-17 (task 2.2): robotcode 2.8.0's runner runs Robot Framework 7.1.1 and the `sut-rf71` suite passes (3 of 3, generator "Robot 7.1.1"), so no `uvx … robot` call or allowlist entry is needed.
+
+The analysis cache: `robotcode analyze code` writes `.robotcode_cache/` into the analysed project. The grader sets `ROBOTCODE_CACHE_DIR` to a folder in the run's artifacts, so nothing is added to the agent's workspace.
 
 ### D4. `no_deprecated_keywords`
 

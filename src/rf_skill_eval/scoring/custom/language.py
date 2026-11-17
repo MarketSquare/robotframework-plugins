@@ -3,7 +3,7 @@
 Referenced from task YAML as ``custom_python`` with
 ``func_ref: rf_skill_eval.scoring.custom.language:<function>``. Every function
 takes ``(run, params)`` and returns a tri-state :class:`Verdict`: a check that
-cannot run (``robot``/``uv``/``robocop``/PyYAML missing, no network for the
+cannot run (``robotcode``/``uv``/``robocop``/PyYAML missing, no network for the
 pinned Robot Framework) is ``skipped`` with a reason — never passed.
 
 Hidden grader suites live in ``eval/graders/language/``. They are never staged
@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import importlib.metadata
 import importlib.util
 import re
 import shutil
@@ -23,11 +24,10 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
-from xml.etree import ElementTree as ET
 
 from ...domain.run import Run
 from ...domain.verdict import Verdict
-from ...grader.robot_runner import _parse_output_xml
+from ...grader.robot_runner import RobotcodeMissingError, RobotResult, run_robot
 
 _REPO = Path(__file__).resolve().parents[4]
 GRADERS_DIR = _REPO / "eval" / "graders" / "language"
@@ -63,38 +63,17 @@ def _outdir(run: Run, label: str) -> Path:
     return out
 
 
-def _failures(output_xml: Path, limit: int = 3) -> list[str]:
-    """``<test name>: <message>`` for the first failed tests in ``output_xml``."""
-    try:
-        root = ET.parse(output_xml).getroot()
-    except (OSError, ET.ParseError):
-        return []
-    found: list[str] = []
-    for test in root.iter("test"):
-        status = test.find("status")
-        if status is not None and status.get("status") == "FAIL":
-            found.append(f"{test.get('name')}: {(status.text or '').strip()[:120]}")
-            if len(found) >= limit:
-                break
-    return found
-
-
 def _run_robot(
-    cmd: list[str], cwd: Path, outdir: Path, timeout: int
-) -> tuple[int | None, int, int, str]:
-    """Run a robot command; return (returncode, total, passed, failure summary)."""
-    try:
-        proc = subprocess.run(
-            cmd, cwd=cwd, capture_output=True, text=True, check=False, timeout=timeout
-        )
-    except subprocess.TimeoutExpired:
-        return None, 0, 0, f"timed out after {timeout}s"
-    total, passed, _failed = _parse_output_xml(outdir / "output.xml")
-    failures = _failures(outdir / "output.xml")
-    errors = [ln.strip() for ln in (proc.stdout + "\n" + proc.stderr).splitlines()
-              if ln.startswith("[ ERROR ]")][:2]
-    summary = " / ".join([*failures, *errors]) or _tail(proc.stdout + "\n" + proc.stderr)
-    return proc.returncode, total, passed, summary[:600]
+    targets: list[str], args: list[str], cwd: Path, outdir: Path, timeout: int,
+    launcher: list[str] | None = None,
+) -> tuple[int | None, int, int, str, RobotResult]:
+    """Run suites through robotcode; return (returncode, total, passed, failure summary, result)."""
+    result = run_robot(targets, outdir, args=args, cwd=cwd, timeout_seconds=timeout, launcher=launcher)
+    if result.timed_out:
+        return None, 0, 0, result.output, result
+    errors = [ln.strip() for ln in result.output.splitlines() if ln.startswith("[ ERROR ]")][:2]
+    summary = " / ".join([*result.failures(), *errors]) or _tail(result.output)
+    return result.returncode, result.total_tests, result.passed_tests, summary[:600], result
 
 
 def hidden_suite(run: Run, params: dict[str, Any]) -> Verdict:
@@ -113,30 +92,29 @@ def hidden_suite(run: Run, params: dict[str, Any]) -> Verdict:
     for mod in params.get("requires") or ():
         if importlib.util.find_spec(str(mod)) is None:
             return Verdict.skipped(run.id, name, f"{mod} not importable in the grader environment")
-    robot = _tool("robot")
-    if robot is None:
-        return Verdict.skipped(run.id, name, "robot CLI not installed")
     ws = run.effective_workspace
     outdir = _outdir(run, name)
     staged = outdir / "suite"
     shutil.rmtree(staged, ignore_errors=True)
     staged.mkdir()
     shutil.copy(suite, staged / suite.name)
-    cmd = [robot, "--outputdir", str(outdir), "--pythonpath", str(ws),
-           "--pythonpath", str(ws / "libraries")]
+    args = ["--pythonpath", str(ws), "--pythonpath", str(ws / "libraries")]
     varfile = params.get("variablefile")
     if varfile:
         if not (ws / str(varfile)).is_file():
             return Verdict.of(run.id, name, False, f"variable file missing: {varfile}")
-        cmd += ["--variablefile", str(ws / str(varfile))]
+        args += ["--variablefile", str(ws / str(varfile))]
     targets = [str(staged / suite.name)]
     for extra in params.get("also_run") or ():
         path = ws / str(extra)
         if not path.exists():
             return Verdict.of(run.id, name, False, f"suite missing: {extra}")
         targets.append(str(path))
-    cmd += ["--name", "Grader", *targets]
-    rc, total, passed, tail = _run_robot(cmd, ws, outdir, int(params.get("timeout_seconds", 120)))
+    args += ["--name", "Grader"]
+    try:
+        rc, total, passed, tail, _ = _run_robot(targets, args, ws, outdir, int(params.get("timeout_seconds", 120)))
+    except RobotcodeMissingError:
+        return Verdict.skipped(run.id, name, "robotcode not installed")
     expected = int(params.get("expected_tests") or total or 1)
     ok = rc == 0 and total >= 1 and passed == total == expected
     details = f"exit={rc} tests={total} passed={passed} expected={expected}"
@@ -206,25 +184,35 @@ def no_typed_variables(run: Run, params: dict[str, Any]) -> Verdict:
                       f"typed declarations: {hits[:5]}" if hits else f"none in {len(files)} files")
 
 
+def _pinned_launcher(spec: str) -> list[str]:
+    """``uvx`` command that runs robotcode, at the harness's version, on Robot Framework ``spec``."""
+    try:
+        version = importlib.metadata.version("robotcode")
+        robotcode = f"robotcode[runner]=={version}"
+    except importlib.metadata.PackageNotFoundError:
+        robotcode = "robotcode[runner]"
+    return [shutil.which("uvx") or "uvx", "--from", robotcode, "--with", spec, "robotcode"]
+
+
 @functools.lru_cache(maxsize=4)
 def _pinned_robot_available(spec: str) -> str | None:
-    """``None`` when ``uvx --from <spec> robot`` works, else the reason it does not."""
-    uvx = shutil.which("uvx")
-    if uvx is None:
+    """``None`` when robotcode runs Robot Framework ``spec`` through ``uvx``, else the reason."""
+    if shutil.which("uvx") is None:
         return "uvx not installed"
+    launcher = _pinned_launcher(spec)
     try:
-        proc = subprocess.run([uvx, "--from", spec, "robot", "--version"],
+        proc = subprocess.run([*launcher, "robot", "--version"],
                               capture_output=True, text=True, timeout=300, check=False)
     except subprocess.TimeoutExpired:
-        return f"uvx --from {spec} timed out (no network?)"
+        return f"uvx with {spec} timed out (no network?)"
     version = spec.split("==", 1)[-1]
     if version not in proc.stdout:
-        return f"uvx --from {spec} robot unavailable: {_tail(proc.stdout + proc.stderr)}"
+        return f"robotcode with {spec} unavailable: {_tail(proc.stdout + proc.stderr)}"
     return None
 
 
 def pinned_robot_pass(run: Run, params: dict[str, Any]) -> Verdict:
-    """Run ``path`` with a pinned Robot Framework via ``uvx`` (default 7.1.1).
+    """Run ``path`` with a pinned Robot Framework (default 7.1.1): robotcode through ``uvx``.
 
     Params: ``path`` (workspace-relative), ``rf`` (pip spec), ``expected_tests``
     (exact number of passed tests, optional). Skipped without ``uvx`` or network.
@@ -239,9 +227,12 @@ def pinned_robot_pass(run: Run, params: dict[str, Any]) -> Verdict:
     if not target.exists():
         return Verdict.of(run.id, name, False, f"missing {target}")
     outdir = _outdir(run, name)
-    uvx = shutil.which("uvx") or "uvx"
-    cmd = [uvx, "--from", spec, "robot", "--outputdir", str(outdir), str(target)]
-    rc, total, passed, tail = _run_robot(cmd, ws, outdir, int(params.get("timeout_seconds", 300)))
+    try:
+        rc, total, passed, tail, _ = _run_robot([str(target)], [], ws, outdir,
+                                                int(params.get("timeout_seconds", 300)),
+                                                launcher=_pinned_launcher(spec))
+    except RobotcodeMissingError:
+        return Verdict.skipped(run.id, name, "robotcode not installed (needed to read the results)")
     expected = params.get("expected_tests")
     ok = rc == 0 and total >= 1 and passed == total
     if expected is not None:

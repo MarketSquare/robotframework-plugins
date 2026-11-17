@@ -3,7 +3,7 @@
 Referenced from task YAML as ``custom_python`` with
 ``func_ref: rf_skill_eval.scoring.custom.python_library:<function>``. Every
 function takes ``(run, params)`` and returns a tri-state :class:`Verdict`: a
-check that cannot run (``robot`` missing, Robot Framework not importable by the
+check that cannot run (``robotcode`` missing, Robot Framework not importable by the
 grader) is ``skipped`` with a reason, never passed.
 
 Hidden grader suites live in ``eval/graders/python-library/``. They are never
@@ -22,11 +22,11 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
-from xml.etree import ElementTree as ET
 
 from ...domain.run import Run
 from ...domain.verdict import Verdict
-from .language import _name, _run_robot, _tail, _tool
+from ...grader.robot_runner import RobotcodeMissingError
+from .language import _name, _run_robot, _tail
 
 _REPO = Path(__file__).resolve().parents[4]
 GRADERS_DIR = _REPO / "eval" / "graders" / "python-library"
@@ -37,20 +37,6 @@ def _outdir(run: Run, label: str) -> Path:
     out = run.artifacts_dir / "grader_python_library" / re.sub(r"[^A-Za-z0-9_.-]+", "_", label)[:60]
     out.mkdir(parents=True, exist_ok=True)
     return out
-
-
-def _statuses(output_xml: Path) -> dict[str, str]:
-    """Top-level test name -> status from ``output_xml`` (empty when unreadable)."""
-    try:
-        root = ET.parse(output_xml).getroot()
-    except (OSError, ET.ParseError):
-        return {}
-    found: dict[str, str] = {}
-    for test in root.iter("test"):
-        status = test.find("status")
-        if status is not None:
-            found[str(test.get("name"))] = str(status.get("status"))
-    return found
 
 
 def hidden_suite(run: Run, params: dict[str, Any]) -> Verdict:
@@ -66,23 +52,23 @@ def hidden_suite(run: Run, params: dict[str, Any]) -> Verdict:
     suite = GRADERS_DIR / str(params["suite"])
     if not suite.is_file():
         return Verdict.errored(run.id, name, f"hidden suite missing: {suite}")
-    robot = _tool("robot")
-    if robot is None:
-        return Verdict.skipped(run.id, name, "robot CLI not installed")
     ws = run.effective_workspace
     outdir = _outdir(run, name)
     staged = outdir / "suite"
     shutil.rmtree(staged, ignore_errors=True)
     staged.mkdir()
     shutil.copy(suite, staged / suite.name)
-    cmd = [robot, "--outputdir", str(outdir), "--pythonpath", str(ws / "libraries"),
-           "--pythonpath", str(ws)]
+    args = ["--pythonpath", str(ws / "libraries"), "--pythonpath", str(ws)]
     listener = params.get("listener")
     if listener:
-        cmd += ["--listener", str(listener)]
-    cmd += ["--name", "Grader", str(staged / suite.name)]
-    rc, total, passed, tail = _run_robot(cmd, ws, outdir, int(params.get("timeout_seconds", 120)))
-    statuses = _statuses(outdir / "output.xml")
+        args += ["--listener", str(listener)]
+    args += ["--name", "Grader"]
+    try:
+        rc, total, passed, tail, result = _run_robot([str(staged / suite.name)], args, ws, outdir,
+                                                     int(params.get("timeout_seconds", 120)))
+    except RobotcodeMissingError:
+        return Verdict.skipped(run.id, name, "robotcode not installed")
+    statuses = result.statuses()
     expected_rc = int(params.get("expected_rc", 0))
     wanted = {str(k): str(v).upper() for k, v in (params.get("expected_statuses") or {}).items()}
     problems: list[str] = []
