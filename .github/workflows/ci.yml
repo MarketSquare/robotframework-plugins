@@ -149,7 +149,12 @@ jobs:
       - name: Lint skill zip builder
         run: ruff check scripts/build-skill-zips.py scripts/export-skills.py scripts/select-plugin-tests.py --select E,F,W --ignore E501
       - name: Lint repo QA scripts
-        run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py scripts/check-plugin-references.py --select E,F,W --ignore E501
+        run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py scripts/check-plugin-references.py scripts/check-robotcode-first.py --select E,F,W --ignore E501
+      - name: RobotCode first
+        # robotcode-first-tooling: tooling uses the robotcode CLI to run,
+        # analyse, read results and read keyword docs; exceptions need an
+        # entry with a reason in scripts/robotcode-first-allowlist.toml.
+        run: python scripts/check-robotcode-first.py
 
   template-plugin:
     name: Template plugin passes the PR checks

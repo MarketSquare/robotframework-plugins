@@ -1,10 +1,10 @@
 ## 0. Preconditions
 
-- [ ] 0.1 PR #20 (`fix/realistic-eval-tasks`) is merged and `fix-desktop-eval-turn-overhead` is archived; verify `eval/graders/specs/` and the `min_calls` requirement are on `main`.
+- [x] 0.1 PR #20 (`fix/realistic-eval-tasks`) is merged and `fix-desktop-eval-turn-overhead` is archived; verify `eval/graders/specs/` and the `min_calls` requirement are on `main`.
 
 ## 1. Guard first (D5)
 
-- [ ] 1.1 Add `scripts/check-robotcode-first.py` and `scripts/robotcode-first-allowlist.toml` with an entry, and its reason, for every current use; verify it exits 0 on `main` and that tests cover "New re-implementation fails", "Allowlisted use passes", "Stale entry fails" and "Robocop is not flagged".
+- [x] 1.1 Add `scripts/check-robotcode-first.py` and `scripts/robotcode-first-allowlist.toml` with an entry, and its reason, for every current use; verify it exits 0 on `main` and that tests cover "New re-implementation fails", "Allowlisted use passes", "Stale entry fails" and "Robocop is not flagged". Done: 36 uses in 12 files allowlisted with reasons (5 lasting, 14 marked for removal by tasks 2–5); `tests/test_robotcode_first.py` has 28 cases, including the four scenarios. `[robotcode, "robot", …]` and JS `spawnSync(robotcode, ["robot", …])` are the robotcode subcommand and pass; the first version of the pattern flagged them, and a test now covers it.
 - [ ] 1.2 Run it in `ci.yml` (lint job) and as `tests/test_robotcode_first.py`; verify the CI step fails on a throwaway commit that adds `from robot.api import ExecutionResult` under `src/`.
 
 ## 2. Grader runs and results (D3)

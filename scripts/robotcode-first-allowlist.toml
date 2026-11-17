@@ -1,0 +1,112 @@
+# Allowed uses for scripts/check-robotcode-first.py (spec robotcode-first-tooling).
+#
+# Tooling uses the robotcode CLI to run suites, discover tests, analyse code,
+# read results and read keyword documentation (AI_POLICY.md, "RobotCode
+# first"). An entry here allows one pattern in one file, for a reason that
+# RobotCode doesn't cover. When the gap is a RobotCode issue, link it.
+#
+# Fields (all required):
+#   file    = path relative to the repository root
+#   pattern = libdoc | execution-result | xml-parsing | suite-builder | parser-model | run-robot
+#   reason  = why RobotCode doesn't cover this use
+#
+# An entry that matches nothing fails the check, so remove it with the code.
+
+# --- Custom value: RobotCode has no such capability -------------------------
+
+[[allow]]
+file = "plugins/rf-core/skills/rf-python-library/scripts/check_library.py"
+pattern = "libdoc"
+reason = "Library-author defect analysis (rejected or leaked keywords, listener exposure) needs the library object in-process; robotcode doc gives only the listing."
+
+[[allow]]
+file = "plugins/rf-core/skills/rf-language/scripts/rf_conventions.py"
+pattern = "parser-model"
+reason = "Project convention detection (separators, naming, BDD, templates, layout) from the parser; RobotCode has no convention report."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/keyword_resolution.py"
+pattern = "parser-model"
+reason = "min_calls counts library calls through the user-keyword call graph; RobotCode has no call graph."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/custom/platynui.py"
+pattern = "parser-model"
+reason = "PlatynUI-specific usage checks (unsafe expressions) on the parsed model."
+
+[[allow]]
+file = "scripts/desktop-live-check.py"
+pattern = "parser-model"
+reason = "Screens model-written suites for disallowed libraries and keywords before they run on a maintainer's desktop; a safety screen, not keyword resolution."
+
+# --- Replaced by robotcode-first-tooling (tasks 2-5); remove with the code ---
+
+[[allow]]
+file = "plugins/rf-core/scripts/validate_robot.mjs"
+pattern = "run-robot"
+reason = "Opt-in tier-3 dry run still starts python -m robot; moves to robotcode robot --dryrun (task 5.1)."
+
+[[allow]]
+file = "scripts/check-skill-keywords.py"
+pattern = "parser-model"
+reason = "Keyword extraction and matching; moves to robotcode analyze code (task 4)."
+
+[[allow]]
+file = "scripts/check-skill-keywords.py"
+pattern = "libdoc"
+reason = "Library keyword lists; move to robotcode analyze code and robotcode doc keywords (task 4)."
+
+[[allow]]
+file = "scripts/desktop-live-check.py"
+pattern = "run-robot"
+reason = "Runs suites with python -m robot; moves to robotcode robot (task 5.2)."
+
+[[allow]]
+file = "scripts/desktop-live-check.py"
+pattern = "xml-parsing"
+reason = "Reads output.xml; moves to robotcode results (task 5.2)."
+
+[[allow]]
+file = "src/rf_skill_eval/cli.py"
+pattern = "run-robot"
+reason = "doctor checks for the robot CLI; checks robotcode once the grader runs through it (task 2.1)."
+
+[[allow]]
+file = "src/rf_skill_eval/grader/robot_runner.py"
+pattern = "run-robot"
+reason = "Grader runs robot; moves to robotcode robot (task 2.1)."
+
+[[allow]]
+file = "src/rf_skill_eval/grader/robot_runner.py"
+pattern = "xml-parsing"
+reason = "Grader parses output.xml; moves to robotcode results (task 2.1)."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/deterministic.py"
+pattern = "run-robot"
+reason = "Finds the robot binary for grader runs; moves to robotcode (task 2.1)."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/custom/language.py"
+pattern = "run-robot"
+reason = "Runs hidden suites with robot, and pinned versions with uvx; moves to robotcode robot (tasks 2.1, 2.2)."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/custom/language.py"
+pattern = "xml-parsing"
+reason = "Parses output.xml; moves to robotcode results (task 2.1)."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/custom/python_library.py"
+pattern = "run-robot"
+reason = "Runs hidden suites with robot; moves to robotcode robot (task 2.1)."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/custom/python_library.py"
+pattern = "xml-parsing"
+reason = "Parses output.xml statuses; moves to robotcode results (task 2.1)."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/keyword_resolution.py"
+pattern = "libdoc"
+reason = "Reads libdoc spec files; moves to robotcode analyze code and robotcode doc keywords (task 3.1)."
