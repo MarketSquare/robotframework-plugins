@@ -13,8 +13,8 @@ prompt: |
   AppiumLibrary that starts the app through the Appium 2 server, checks that
   the sign-in button is visible and enabled and that the error banner is not
   shown, then closes the app. There is no emulator on this machine, so you
-  cannot run it — make sure every keyword you use exists in AppiumLibrary 3.x
-  (a libdoc spec is in specs/) and is not deprecated.
+  cannot run it — make sure every keyword you use exists in the installed
+  AppiumLibrary and is not deprecated.
 model: claude-sonnet-5-5
 max_turns: 16
 timeout_seconds: 480
@@ -30,7 +30,8 @@ grader_checks:
   - type: keywords_resolve
     name: appium_keywords_resolve
     target: tests/login_screen.robot
-    specs: [specs/AppiumLibrary.json]
+    spec_dir: eval/graders/specs
+    specs: [AppiumLibrary.json]
     required_libraries: [AppiumLibrary]
     min_calls: 3
     gating: true

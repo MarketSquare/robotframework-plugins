@@ -354,24 +354,6 @@ def test_provision_agents_copies_to_both_locations(tmp_path: Path) -> None:
     assert (workspace / ".claude" / "agents" / "rf-architect.md").is_file()
 
 
-def test_extra_mcp_servers_returns_substituted_servers(tmp_path: Path) -> None:
-    plugin_root = tmp_path / "plugins" / "rf-agentskills"
-    _make_plugin(plugin_root)
-    runner = ClaudeCodeRunner(plugin_root=plugin_root)
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-
-    plugin_dst = runner._stage_plugin(config_dir)
-    assert plugin_dst is not None
-    servers = runner._extra_mcp_servers(plugin_dst)
-
-    assert servers is not None
-    assert "demo-server" in servers
-    args = servers["demo-server"]["args"]
-    assert any(str(plugin_dst.resolve()) in a for a in args)
-    assert all("${CLAUDE_PLUGIN_ROOT}" not in a for a in args)
-
-
 def test_extract_hooks_returns_substituted_hooks(tmp_path: Path) -> None:
     plugin_root = tmp_path / "plugins" / "rf-agentskills"
     _make_plugin(plugin_root)

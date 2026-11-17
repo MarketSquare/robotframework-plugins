@@ -88,7 +88,7 @@ def test_to_native_path_string_on_posix() -> None:
 
 
 def test_to_native_path_string_on_windows_emits_forward_slashes(monkeypatch) -> None:
-    """Regression for docs/issues/rf-agentskills_install_issues_win_powershell.txt.
+    """Regression for docs/archive/issues/rf-agentskills_install_issues_win_powershell.txt.
 
     On Windows the substituted plugin root used to come back with
     backslashes — which crashed json.loads inside every adapter's

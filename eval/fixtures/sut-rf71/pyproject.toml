@@ -1,7 +1,7 @@
 [project]
 name = "sut-rf71"
 version = "0.0.1"
-description = "Fixture pinned to Robot Framework 7.1.1 (rf-language adversarial typed-argument task)."
+description = "Shopping cart tests on Robot Framework 7.1."
 requires-python = ">=3.10"
 dependencies = [
   "robotframework==7.1.1",

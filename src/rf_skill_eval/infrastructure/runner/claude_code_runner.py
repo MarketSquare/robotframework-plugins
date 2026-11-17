@@ -116,7 +116,7 @@ class ClaudeCodeRunner:
             else None
         )
 
-        write_mcp_config(config_dir, extra_servers=self._mcp_servers(task, plugin_dst))
+        write_mcp_config(config_dir, extra_servers=self._mcp_servers(task))
 
         if plugin_dst is not None:
             self._provision_skills(plugin_dst, config_dir, workspace_dir)
@@ -258,14 +258,13 @@ class ClaudeCodeRunner:
     # --- helpers -----------------------------------------------------------
 
     @staticmethod
-    def _mcp_servers(task: Task, plugin_dst: Path | None) -> dict[str, dict[str, Any]]:
-        """Per-task servers (e.g. rf-mcp) in both arms; plugin servers in treatment."""
-        servers: dict[str, dict[str, Any]] = {
-            name: dict(MCP_SERVER_REGISTRY[name]) for name in task.mcp_servers
-        }
-        if plugin_dst is not None:
-            servers.update(ClaudeCodeRunner._extra_mcp_servers(plugin_dst) or {})
-        return servers
+    def _mcp_servers(task: Task) -> dict[str, dict[str, Any]]:
+        """Per-task servers (e.g. rf-mcp), the same in both arms.
+
+        Plugins ship no MCP server (skill-catalog, "The bundle ships no MCP
+        server"), so the treatment arm adds none.
+        """
+        return {name: dict(MCP_SERVER_REGISTRY[name]) for name in task.mcp_servers}
 
     def _pre_run_isolation(
         self,
@@ -277,7 +276,7 @@ class ClaudeCodeRunner:
         """Baseline arm: refuse to launch when plugin parts are discoverable."""
         if profile.stage_plugin:
             return None
-        problems = baseline_isolation_problems(config_dir, workspace_dir, self._plugin_root)
+        problems = baseline_isolation_problems(config_dir, workspace_dir)
         if not problems:
             return None
         _log.error("baseline arm isolation violated: %s", problems)
@@ -447,26 +446,6 @@ class ClaudeCodeRunner:
                 continue
             for parent in targets:
                 shutil.copy2(agent_md, parent / agent_md.name)
-
-    @staticmethod
-    def _extra_mcp_servers(plugin_dst: Path) -> dict[str, dict[str, Any]] | None:
-        """Read the plugin's ``.mcp.json`` and return its ``mcpServers`` dict.
-
-        Used to merge plugin-defined MCP servers (if the plugin ships any) into the
-        run's ``.mcp.json`` alongside the harness defaults (rf-mcp).
-        """
-        plugin_mcp = plugin_dst / ".mcp.json"
-        if not plugin_mcp.is_file():
-            return None
-        try:
-            data = json.loads(plugin_mcp.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            _log.warning("failed to read plugin .mcp.json: %s", exc)
-            return None
-        servers = data.get("mcpServers")
-        if not isinstance(servers, dict):
-            return None
-        return servers
 
     @staticmethod
     def _extract_hooks(plugin_dst: Path) -> dict[str, Any] | None:
@@ -845,13 +824,11 @@ def _server_names(path: Path) -> set[str]:
     return set(servers) if isinstance(servers, dict) else set()
 
 
-def baseline_isolation_problems(
-    config_dir: Path, workspace_dir: Path, plugin_root: Path
-) -> list[str]:
+def baseline_isolation_problems(config_dir: Path, workspace_dir: Path) -> list[str]:
     """Pre-run assertion for the baseline arm (design risk "arm isolation").
 
-    The baseline config dir and workspace must contain no skills, subagents,
-    plugin hooks or plugin MCP servers.
+    The baseline config dir and workspace must contain no skills, subagents
+    or plugin hooks.
     """
     problems = [
         f"{base / part} exists"
@@ -864,11 +841,6 @@ def baseline_isolation_problems(
         for settings in (config_dir / "settings.json", workspace_dir / ".claude" / "settings.json")
         if settings.is_file() and _json_mapping(settings).get("hooks")
     ]
-    plugin_servers = _server_names(plugin_root / ".mcp.json")
-    for mcp in (config_dir / ".mcp.json", workspace_dir / ".mcp.json"):
-        leaked = sorted(_server_names(mcp) & plugin_servers)
-        if leaked:
-            problems.append(f"{mcp} registers plugin MCP servers {leaked}")
     return problems
 
 

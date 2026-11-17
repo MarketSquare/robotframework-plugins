@@ -1,6 +1,5 @@
 *** Settings ***
 Documentation    Smoke test: the local API starts and RequestsLibrary can reach it.
-...              Irrelevant to any eval task; exists only as a sanity check.
 Library          RequestsLibrary
 Library          ../libraries/ApiServer.py
 Suite Setup      Start Api Server

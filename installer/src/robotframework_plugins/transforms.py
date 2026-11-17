@@ -718,7 +718,7 @@ def to_native_path_string(path: Path) -> str:
       Python ``pathlib``, Node ``child_process``) accepts forward-slash
       paths.
 
-    Regression history: docs/issues/win-powershell-install-fix-proposal.md.
+    Regression history: docs/archive/issues/win-powershell-install-fix-proposal.md.
     """
     if sys.platform == "win32":
         return PureWindowsPath(path).as_posix()

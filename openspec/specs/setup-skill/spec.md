@@ -6,7 +6,6 @@ Provide a Robot Framework agent skill that guides AI agents to install Robot Fra
 
 ## Requirements
 
-
 ### Requirement: Setup skill exists and follows the house structure
 
 The repository SHALL provide a skill at `skills/rf-setup/` with a `SKILL.md` whose frontmatter has `name: rf-setup` (matching its directory) and a non-empty `description`, a `references/` directory and an `assets/examples/` directory.
@@ -76,6 +75,7 @@ The full post-install steps SHALL live in the library skills, not in `rf-setup`.
 #### Scenario: Library skills linked
 - **WHEN** the library table in `SKILL.md` is read
 - **THEN** each library row names its companion skill and that skill's plugin, and no row names `rf-robotcode`
+
 ### Requirement: Setup is verified before handing over
 
 The skill SHALL end its workflow with verification:
@@ -122,18 +122,6 @@ The setup skill SHALL be reachable from three places:
 #### Scenario: robotcode skill links to setup
 - **WHEN** the Companion Skills section of any shipped skill other than `rf-setup` is read
 - **THEN** it names `rf-setup` for installing Robot Framework, robotcode and libraries into the project environment
-
-### Requirement: Setup skill is distributed without drift
-
-The skill SHALL be registered in the sync tooling so the Claude Code plugin and installer channels are generated from the root skill under the same `rf-setup` identifier, and the drift check SHALL pass.
-
-#### Scenario: Sync registers the skill
-- **WHEN** `scripts/sync-skills.sh` runs
-- **THEN** the skill is propagated to `plugins/rf-agentskills/skills/rf-setup/` with `name: rf-setup`
-
-#### Scenario: Drift check passes
-- **WHEN** `scripts/check-drift.sh` runs after sync
-- **THEN** it reports no drift
 
 ### Requirement: Project layout reference points to current skills and states variable-file rules
 

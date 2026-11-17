@@ -26,7 +26,7 @@ Every pull request, including those from forks, runs a security gate without sec
 - Cisco skill-scanner, SkillSpector (without its model pass), cc-audit and Gitleaks, at pinned versions;
 - a comparison with each plugin's reviewed baseline: a new HIGH or CRITICAL finding fails the PR.
 
-Scans that send content to a model run only after a maintainer applies the `security-deep-scan` label, and on the main branch. Live agent evaluations, which run plugin hooks with an API key, never run code from forks. Changes to hooks, scripts, MCP configuration, manifests, tool permissions and the baselines need an approval from the security reviewers.
+Scans that send content to a model run only when a maintainer starts them for a PR, and on the main branch, where they report without blocking. Live agent evaluations, which run plugin hooks with an API key, never run code from forks. Changes to hooks, scripts, MCP configuration, manifests, tool permissions and the baselines go through the same gate. GitHub secret scanning and push protection block a recognised secret before it reaches the repository, and Dependabot opens PRs for security updates of locked dependencies.
 
 ## What the checks can't promise
 

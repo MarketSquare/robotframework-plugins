@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from rf_skill_eval.scoring.deterministic import check_keywords_resolve
 from rf_skill_eval.scoring.keyword_resolution import resolve_suite_keywords
 
 _REPO = Path(__file__).resolve().parents[2]
-_APPIUM_SPEC = _REPO / "eval" / "fixtures" / "sut-appium" / "specs" / "AppiumLibrary.json"
+_APPIUM_SPEC = _REPO / "eval" / "graders" / "specs" / "AppiumLibrary.json"
 
 
 def _run(workspace: Path) -> Run:
@@ -103,6 +104,19 @@ def test_min_library_calls_enforced(ws: Path) -> None:
     assert "expected >= 10" in details
 
 
+def test_relative_spec_dir_is_grader_data_in_the_repo(ws: Path) -> None:
+    # Tasks keep specs out of the agent's workspace: spec_dir is relative to the repo.
+    shutil.rmtree(ws / "specs")
+    (ws / "tests").mkdir()
+    (ws / "tests" / "t.robot").write_text(_GOOD)
+    v = check_keywords_resolve(
+        _run(ws),
+        "kr",
+        {"path": "tests/t.robot", "spec_dir": "eval/graders/specs", "specs": ["AppiumLibrary.json"]},
+    )
+    assert v.status == "passed", v.details
+
+
 def test_missing_suite_fails_not_skips(ws: Path) -> None:
     v = check_keywords_resolve(
         _run(ws), "kr", {"path": "tests/none.robot", "specs": ["specs/AppiumLibrary.json"]}
@@ -123,7 +137,7 @@ def test_directory_target_and_missing_resource(ws: Path) -> None:
 
 # --- library calls through user keywords (fix-desktop-eval-turn-overhead 3.1) ----
 
-_PLATYNUI_SPEC = _REPO / "eval" / "fixtures" / "sut-platynui" / "specs" / "PlatynUI.BareMetal.json"
+_PLATYNUI_SPEC = _REPO / "eval" / "graders" / "specs" / "PlatynUI.BareMetal.json"
 
 
 def _resolve(tmp_path: Path, suite: str, min_calls: int = 4):  # type: ignore[no-untyped-def]

@@ -603,9 +603,9 @@ the attached wheel.
   ever shipped in the package**. All four hook commands (SessionStart,
   PostToolUse, UserPromptSubmit, Stop) pointed at non-existent files.
   Reported in
-  `docs/issues/rf-agentskills_claudecode_powershell_error.txt`; full
+  `docs/archive/issues/rf-agentskills_claudecode_powershell_error.txt`; full
   analysis and alternatives considered in
-  `docs/issues/claudecode-powershell-startup-fix-proposal.md`.
+  `docs/archive/issues/claudecode-powershell-startup-fix-proposal.md`.
 
 ### Changed — hook scripts migrated to Node.js
 - The four hook scripts are now `.mjs` (Node.js) instead of `.sh` (bash).
@@ -679,9 +679,9 @@ the attached wheel.
   `C:\Users\x\.claude\rf-agentskills-files`) into JSON template
   text, then called `json.loads()` — and `\U`, `\r`, `\.` are not
   valid JSON escapes. Reported in
-  `docs/issues/rf-agentskills_install_issues_win_powershell.txt`;
+  `docs/archive/issues/rf-agentskills_install_issues_win_powershell.txt`;
   analysis and fix design in
-  `docs/issues/win-powershell-install-fix-proposal.md`.
+  `docs/archive/issues/win-powershell-install-fix-proposal.md`.
 - The same bug was latent in every adapter that consumes JSON or
   TOML after substitution: Claude Code (hooks + MCP), Copilot,
   Codex (MCP read), Cursor (hooks + MCP), OpenCode (MCP), Claude

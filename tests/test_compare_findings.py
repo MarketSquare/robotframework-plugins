@@ -76,6 +76,29 @@ def test_expired_baseline_entry(tmp_path: Path) -> None:
     assert "expired on 2026-11-08" in out.read_text()
 
 
+
+def test_expiry_is_flagged_ahead(tmp_path: Path) -> None:
+    sarif, finding = _sudo_pip(tmp_path)
+    expires = TODAY + dt.timedelta(days=20)
+    baseline = _baseline(tmp_path, _entry(finding, expires=expires.isoformat()))
+    out = tmp_path / "summary.md"
+    args = ["--baseline", str(baseline), "--sarif", f"skillspector={sarif}@plugins/rf-core",
+            "--summary", str(out), "--today", TODAY.isoformat()]
+    assert cf.main(args) == 0
+    text = out.read_text()
+    assert "rf-core, passed" in text and "### Baseline entries that expire soon" in text
+    assert f"expires {expires.isoformat()}, in 20 days" in text
+    assert cf.main([*args, "--fail-on-warn"]) == 1
+
+
+def test_entry_outside_the_warning_window_is_quiet(tmp_path: Path) -> None:
+    sarif, finding = _sudo_pip(tmp_path)
+    baseline = _baseline(tmp_path, _entry(finding, expires=(TODAY + dt.timedelta(days=31)).isoformat()))
+    out = tmp_path / "summary.md"
+    assert cf.main(["--baseline", str(baseline), "--sarif", f"skillspector={sarif}@plugins/rf-core",
+                    "--summary", str(out), "--today", TODAY.isoformat(), "--fail-on-warn"]) == 0
+    assert "expire soon" not in out.read_text()
+
 def test_new_high_fails_and_medium_is_only_reported(tmp_path: Path) -> None:
     high = _sarif(tmp_path, _result("EX1", "plugins/rf-core/scripts/hook.mjs", "HIGH", "fetch(env)"), name="h.sarif")
     medium = _sarif(tmp_path, _result("ST1", "plugins/rf-core/scripts/hook.mjs", "MEDIUM", "x"), name="m.sarif")
