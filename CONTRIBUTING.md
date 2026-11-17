@@ -2,6 +2,8 @@
 
 You can add a plugin for a library or tool that isn't covered yet, or improve one that is: fix a skill, add a reference, sharpen a subagent. This page covers how to do either, the checks your PR must pass, how review works, how to write the text, and which version to bump.
 
+Using an AI tool or a coding agent? Read [AI_POLICY.md](AI_POLICY.md) first: you own the change, and you say in the PR when AI did a substantial part of it. Agents get the short version with the exact commands in [AGENTS.md](AGENTS.md).
+
 ## Add a plugin
 
 1. Copy `templates/plugin/` to `plugins/<name>/`. Plugin names start with `rf-` and describe the technology, for example `rf-database`.
@@ -45,7 +47,7 @@ Live agent evals (`rf-skill-eval`) run on maintainer branches, after merge and w
 
 ## Review
 
-The checks above must pass; nobody can merge past a failing one. Then one maintainer approves your PR. The PR template asks two things the checks can't answer: what the change is for, and what a reviewer should look at by hand, such as a new hook, a new tool permission or a judgement call. If you change someone else's plugin, mention its `catalog.yaml` maintainers in the PR. [GOVERNANCE.md](GOVERNANCE.md) has the details.
+The checks above must pass, then one maintainer approves. [GOVERNANCE.md](GOVERNANCE.md) has the rules, and the PR template asks what the checks can't answer, including whether AI helped. If you change someone else's plugin, mention its `catalog.yaml` maintainers in the PR.
 
 ## Writing
 
@@ -108,7 +110,7 @@ plugins/<name>/                  # One folder per plugin; the only copy of its c
 ├── variants/                    # Generated: Codex TOML subagents, OpenCode agents and JS plugin
 ├── tests/                       # The plugin's own tests (not installed)
 └── evals/                       # Eval tasks, trigger sets and baselines (not installed)
-bundles/rf-agentskills/          # Generated copy of the bundled plugins
+bundles/rf-agentskills/          # Generated from the plugins in plugins/rf-agentskills/catalog.yaml
 schemas/catalog.schema.json      # Schema of catalog.yaml
 security/                        # Scanner baselines and configuration
 templates/plugin/                # Starter plugin
@@ -116,6 +118,9 @@ installer/                       # The robotframework-plugins Python installer
 tests/                           # Shared tests: repository, catalogue, installer, eval harness
 eval/                            # Shared eval harness content: fixture projects and hidden graders
 scripts/                         # Build and check utilities
+legacy/rf-agentskills/           # One-shot forwarder package for the old rf-agentskills name
+openspec/                        # Specs and planned changes (see AGENTS.md, "OpenSpec workflow")
+docs/archive/                    # Old plans and reports, kept as history
 ```
 
 `scripts/export-skills.py` writes standalone copies for the release tarballs and Claude Desktop archives, with plain `scripts/x.py` commands instead of the plugin's `"${CLAUDE_SKILL_DIR}/scripts/x.py"`.

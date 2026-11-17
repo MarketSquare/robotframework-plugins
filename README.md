@@ -303,6 +303,8 @@ The [rf-agentskills changelog](plugins/rf-agentskills/CHANGELOG.md) lists the sk
 ## More
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): add or change a plugin, run the checks and tests, and which version to bump.
+- [AI_POLICY.md](AI_POLICY.md): what AI-assisted contributions must meet, and why RobotCode is the base for Robot Framework capabilities.
+- [AGENTS.md](AGENTS.md): the guide for coding agents working in this repository.
 - [GOVERNANCE.md](GOVERNANCE.md): tiers, review, maintainer expectations, deprecation and removal.
 - [SECURITY.md](SECURITY.md): report a vulnerability privately; what the checks cover and what they can't.
 - [RELEASING.md](RELEASING.md): plugin and installer releases.
