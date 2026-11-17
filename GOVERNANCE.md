@@ -37,7 +37,7 @@ The checks do most of the review. The maintainers of the repository are the peop
 - **Checks:** every required check must pass before a PR merges. Nobody can bypass this, maintainers included.
 - **Review:** a PR needs one approval from a maintainer. A maintainer can merge their own PR without one, through the PR page, once the checks pass. Nobody pushes to `main` directly.
 
-Security-relevant content (hooks, scripts, MCP configuration, manifests, subagent `tools`, skill `allowed-tools`, workflows, `security/`) goes through the security gate like everything else; there is no separate security approval. A maintainer can add the `security-deep-scan` label for the model-assisted scans.
+Security-relevant content (hooks, scripts, MCP configuration, manifests, subagent `tools`, skill `allowed-tools`, workflows, `security/`) goes through the security gate like everything else; there is no separate security approval. A maintainer can start the model-assisted scans for a PR: `gh workflow run security-deep-scan.yml -f pr=<number> -f sha=<reviewed head>`, or **Run workflow** on the Actions tab.
 
 A plugin's maintainers in `catalog.yaml` answer for it, but GitHub only counts approvals from people with write access, so their approval isn't required. Mention them in the PR so they can comment.
 
