@@ -31,7 +31,7 @@ applies the fix and re-runs the tests.
 Failures that share a message, a keyword or a suite are one cause until proven otherwise
 (`robotcode results stats --by suite --failed`). Diagnose each cause once.
 
-Give each group a fingerprint: take the error message, keep the status codes and counts, replace concrete ids with a placeholder, and drop hosts, query strings and timestamps. Keep endpoint paths as templates (`/orders/{id}`, not `/orders/42`). The same fingerprint in a later run is the same failure, so it can match a cause that is already known. Put the fingerprint in the bug title or the BUGS.md entry, not only in a file name.
+Give each group a fingerprint: take the error message, keep the status codes and counts, replace concrete ids with a placeholder, and drop hosts, query strings and timestamps. Keep endpoint paths as templates (`/orders/{id}`, not `/orders/42`). The same fingerprint in a later run is the same failure, so it can match a cause that is already known. Put the fingerprint in the bug title or report, not only in a file name.
 
 ### 3. Classify each cause
 
