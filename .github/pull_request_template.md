@@ -2,7 +2,17 @@
 
 <!-- One or two sentences: what a user of the plugin gets from this PR. -->
 
-<!-- ai-disclosure: the AI assistance line goes here (change ai-contributor-docs). -->
+## AI assistance
+
+<!-- Did an AI tool or agent do a substantial part of this? Name it and confirm
+     you reviewed the result, ran the checks and have the right to submit it
+     (AI_POLICY.md). Grammar fixes and editor completions don't count.
+     Otherwise write "none". -->
+
+## Before you open it
+
+- Robot Framework capabilities go through `robotcode`; gaps are reported upstream ([AGENTS.md](../AGENTS.md#robotcode-first)).
+- Generated files were regenerated with their command, not edited by hand.
 
 ## Checked by CI
 
