@@ -24,8 +24,13 @@
 
 ## 6. PR
 
-- [ ] 6.1 Open a PR against `main` (ask before posting) with an AI-assistance disclosure in its description; verify the required checks pass.
+- [x] 6.1 Open a PR against `main` (ask before posting) with an AI-assistance disclosure in its description; verify the required checks pass. Done: #33, with the disclosure under "AI assistance", merged as `46067e0` with 25 checks passing.
 
 ## 7. Initial check
 
 - [ ] 7.1 After merge, check the new policy and agent guide in use: one full CI run on `main`, one local run of the checks in `AGENTS.md` or CONTRIBUTING, and the next contributor PR. Write down anything that broke or got harder. If a decision in `design.md` turns out wrong or risky, propose the change to the maintainer and update `design.md`. Verify that the findings are recorded in this change.
+
+  Findings so far (2026-11-17):
+  - Local run of the `AGENTS.md` Checks list, command by command, on `46067e0`: every command exists and runs as written; `tests/test_contributor_guidance.py` passes. The only failure was the rf-core venv test, a test bug recorded in repo-cleanup 7.1 and fixed in the follow-up PR.
+  - Harder than it should be: the Checks list gives no setup step. The commands need Robot Framework, the libraries and pytest installed. CONTRIBUTING has `uv sync`, but `AGENTS.md` doesn't point to it, so an agent that reads only `AGENTS.md` has to guess. Fixed in the follow-up PR, with the maintainer's agreement: a setup line before the list (`uv sync --all-packages`, `uv run rfbrowser init chromium`).
+  - Still open: the next contributor PR, to see whether the "AI assistance" section and the RobotCode item get filled in. Tick this task once one has come in.
