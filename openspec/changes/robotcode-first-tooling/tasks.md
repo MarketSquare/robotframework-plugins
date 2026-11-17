@@ -29,7 +29,7 @@
 ## 5. Hook and manual tools
 
 - [x] 5.1 Switch `validate_robot.mjs` tier 3 to `robotcode robot --dryrun` from the project root; verify the rf-validation-hooks scenarios, including "Profile settings apply", in `plugins/rf-core/tests`, and the variant check (`build-agent-variants.py --check`). Done: tier 3 runs `robotcode --no-color robot --dryrun …` from the same root as tier 0 and is skipped without robotcode. New test `test_file_dryrun_applies_robot_toml` ("Profile settings apply": a library on robot.toml's `python-path` imports; with the old `python -m robot` it failed to import); "Unknown keyword surfaced" and "Disabled by default" pass. 200 hook and variant tests pass, `build-agent-variants.py --check` is up to date, the bundle is regenerated, and the guard's last hook entry is gone.
-- [ ] 5.2 Install `robotcode` in the Windows desktop venv (approved on 2026-11-16) and switch `scripts/desktop-live-check.py` to the D3 helper. Verify with one live run on the PC. If the install causes problems, keep the script allowlisted with that reason and tell the maintainer.
+- [ ] 5.2 Install `robotcode` in the Windows desktop venv (approved on 2026-11-16) and switch `scripts/desktop-live-check.py` to the D3 helper. Verify with one live run on the PC. If the install causes problems, keep the script allowlisted with that reason and tell the maintainer. Code done 2026-11-17: `desktop-live-check.py` runs suites with `robotcode robot` and reads them with `robotcode results show` (no ElementTree, no `python -m robot`); `docs/ci/desktop-live-check.md` installs `robotcode[runner]`; a Linux test covers the result reading. Open: robotcode in the Windows venv and one live run on the PC.
 
 ## 6. Upstream gaps
 

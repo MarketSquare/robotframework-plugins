@@ -40,13 +40,3 @@ pattern = "parser-model"
 reason = "Screens model-written suites for disallowed libraries and keywords before they run on a maintainer's desktop; a safety screen, not keyword resolution."
 
 # --- Replaced by robotcode-first-tooling (tasks 2-5); remove with the code ---
-
-[[allow]]
-file = "scripts/desktop-live-check.py"
-pattern = "run-robot"
-reason = "Runs suites with python -m robot; moves to robotcode robot (task 5.2)."
-
-[[allow]]
-file = "scripts/desktop-live-check.py"
-pattern = "xml-parsing"
-reason = "Reads output.xml; moves to robotcode results (task 5.2)."
