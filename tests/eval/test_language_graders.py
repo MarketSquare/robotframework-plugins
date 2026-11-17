@@ -98,6 +98,21 @@ def test_env_hidden_suite_with_yaml(tmp_path: Path) -> None:
     assert language.hidden_suite(_run(tmp_path, ws), params).status == "failed"
 
 
+
+def test_env_hidden_suite_variable_file_beats_robot_toml_default(tmp_path: Path) -> None:
+    # A robot.toml that defaults to dev.yaml is a valid solution; the grader's
+    # staging.yaml must replace that default, not lose to it (PR #37 eval).
+    pytest.importorskip("yaml")
+    ws = _keywords_ws(tmp_path, None)
+    (ws / "variables").mkdir()
+    (ws / "variables" / "dev.yaml").write_text("BASE_URL: http://localhost:8080\nTIMEOUT: 5 s\n")
+    (ws / "variables" / "staging.yaml").write_text("BASE_URL: https://staging.example.com\nTIMEOUT: 30 s\n")
+    (ws / "robot.toml").write_text('variable-files = ["variables/dev.yaml"]\npaths = ["tests"]\n')
+    params = {"suite": "env_staging.robot", "variablefile": "variables/staging.yaml",
+              "also_run": ["tests/env.robot"], "expected_tests": 3}
+    v = language.hidden_suite(_run(tmp_path, ws), params)
+    assert v.status == "passed", v.details
+
 def test_file_unchanged(tmp_path: Path) -> None:
     ws = _keywords_ws(tmp_path, None)
     params = {"fixture": "sut-language-keywords", "path": "tests/teams.robot"}

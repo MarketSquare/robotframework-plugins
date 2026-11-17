@@ -67,6 +67,27 @@ def robotcode_binary() -> str | None:
     return shutil.which("robotcode")
 
 
+# Config files robotcode reads from a project root when no ``-c`` is given.
+_PROJECT_CONFIGS = ("pyproject.toml", "robot.toml", ".robot.toml")
+
+
+def _config_args(cwd: Path | None, output_dir: Path, variable_files: Sequence[Path | str]) -> list[str]:
+    """``-c`` options that keep the project's config but make ``variable_files`` the only variable files.
+
+    Robot Framework gives the first variable file priority, and robotcode puts
+    the project's ``variable-files`` before any ``--variablefile``; a later
+    config file replaces the list instead.
+    """
+    if not variable_files:
+        return []
+    root = cwd or Path.cwd()
+    override = output_dir / "grader-override.toml"
+    override.write_text(
+        "variable-files = [" + ", ".join(json.dumps(str(v)) for v in variable_files) + "]\n", encoding="utf-8")
+    configs = [root / name for name in _PROJECT_CONFIGS if (root / name).is_file()]
+    return [arg for path in (*configs, override) for arg in ("-c", str(path))]
+
+
 def robotcode_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     """Environment for robotcode: UTF-8 output, so library docs with non-ASCII text
     don't crash it on a Windows code page."""
@@ -111,12 +132,14 @@ def run_robot(
     dryrun: bool = False,
     timeout_seconds: int = 300,
     launcher: Sequence[str] | None = None,
+    variable_files: Sequence[Path | str] = (),
 ) -> RobotResult:
     """Run ``robotcode robot`` on ``targets`` and read the results with robotcode.
 
     ``launcher`` replaces the ``robotcode`` executable, for example a ``uvx``
     command that runs robotcode with a pinned Robot Framework; results are
-    still read with the harness's own ``robotcode``. Raises
+    still read with the harness's own ``robotcode``. ``variable_files`` replace
+    the project's configured variable files instead of adding to them. Raises
     :class:`RobotcodeMissingError` when robotcode is not installed.
     """
     if not targets:
@@ -125,7 +148,8 @@ def run_robot(
     if robotcode is None:
         raise RobotcodeMissingError("robotcode is not installed (not next to the interpreter, not on PATH)")
     output_dir.mkdir(parents=True, exist_ok=True)
-    cmd = [*(launcher or [robotcode]), "robot", "--outputdir", str(output_dir),
+    cmd = [*(launcher or [robotcode]), *_config_args(cwd, output_dir, variable_files), "robot",
+           "--outputdir", str(output_dir),
            *(["--dryrun"] if dryrun else []), *[str(a) for a in args], *[str(t) for t in targets]]
     _log.info("Invoking grader: %s", " ".join(cmd))
     try:

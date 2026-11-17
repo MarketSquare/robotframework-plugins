@@ -78,6 +78,8 @@ For pinned Robot Framework versions (`language.py`, task on `sut-rf71`), the hel
 
 The analysis cache: `robotcode analyze code` writes `.robotcode_cache/` into the analysed project. The grader sets `ROBOTCODE_CACHE_DIR` to a folder in the run's artifacts, so nothing is added to the agent's workspace.
 
+Grader variable files (found on PR #37, 2026-11-17): because `robotcode robot` applies the workspace's `robot.toml`, a solution that sets a default `variable-files = ["variables/dev.yaml"]` there made the `env-varfiles` hidden suite read dev values: Robot Framework gives the first variable file priority, and robotcode puts the configured ones before `--variablefile`. A grader's variable files now replace the configured ones: the helper passes the project's config files and a generated override with `-c`, so the rest of `robot.toml` still applies. Encoding: every robotcode call runs with `PYTHONIOENCODING=utf-8`, since under a Windows code page robotcode can't print library docs with characters outside it.
+
 ### D4. `no_deprecated_keywords`
 
 The check reads the `DeprecatedKeyword` diagnostics from the same `analyze code` call and runs Robocop's hard-deprecation rules (`DEPR03/04/07/08/09/10/11`, the set the hooks already use). The regex list goes. This can flag more than before: library-deprecated keywords, `[Return]`, `Force Tags`. That is intended and is one reason for the re-baseline.

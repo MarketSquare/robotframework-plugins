@@ -65,10 +65,11 @@ def _outdir(run: Run, label: str) -> Path:
 
 def _run_robot(
     targets: list[str], args: list[str], cwd: Path, outdir: Path, timeout: int,
-    launcher: list[str] | None = None,
+    launcher: list[str] | None = None, variable_files: tuple[str, ...] = (),
 ) -> tuple[int | None, int, int, str, RobotResult]:
     """Run suites through robotcode; return (returncode, total, passed, failure summary, result)."""
-    result = run_robot(targets, outdir, args=args, cwd=cwd, timeout_seconds=timeout, launcher=launcher)
+    result = run_robot(targets, outdir, args=args, cwd=cwd, timeout_seconds=timeout, launcher=launcher,
+                       variable_files=variable_files)
     if result.timed_out:
         return None, 0, 0, result.output, result
     errors = [ln.strip() for ln in result.output.splitlines() if ln.startswith("[ ERROR ]")][:2]
@@ -100,10 +101,12 @@ def hidden_suite(run: Run, params: dict[str, Any]) -> Verdict:
     shutil.copy(suite, staged / suite.name)
     args = ["--pythonpath", str(ws), "--pythonpath", str(ws / "libraries")]
     varfile = params.get("variablefile")
+    variable_files: tuple[str, ...] = ()
     if varfile:
         if not (ws / str(varfile)).is_file():
             return Verdict.of(run.id, name, False, f"variable file missing: {varfile}")
-        args += ["--variablefile", str(ws / str(varfile))]
+        # Replaces, not adds to, a default variable file in the workspace's robot.toml.
+        variable_files = (str(ws / str(varfile)),)
     targets = [str(staged / suite.name)]
     for extra in params.get("also_run") or ():
         path = ws / str(extra)
@@ -112,7 +115,8 @@ def hidden_suite(run: Run, params: dict[str, Any]) -> Verdict:
         targets.append(str(path))
     args += ["--name", "Grader"]
     try:
-        rc, total, passed, tail, _ = _run_robot(targets, args, ws, outdir, int(params.get("timeout_seconds", 120)))
+        rc, total, passed, tail, _ = _run_robot(targets, args, ws, outdir, int(params.get("timeout_seconds", 120)),
+                                                variable_files=variable_files)
     except RobotcodeMissingError:
         return Verdict.skipped(run.id, name, "robotcode not installed")
     expected = int(params.get("expected_tests") or total or 1)
