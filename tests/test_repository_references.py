@@ -15,8 +15,9 @@ REPO = Path(__file__).resolve().parents[1]
 OLD = re.compile(r"manykarim/robotframework-agentskills|robotframework-agentskills")
 
 #: History: planning and specs (main specs are rewritten when a change is
-#: archived), changelogs, and the dated plans and reports under docs/.
-EXEMPT_PREFIXES = ("openspec/", "docs/")
+#: archived), changelogs, the archived documents and the ADRs (immutable
+#: decision records).
+EXEMPT_PREFIXES = ("openspec/", "docs/archive/", "docs/ci/architecture/adr/")
 EXEMPT_NAMES = ("CHANGELOG.md",)
 #: libdoc JSON generated on a developer machine; the match is a local path.
 EXEMPT_GLOBS = ("eval/graders/specs/*.json",)

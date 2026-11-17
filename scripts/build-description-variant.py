@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build a description variant root for trigger tuning (tune-skill-descriptions D5).
 
-Copies ``plugins/rf-agentskills`` and ``skills/`` into ``--out`` and replaces the
-frontmatter ``description`` (line 3, JSON-quoted) of each skill named in the
+Merges the content plugins under ``plugins/`` into ``--out/plugins/rf-agentskills``
+(the bundle's shape, as the eval harness stages it) and replaces the frontmatter
+``description`` (line 3, JSON-quoted) of each skill named in the
 candidates file(s). Prints the variant id (a hash of every staged description).
 
 Usage::

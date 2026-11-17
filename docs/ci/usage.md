@@ -53,8 +53,7 @@ Key properties:
   clone reproduces what CI does. No "works in CI, broken locally"
   drift.
 
-For the full architecture, see
-[`ddd-design.md`](architecture/ddd-design.md) and the ADRs under
+For the architecture decisions, see the ADRs under
 [`architecture/adr/`](architecture/adr/).
 
 ---
@@ -113,7 +112,6 @@ Edit `.env` and paste your OAuth token:
 
 ```dotenv
 CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-your-token-here
-CLAUDE_MODEL_DEFAULT=claude-haiku-5-5
 RF_SKILL_EVAL_LOG_LEVEL=INFO
 ```
 
@@ -180,9 +178,9 @@ A green doctor means you are ready to run evaluations.
 ### Validate before you spend anything
 
 ```bash
-uv run rf-skill-eval validate-tasks eval/tasks   # schema, model ids, skills, fixtures, gating
+uv run rf-skill-eval validate-tasks plugins/rf-core/evals/tasks   # schema, model ids, skills, fixtures, gating
 uv run rf-skill-eval coverage                    # every shipped skill has a narrow task + trigger set
-uv run rf-skill-eval doctor --tasks-dir eval/tasks --strict   # grader tools / libraries present
+uv run rf-skill-eval doctor --tasks-dir plugins/rf-core/evals/tasks --strict   # grader tools / libraries present
 uv run pytest tests/eval -q                      # harness unit tests (no API calls)
 ```
 
@@ -192,7 +190,7 @@ uv run pytest tests/eval -q                      # harness unit tests (no API ca
 scripts/eval-smoke.sh
 ```
 
-Runs `eval/tasks/narrow/narrow-libdoc-search-01.yaml` once with
+Runs `plugins/rf-api/evals/tasks/narrow/narrow-requests-users-01.yaml` once with
 `claude-haiku-5-5` in the `treatment` arm, grades it and prints the
 report.
 
@@ -216,7 +214,7 @@ Lint + unit tests, then the narrow tier in the treatment arm with `--runs 3`
 
 ```bash
 uv run rf-skill-eval run \
-  --task eval/tasks/narrow/narrow-libdoc-search-01.yaml \
+  --task plugins/rf-api/evals/tasks/narrow/narrow-requests-users-01.yaml \
   --arm treatment \
   --max-cost-usd 1 \
   --output eval/runs/manual-$(date +%s)
@@ -231,7 +229,7 @@ uv run rf-skill-eval run \
 
 ```bash
 uv run rf-skill-eval run-batch \
-  --tasks-dir eval/tasks/narrow \
+  --tasks-dir plugins/rf-web/evals/tasks/narrow \
   --arms treatment,baseline \
   --runs 3 \
   --max-cost-usd 5 \
@@ -280,13 +278,13 @@ of `eval/fixtures/sut-trigger/`, a neutral Robot Framework project that imports
 no test library. Reports TP/FP/TN/FN, precision, recall and accuracy per skill
 for train and validation (and holdout, when selected) separately, plus the
 other skills loaded for failing queries. See
-[`eval/triggers/README.md`](../../eval/triggers/README.md).
+[`plugins/rf-core/evals/triggers/README.md`](../../plugins/rf-core/evals/triggers/README.md).
 
 | Option | Meaning |
 |---|---|
 | `--split train,validation,holdout2` | Comma list of `train`, `validation`, `holdout`, `holdout<N>`; a holdout name runs only that split's post-tuning queries, each reported in its own column. |
 | `--concurrency 1\|2` | Queries run at once (default 1; max 2, the ADR-002 OAuth cap). |
-| `--variant-root <dir>` | Stage `<dir>/plugins/rf-agentskills` instead of the shipped plugin. |
+| `--variant-root <dir>` | Stage the merged plugins in `<dir>/plugins/rf-agentskills` (written by `build-description-variant.py`) instead of the repository's `plugins/`. |
 | `--listing-budget <chars>` | Set `SLASH_COMMAND_TOOL_CHAR_BUDGET` (skill-listing budget) for the sessions; default: not set, Claude Code's own budget. |
 | `--output <dir>` | Also the resume key: re-running with the same directory skips finished queries. |
 
@@ -335,7 +333,7 @@ tool working in the repository at the same time. Trigger sessions have no
 write-capable tool and skip the snapshot.
 
 **Description variants.** Measure candidate descriptions without editing
-`skills/`:
+`plugins/*/skills/`:
 
 ```bash
 uv run python scripts/build-description-variant.py \
@@ -370,7 +368,7 @@ definition, fixture, model or turn-limit factor changed, or no baseline entry ex
 pass). Without `--baseline`, `gate` and `baseline update` use the runs' model's
 folder: `<evals>/baselines/` for Claude, `<evals>/baselines/openrouter/<model name>/`
 for an OpenRouter model. Baseline files are promoted through a reviewed PR
-([`eval/baselines/README.md`](../../eval/baselines/README.md)).
+([`plugins/rf-core/evals/baselines/README.md`](../../plugins/rf-core/evals/baselines/README.md)).
 
 ---
 
@@ -396,8 +394,8 @@ the gate uses the rules above (see the ADR-004 amendments).
 1. Pick a tier: `narrow/` (one skill), `realistic/` (multi-step) or
    `adversarial/` (tempts a failure mode; never gates).
 2. Copy an existing task as a template and edit it (schema:
-   [`eval/tasks/README.md`](../../eval/tasks/README.md)).
-3. `uv run rf-skill-eval validate-tasks eval/tasks && uv run rf-skill-eval coverage`.
+   [`plugins/rf-core/evals/tasks/README.md`](../../plugins/rf-core/evals/tasks/README.md)).
+3. `uv run rf-skill-eval validate-tasks plugins/<plugin>/evals/tasks && uv run rf-skill-eval coverage`.
 4. Run it once: `uv run rf-skill-eval run --task <file> --max-cost-usd 1`.
 
 A new skill needs at least one narrow task **and** a trigger set, or
@@ -549,10 +547,8 @@ to prefer which.
 - [desktop-live-check.md](desktop-live-check.md) — running rf-desktop's
   eval suites against the real Calculator on Windows.
 - [faq.md](faq.md) — common questions, rate limits, rotation.
-- [architecture/ddd-design.md](architecture/ddd-design.md) — bounded
-  contexts and module layout.
 - [architecture/adr/ADR-004-scoring-model.md](architecture/adr/ADR-004-scoring-model.md) — scoring rubric and gate.
 - [architecture/adr/ADR-005-ci-integration.md](architecture/adr/ADR-005-ci-integration.md) — workflow, auth, secrets.
 - [architecture/adr/ADR-006-result-persistence.md](architecture/adr/ADR-006-result-persistence.md) — how historical results are stored.
-- [`eval/tasks/README.md`](../../eval/tasks/README.md) — task schema
+- [`plugins/rf-core/evals/tasks/README.md`](../../plugins/rf-core/evals/tasks/README.md) — task schema
   reference and tier definitions.

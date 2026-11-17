@@ -4,7 +4,7 @@
 # evaluation harness. It bundles the plugin tree at
 # plugins/ and writes it to a target coding agent's
 # expected install paths (Claude Code, Copilot, Codex, Cursor, Goose,
-# OpenCode, Claude Desktop) — see docs/installer/proposal.md for the
+# OpenCode, Claude Desktop) — see docs/archive/installer-proposal.md for the
 # full design.
 
 [build-system]
@@ -108,4 +108,3 @@ path = "hatch_build.py"
 
 [tool.pytest.ini_options]
 testpaths = ["../tests/installer"]
-asyncio_mode = "auto"
