@@ -7,7 +7,7 @@ Define the structure, content rules, size budget, reference and example rules, a
 
 ### Requirement: Library skills follow the standard SKILL.md skeleton
 
-Each library skill's `SKILL.md` (`skills/rf-{browser,selenium,appium,requests,restinstance}/SKILL.md`) SHALL contain these level-2 sections in this order:
+Each library skill's `SKILL.md` (`plugins/rf-web/skills/rf-{browser,selenium}/SKILL.md`, `plugins/rf-mobile/skills/rf-appium/SKILL.md` and `plugins/rf-api/skills/rf-{requests,restinstance}/SKILL.md`) SHALL contain these level-2 sections in this order:
 1. a short orientation (at most ~5 lines, stating what the library is for and when to prefer a sibling skill);
 2. `When to use` (the trigger-terms and sibling-boundary block defined by the `skill-triggering` capability), which is the first level-2 section;
 3. `Installation` (the short block defined by the `library-skill-install-guidance` capability);

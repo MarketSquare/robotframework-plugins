@@ -5,10 +5,9 @@ Provide the `rf-language` agent skill. It teaches agents to write, refactor and 
 
 ## Requirements
 
-
 ### Requirement: Skill exists with conformant frontmatter and layout
 
-The repository SHALL provide the skill at `skills/rf-language/` with:
+The repository SHALL provide the skill at `plugins/rf-core/skills/rf-language/` with:
 - a `SKILL.md` whose frontmatter `name` is `rf-language` (equal to the directory name), with `description`, `license`, `compatibility` and `metadata` (`author`, `version`) in the form required for every shipped skill;
 - a `references/` directory;
 - an `assets/examples/` directory;
@@ -17,7 +16,7 @@ The repository SHALL provide the skill at `skills/rf-language/` with:
 The `compatibility` text SHALL be at most 500 characters and SHALL state that Python and `robotframework>=7` in the project environment are needed for the bundled script, that the guidance is version-gated, and that `robotcode[all]>=2.8` is required in the project environment (it also provides Robocop). The skill SHALL contain only regular files (no symlinks).
 
 #### Scenario: Directory and frontmatter
-- **WHEN** `skills/rf-language/SKILL.md` is parsed
+- **WHEN** `plugins/rf-core/skills/rf-language/SKILL.md` is parsed
 - **THEN** `name` is `rf-language`, `license`, `compatibility` (≤ 500 characters) and `metadata` (`author`, `version`) are present, `scripts/rf_conventions.py` exists, and the skill validator used for all skills reports no violation
 
 ### Requirement: Description states capability, triggers and boundaries
@@ -494,11 +493,11 @@ The run and dry-run checks take optional `args` and `expected_tests` (minimum pa
 
 ### Requirement: Skill is distributed to every channel without drift
 
-The skill SHALL be propagated by the sync tooling to the Claude Code plugin (`plugins/rf-agentskills/skills/rf-language/`, with its own `scripts/rf_conventions.py`) and included in the installer assets through the plugin mirror. The drift check and the skill validator SHALL pass. In addition, the context-injection hook's skill list SHALL name `rf-language`; the subagents `rf-test-architect`, `rf-debug-expert` and `rf-migration-guide` SHALL direct the agent to `rf-language` (and, for migration, to its `references/migration.md` and the `rf_conventions` report); the README skill table and project structure SHALL list the skill; the content CHANGELOG SHALL announce it.
+The skill SHALL ship in the `rf-core` plugin, be copied unchanged into `bundles/rf-agentskills/` by the catalogue build (with its own `scripts/rf_conventions.py`), and be included in the installer assets. `scripts/build-catalog.py --check`, the drift check and the skill validator SHALL pass. In addition, the context-injection hook's skill list SHALL name `rf-language`; the subagents `rf-test-architect`, `rf-debug-expert` and `rf-migration-guide` SHALL direct the agent to `rf-language` (and, for migration, to its `references/migration.md` and the `rf_conventions` report); the `rf-core` README SHALL list the skill.
 
 #### Scenario: Channels populated
-- **WHEN** `scripts/sync-skills.sh` runs
-- **THEN** the plugin copy exists with `name: rf-language` and `scripts/check-drift.sh` exits 0
+- **WHEN** `scripts/build-catalog.py --check` runs
+- **THEN** the bundle copy exists with `name: rf-language` and `scripts/check-drift.sh` exits 0
 
 #### Scenario: Installer ships the skill
 - **WHEN** the installer is built and installs for Claude Code into a temporary project
