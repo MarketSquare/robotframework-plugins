@@ -3,7 +3,7 @@
 
 Claude loads custom skills uploaded under Customize -> Skills -> Upload a
 skill; each archive holds the skill folder at its root (``rf-browser/SKILL.md``
-...). The archives are byte-identical to what ``rf-agentskills install
+...). The archives are byte-identical to what ``robotframework-plugins install
 --agent claude-desktop`` writes (same builder, deterministic timestamps).
 
 The skills come from ``plugins/<plugin>/skills/`` in their standalone form
@@ -11,7 +11,7 @@ The skills come from ``plugins/<plugin>/skills/`` in their standalone form
 
 Usage::
 
-    python scripts/build-skill-zips.py --out dist/skill-zips [--plugin rf-agentskills]
+    python scripts/build-skill-zips.py --out dist/skill-zips [--plugin rf-web] [--skills <exported skills>]
 """
 
 from __future__ import annotations

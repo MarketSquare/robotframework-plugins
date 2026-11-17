@@ -172,7 +172,7 @@ Step-by-step:
 
    ```bash
    uv run rf-skill-eval run \
-     --task eval/tasks/<tier>/<task>.yaml \
+     --task plugins/<plugin>/evals/tasks/<tier>/<task>.yaml \
      --arm treatment \
      --log-level DEBUG
    ```
@@ -285,7 +285,7 @@ auto-opened ~11 months after last rotation, per
   for the grader".
 
 Full tier definitions and task-authoring guidelines:
-[`eval/tasks/README.md`](../../eval/tasks/README.md).
+[`plugins/rf-core/evals/tasks/README.md`](../../plugins/rf-core/evals/tasks/README.md).
 
 ---
 
@@ -319,20 +319,16 @@ Full persistence design:
 
 ---
 
-## Why is rf-mcp required?
+## Why does the harness depend on rf-mcp?
 
 `rf-mcp` is the Model Context Protocol server that exposes Robot
-Framework test execution as tool calls to the agent. Several skills
-(notably `testcase-builder`, `results-analysis`) rely on it for
-their primary value proposition: letting the agent **run the test
-it just wrote** before claiming the task is done.
+Framework execution as tool calls to the agent. A task that lists it
+under `mcp_servers:` (for example
+`plugins/rf-core/evals/tasks/narrow/narrow-rf-mcp-execute-01.yaml`)
+gets it registered in both arms, so the arms differ only in the
+plugin. Plugins themselves ship no MCP server.
 
-The `executed_before_complete` primary metric directly counts
-rf-mcp tool calls. Without rf-mcp, that metric is always zero,
-treatment arms look no different from control, and the skill's
-effect is invisible to the rubric.
-
-See [`skills/README.md`](../../skills/README.md) for the rf-mcp
-setup that the harness expects. The harness itself installs rf-mcp
-into each per-arm profile during invocation; contributors do not
+`rf-mcp[all]` is a dependency of the harness, and the harness writes
+the server into each run's profile (see
+`src/rf_skill_eval/infrastructure/mcp/config_builder.py`); you don't
 need to install it globally.

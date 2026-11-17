@@ -22,8 +22,6 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validat
 VerdictStatus = Literal["passed", "failed", "skipped", "error"]
 CheckCategory = Literal["outcome", "process"]
 
-VERDICT_STATUSES: tuple[VerdictStatus, ...] = ("passed", "failed", "skipped", "error")
-
 
 class Verdict(BaseModel):
     """One grader-check result for one run."""

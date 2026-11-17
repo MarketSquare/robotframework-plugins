@@ -423,6 +423,6 @@ jobs:
 
 ## References
 
-- `docs/ci/rf-agentskills-eval-implementation-plan.md` §4.3, §8
+- `docs/archive/rf-agentskills-eval-implementation-plan.md` §4.3, §8
 - Existing repo workflows (from `git log`): `validate-plugin`, `workflow_call`
 - GitHub Actions docs: matrix strategy, concurrency, artifact retention.

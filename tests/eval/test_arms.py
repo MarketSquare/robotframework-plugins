@@ -108,7 +108,7 @@ def test_baseline_arm_provisions_no_plugin_parts(tmp_path: Path, fake_claude: Pa
     assert "hooks" not in settings
     assert not (workspace / ".claude" / "settings.json").exists()
     assert set(_mcp(config)) == {"rf-mcp"}  # per-task server only
-    assert baseline_isolation_problems(config, workspace, _PLUGIN) == []
+    assert baseline_isolation_problems(config, workspace) == []
     assert run.usage is not None and run.usage.total_cost_usd == pytest.approx(0.002)
 
 

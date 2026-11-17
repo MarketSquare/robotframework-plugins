@@ -31,7 +31,7 @@ def find_bash() -> str | None:
 BASH = find_bash()
 
 
-# The repo's shell tooling (sync-skills.sh, check-drift.sh, bump-version.sh)
+# The repo's shell tooling (check-drift.sh, check-template.sh, security-scan.sh)
 # is run by CI on Linux. Under Git Bash on windows-latest, check-drift.sh exits
 # 1 silently in scratch copies; until that is investigated, the tests that
 # exercise these scripts run on Linux/macOS only.

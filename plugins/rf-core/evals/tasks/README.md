@@ -175,6 +175,6 @@ both `skill: plugin`) guard against re-introducing.
 
 ## References
 
-- `docs/ci/rf-agentskills-eval-implementation-plan.md` — overall plan.
+- `docs/archive/rf-agentskills-eval-implementation-plan.md` — overall plan.
 - `docs/ci/architecture/adr/ADR-004-scoring-model.md` — scoring rubric and
   gating logic (primary metrics must be externally grounded).

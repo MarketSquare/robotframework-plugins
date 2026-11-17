@@ -306,9 +306,9 @@ plan §9).
 
 ## References
 
-- `docs/ci/claude-code-extension-quality-evaluation.md` §3.4 — stop-hook violation
+- `docs/archive/claude-code-extension-quality-evaluation.md` §3.4 — stop-hook violation
   rate as a canary.
-- `docs/ci/rf-agentskills-eval-implementation-plan.md` §5 — statistical approach
+- `docs/archive/rf-agentskills-eval-implementation-plan.md` §5 — statistical approach
   (Mann-Whitney, Cliff's delta, bootstrap CI).
 - Cliff, *Dominance Statistics* (1993) — effect size for ordinal data.
 - Benjamini & Hochberg (1995) — FDR control.
