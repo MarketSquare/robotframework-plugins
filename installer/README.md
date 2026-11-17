@@ -99,7 +99,7 @@ Other tools can depend on `robotframework-plugins` and read the plugins it bundl
 | `CATALOG_FORMAT` | The catalogue format, `1`. Check it at runtime. |
 | `catalog()` | The bundled plugins (active and deprecated): `name`, `version`, `status`, `tier`, `summary`, `libraries` (`name`, `package`, `versions`, and `skills`: the plugin's skills that cover the library; absent means all of them), `robotframework`, `dependencies`, `bundle`, `bundled`. A new list on each call. |
 | `skills_dirs()` | `{plugin: Path}` of each active plugin's `skills/` folder, `rf-core` first; bundles such as `rf-agentskills` are left out. The folders exist for the life of the process. |
-| `fetch(ref="stable")` | The same for a branch, tag or commit of this repository: a `Snapshot` with `ref`, `commit`, `catalog()` and `skills_dirs()`. Raises `FetchError` on any failure. |
+| `fetch(ref="stable", *, source=None, token=None)` | The same for a branch, tag or commit of this repository: a `Snapshot` with `ref`, `commit`, `catalog_format`, `catalog()` and `skills_dirs()`. `source` and `token` are for mirrors (see below). Raises `FetchError` on any failure. |
 
 ```python
 from packaging.specifiers import SpecifierSet
@@ -129,14 +129,34 @@ except bundle.FetchError:
 
 **`fetch()` and the network.** `fetch()` is the only part of the API that uses the network, and only when you call it: importing the module, `catalog()` and `skills_dirs()` read the installed package. It resolves the ref to a commit on GitHub, downloads that commit's archive once, checks it (only plain files and folders, no paths outside the snapshot, a valid `catalog.yaml` and `plugin.json` for every plugin), and keeps it in `~/.cache/robotframework-plugins/snapshots/<commit>/` (`%LOCALAPPDATA%` on Windows; `cache_dir=` changes it). A commit SHA that is already cached needs no network. Nothing in a snapshot is run.
 
+**Snapshots and the catalogue format.** A snapshot records the catalogue format it was built with (`Snapshot.catalog_format`, and `catalog_format` and `built_by` in its `snapshot.json`). `fetch()` only returns snapshots in the running package's `CATALOG_FORMAT`: a cached snapshot in another format, or from before this was recorded, is downloaded and built again, once.
+
+**Company networks: mirror, token, proxy.** `fetch()` works through GitHub Enterprise or an artifact manager's GitHub remote (Artifactory, Nexus) and with a token:
+
+| Setting | Argument | Environment variable | Default |
+|---|---|---|---|
+| Source: base URL of a GitHub-compatible API | `source=` | `ROBOTFRAMEWORK_PLUGINS_SOURCE` | `https://api.github.com` |
+| Token, sent as `Authorization: Bearer …` | `token=` | `ROBOTFRAMEWORK_PLUGINS_TOKEN`, then `GITHUB_TOKEN` with the default source only | none |
+
+```python
+bundle.fetch("stable", source="https://ghe.example.com/api/v3")
+```
+
+- **What the source must serve:** the GitHub REST paths `/repos/MarketSquare/robotframework-plugins/commits/<ref>` and `/repos/MarketSquare/robotframework-plugins/tarball/<sha>`. GitHub Enterprise and the GitHub remotes of artifact managers do.
+- **Where the token goes:** only to the source's own host. It is not passed on to a host the source redirects to, and never sent over plain `http://`, except to the local machine.
+- **Why a token helps:** without one, GitHub allows 60 API calls an hour per IP address, which developers behind one company address share. With one, the limit is 5,000. `token=""` sends no token, even if a variable is set.
+- **Proxy:** `HTTPS_PROXY` and `NO_PROXY` are honoured.
+- **Company CA:** if the proxy re-signs TLS with a company CA, point `SSL_CERT_FILE` to a bundle that includes it, or install `truststore` and call `truststore.inject_into_ssl()` to use the system's store.
+
 Choose the ref deliberately:
 
-- `stable` holds released plugins. It only exists after the first plugin release; until then, `fetch()` raises `FetchError: ref 'stable' not found`.
+- `stable` holds released plugins. It is created by the first plugin release; until then, `fetch()` raises `FetchError: ref 'stable' not found …`, and the message names the alternatives: `latest` or a tag.
+- `latest` moves with `stable` on every plugin release. Before the first one it already exists and points to a commit of `main`.
 - `main` holds everything merged: reviewed and checked by CI, but not released. Plugin versions there can be ahead of any release, the full evaluations run later, and a change can still be reverted. Skills ship scripts that agents run, so serve `main` only where that is acceptable, and report `Snapshot.commit` so you know what you served.
 
 ## No telemetry
 
-The installer sends nothing anywhere. It only touches the network for the marketplace and package operations you ask for. The `bundle.fetch()` function of the Python API downloads from GitHub only when a program calls it; the installer's commands never do.
+The installer sends nothing anywhere. It only touches the network for the marketplace and package operations you ask for. The `bundle.fetch()` function of the Python API downloads from GitHub, or the source you configure, only when a program calls it; the installer's commands never do.
 
 ## More
 
