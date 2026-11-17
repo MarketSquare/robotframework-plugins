@@ -1,6 +1,6 @@
 """Adapter for OpenAI Codex CLI.
 
-Per the proposal (docs/installer/proposal.md, Phase 2) — adjusted
+Per the proposal (docs/archive/installer-proposal.md, Phase 2) — adjusted
 2026-05-07 against developers.openai.com/codex/skills, which lists
 ``$HOME/.agents/skills`` as the canonical USER-scope path (the
 cross-vendor "agentskills.io" convention also honoured by Cursor 2.4+

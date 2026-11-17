@@ -1,4 +1,4 @@
-// rf-agentskills hooks for OpenCode.
+// Robot Framework plugin hooks for OpenCode.
 // __GENERATED_NOTE__
 //
 // OpenCode has no Claude-style hooks.json; plugins are JS modules. This one runs

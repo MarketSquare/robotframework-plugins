@@ -1,6 +1,6 @@
 # sut-language-tests
 
-Robot Framework project used by the rf-language test-structure tasks. Needs only
+Robot Framework project. Needs only
 `robotframework` (no browser, no network): the "application" is a set of small
 Python libraries in `libraries/`.
 

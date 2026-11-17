@@ -1,7 +1,6 @@
 *** Settings ***
-Documentation    Static stub for a desktop calculator flow (see README.md).
-...              Not executed in CI (no desktop session); graded with
-...              keywords_resolve against specs/PlatynUI.BareMetal.json.
+Documentation    Smoke test: the Calculator window is present (see README.md).
+...              Needs a desktop session with Calculator running.
 Library          PlatynUI.BareMetal
 
 

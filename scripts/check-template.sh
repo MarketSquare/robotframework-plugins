@@ -3,7 +3,7 @@
 # programme-documentation, "Template plugin passes CI"; launch task 9.4).
 #
 # Copies the tracked files of this checkout to a scratch folder, adds
-# templates/plugin/ as plugins/example/ with its CODEOWNERS line, regenerates
+# templates/plugin/ as plugins/example/, regenerates
 # the catalogue, and runs the PR checks and tests there.
 # Usage: scripts/check-template.sh [SCRATCH_DIR]
 set -euo pipefail
@@ -15,7 +15,6 @@ git -C "$root" ls-files -z | (cd "$root" && xargs -0 cp -P --parents -t "$scratc
 cd "$scratch"
 git init -q && git add -A && git -c user.name=check -c user.email=check@example.invalid commit -qm base
 cp -r templates/plugin plugins/example
-echo "/plugins/example/ @your-github-handle" >> .github/CODEOWNERS
 
 python scripts/build-catalog.py
 python scripts/build-catalog.py --check

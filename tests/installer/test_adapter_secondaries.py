@@ -458,7 +458,7 @@ def test_claude_desktop_post_install_explains_upload(install_prefix: Path) -> No
 def test_plan_succeeds_with_windows_style_substitution_target(
     agent: str, install_prefix: Path, monkeypatch
 ) -> None:
-    """Regression for docs/issues/win-powershell-install-fix-proposal.md.
+    """Regression for docs/archive/issues/win-powershell-install-fix-proposal.md.
 
     Every adapter calls ``to_native_path_string`` to compute the
     substitution target and then runs the substituted text through a

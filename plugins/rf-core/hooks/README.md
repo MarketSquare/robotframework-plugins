@@ -271,7 +271,7 @@ non-RF prompts to no-op: the model read the static injection as a gate
 ("is this RF?" → "no" → "task done") rather than as guidance. The eval
 task `narrow-non-rf-control-01` (a plain JSON-authoring prompt) caught
 this regression in CI run `25057802426` — see
-`docs/plugin/hooks-fix-proposal.md` for the full diagnosis.
+`docs/archive/hooks-fix-proposal.md` for the full diagnosis.
 
 Switching both hooks to `type: "command"` lets a small script inspect
 the prompt / session and only inject context when there's a genuine
@@ -378,7 +378,7 @@ subprocess with synthetic stdin payloads and asserts on the
 (stdout, exit-code) pair. No live Claude session needed:
 
 ```bash
-uv run pytest plugins/rf-agentskills/tests/test_hook_scripts.py -v
+uv run pytest plugins/rf-core/tests/test_hook_scripts.py -v
 ```
 
 Parametrised cases covering positive triggers, negative misses,

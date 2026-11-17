@@ -82,7 +82,7 @@ jobs:
           # Desktop / claude.ai upload archive per skill.
           python scripts/export-skills.py "$export_from" skills
           tar -czf "dist/$PLUGIN-skills-$VERSION.tar.gz" -C skills .
-          python scripts/build-skill-zips.py --plugin "$export_from" --out dist
+          python scripts/build-skill-zips.py --skills skills --out dist
       - name: Write the release notes
         env:
           PLUGIN: ${{ steps.tag.outputs.plugin }}

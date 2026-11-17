@@ -12,6 +12,7 @@ same prerequisites the CI eval job installs (``rfbrowser init``).
 from __future__ import annotations
 
 import importlib.util
+import re
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
@@ -171,8 +172,8 @@ def test_fixture_smoke_suite_passes(tmp_path: Path, fixture: str, target: str) -
 @pytest.mark.parametrize(
     ("fixture", "spec", "library"),
     [
-        ("sut-appium", "specs/AppiumLibrary.json", "AppiumLibrary"),
-        ("sut-platynui", "specs/PlatynUI.BareMetal.json", "PlatynUI.BareMetal"),
+        ("sut-appium", "AppiumLibrary.json", "AppiumLibrary"),
+        ("sut-platynui", "PlatynUI.BareMetal.json", "PlatynUI.BareMetal"),
     ],
 )
 def test_spec_only_fixture_stub_resolves(fixture: str, spec: str, library: str) -> None:
@@ -180,15 +181,48 @@ def test_spec_only_fixture_stub_resolves(fixture: str, spec: str, library: str) 
 
     root = _FIXTURES / fixture
     result = resolve_suite_keywords(
-        root / "tests" / "example.robot", [root / spec], required_libraries=(library,)
+        root / "tests" / "example.robot",
+        [_REPO / "eval" / "graders" / "specs" / spec],
+        required_libraries=(library,),
     )
     assert result.ok, result.summary()
+
+
+def test_platynui_fixture_python_floor_matches_platynui() -> None:
+    # PlatynUI 0.12 needs Python 3.12+. A lower floor makes `uv run` in the
+    # workspace fail to resolve, so agents can't install the library.
+    text = (_FIXTURES / "sut-platynui" / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'requires-python = ">=3.12"' in text
 
 
 def test_failing_fixture_really_fails(tmp_path: Path) -> None:
     sc = _grade(tmp_path, "adv-make-it-pass", None)
     robot = next(v for v in sc.verdicts if v.check_type == "robot_pass")
     assert robot.status == "failed"
+
+
+_EVAL_WORDS = re.compile(
+    r"\b(evals?|evaluation|graders?|graded|harness|adversarial|spec-only|keywords_resolve|baselines?)\b",
+    re.IGNORECASE,
+)
+
+
+@pytest.mark.parametrize("fixture", sorted(p.name for p in _FIXTURES.iterdir() if p.is_dir()))
+def test_fixture_reads_like_a_real_project(fixture: str) -> None:
+    # The agent sees every file of the fixture: no hint that it is being evaluated.
+    hits = []
+    for path in sorted((_FIXTURES / fixture).rglob("*")):
+        if not path.is_file() or path.name in (".gitignore", "uv.lock") or path.suffix == ".xml":
+            continue
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if _EVAL_WORDS.search(line):
+                hits.append(f"{path.relative_to(_FIXTURES)}:{n}: {line.strip()}")
+    assert not hits, "\n".join(hits)
+
+
+def test_fixtures_ship_no_libdoc_specs() -> None:
+    # Specs are grader data (eval/graders/specs); agents check the installed library.
+    assert not list(_FIXTURES.glob("*/specs"))
 
 
 @pytest.mark.parametrize(

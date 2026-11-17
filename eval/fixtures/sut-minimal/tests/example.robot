@@ -1,6 +1,5 @@
 *** Settings ***
 Documentation    Smoke test that proves the fixture's robot runner works.
-...              Irrelevant to any eval task; exists only as a sanity check.
 Resource         ../resources/common.resource
 
 

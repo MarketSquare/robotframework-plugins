@@ -1,7 +1,7 @@
 [project]
 name = "sut-trigger"
 version = "0.0.1"
-description = "Neutral Robot Framework project used as the working directory of trigger evals."
+description = "A small Robot Framework project."
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.0",

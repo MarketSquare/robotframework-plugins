@@ -2,6 +2,8 @@
 
 You can add a plugin for a library or tool that isn't covered yet, or improve one that is: fix a skill, add a reference, sharpen a subagent. This page covers how to do either, the checks your PR must pass, how review works, how to write the text, and which version to bump.
 
+Using an AI tool or a coding agent? Read [AI_POLICY.md](AI_POLICY.md) first: you own the change, and you say in the PR when AI did a substantial part of it. Agents get the short version with the exact commands in [AGENTS.md](AGENTS.md).
+
 ## Add a plugin
 
 1. Copy `templates/plugin/` to `plugins/<name>/`. Plugin names start with `rf-` and describe the technology, for example `rf-database`.
@@ -9,8 +11,7 @@ You can add a plugin for a library or tool that isn't covered yet, or improve on
 
    For each library, list under `skills` the skills of your plugin that cover it, so a tool that detects the library in a project can pick the right skill (for example `skills: [rf-browser]` for Browser in rf-web). Leave it out only when every skill of the plugin applies. When you add, rename or remove a skill, update `skills` too; the catalogue check fails on a skill that doesn't exist.
 3. Rename the example skill to `rf-<topic>` (the folder name and the `name` in `SKILL.md` must match) and write it. Skill and subagent names must be unique across every plugin.
-4. Add a line for your plugin to `.github/CODEOWNERS` with the same people as `maintainers`.
-5. Regenerate the catalogue and the marketplace: `python scripts/build-catalog.py`.
+4. Regenerate the catalogue and the marketplace: `python scripts/build-catalog.py`.
 
 A new plugin starts in the `community` tier. [GOVERNANCE.md](GOVERNANCE.md) says what `verified` needs.
 
@@ -32,7 +33,7 @@ CI runs these on every PR. Run them locally first:
 | Check | Command |
 |---|---|
 | Catalogue, names, symlinks, lifecycle | `python scripts/build-catalog.py --check` |
-| Ownership and tier evidence | `python scripts/check-governance.py` |
+| Tier evidence | `python scripts/check-governance.py` |
 | House content rules | `python scripts/check_content_rules.py` |
 | Skill frontmatter | `python scripts/validate-skills.py --channel all` |
 | Cross-plugin references | `python scripts/check-plugin-references.py` |
@@ -40,21 +41,13 @@ CI runs these on every PR. Run them locally first:
 | Docs voice | `python scripts/check-docs-voice.py` |
 | Tests | `python -m pytest tests/ --ignore=tests/eval` and `python -m pytest plugins/<name>/tests` |
 
-The security gate also scans the plugins your PR changes with Cisco skill-scanner, SkillSpector, cc-audit and Gitleaks. To run it locally: `scripts/install-scanners.sh`, then `scripts/security-scan.sh <plugin> out/`. It fails on a new HIGH or CRITICAL finding. If a finding is a false positive, add an entry with a reason to `security/baselines/<plugin>.yaml`; the security reviewers approve every baseline change.
+The security gate also scans the plugins your PR changes with Cisco skill-scanner, SkillSpector, cc-audit and Gitleaks. To run it locally: `scripts/install-scanners.sh`, then `scripts/security-scan.sh <plugin> out/`. It fails on a new HIGH or CRITICAL finding. If a finding is a false positive, add an entry with a reason and an expiry date to `security/baselines/<plugin>.yaml`, and say why in the PR.
 
 Live agent evals (`rf-skill-eval`) run on maintainer branches, after merge and weekly, never on code from forks. A maintainer runs them for your PR when it changes skill content.
 
 ## Review
 
-The PR template has a checklist: purpose, supported versions, examples, security-relevant changes, tool permissions and documentation voice. Tick each item or write "n/a" with a reason.
-
-The `required-reviews` check waits for an approval from each group your PR concerns:
-
-- a maintainer of every plugin it changes;
-- a Foundation reviewer, when one of those plugins is `verified` or the PR promotes one;
-- a security reviewer, when it changes hooks, scripts, MCP configuration, manifests, subagent `tools`, skill `allowed-tools`, the workflows or `security/`.
-
-Your own approval doesn't count.
+The checks above must pass, then one maintainer approves. [GOVERNANCE.md](GOVERNANCE.md) has the rules, and the PR template asks what the checks can't answer, including whether AI helped. If you change someone else's plugin, mention its `catalog.yaml` maintainers in the PR.
 
 ## Writing
 
@@ -117,7 +110,7 @@ plugins/<name>/                  # One folder per plugin; the only copy of its c
 ├── variants/                    # Generated: Codex TOML subagents, OpenCode agents and JS plugin
 ├── tests/                       # The plugin's own tests (not installed)
 └── evals/                       # Eval tasks, trigger sets and baselines (not installed)
-bundles/rf-agentskills/          # Generated copy of the bundled plugins
+bundles/rf-agentskills/          # Generated from the plugins in plugins/rf-agentskills/catalog.yaml
 schemas/catalog.schema.json      # Schema of catalog.yaml
 security/                        # Scanner baselines and configuration
 templates/plugin/                # Starter plugin
@@ -125,6 +118,9 @@ installer/                       # The robotframework-plugins Python installer
 tests/                           # Shared tests: repository, catalogue, installer, eval harness
 eval/                            # Shared eval harness content: fixture projects and hidden graders
 scripts/                         # Build and check utilities
+legacy/rf-agentskills/           # One-shot forwarder package for the old rf-agentskills name
+openspec/                        # Specs and planned changes (see AGENTS.md, "OpenSpec workflow")
+docs/archive/                    # Old plans and reports, kept as history
 ```
 
 `scripts/export-skills.py` writes standalone copies for the release tarballs and Claude Desktop archives, with plain `scripts/x.py` commands instead of the plugin's `"${CLAUDE_SKILL_DIR}/scripts/x.py"`.

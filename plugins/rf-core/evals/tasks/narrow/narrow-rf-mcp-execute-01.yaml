@@ -20,8 +20,8 @@ prompt: |
        `tests/hello.robot` that imports no extra libraries and uses
        the `Log` keyword to log "hello".
 
-  Prefer rf-mcp tools over guessing. Do not skip the rf-mcp execution
-  steps — they are the subject of this evaluation.
+  Prefer rf-mcp tools over guessing. Don't skip the rf-mcp steps: I want to
+  see that rf-mcp works in this project before we use it for real tests.
 model: claude-haiku-5-5
 max_turns: 12
 timeout_seconds: 300

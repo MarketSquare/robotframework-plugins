@@ -209,7 +209,7 @@ def test_install_force_overwrites_conflict(install_prefix: Path, fake_home: Path
 def test_plan_succeeds_with_windows_style_substitution_target(
     install_prefix: Path, monkeypatch
 ) -> None:
-    """Regression for docs/issues/win-powershell-install-fix-proposal.md.
+    """Regression for docs/archive/issues/win-powershell-install-fix-proposal.md.
 
     The Claude Code adapter's ``_hooks_merge_op`` and ``_mcp_merge_op``
     both call ``json.loads(substituted_text)`` during plan-build. On
