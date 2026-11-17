@@ -31,4 +31,4 @@
 ## 5. Checks and PR
 
 - [x] 5.1 Run the installer and shared tests, ruff and the AGENTS.md checks. Verify: all pass locally. Done 2026-11-17: shared tests 906 passed (2 skipped), installer API tests 40 (15 new); ruff on the changed files, the eight AGENTS.md check scripts and `openspec validate --all --strict` pass.
-- [ ] 5.2 Open a PR that closes #22 and #23 and references #21, and merge it with all checks green. Verify: the PR is merged and #22 and #23 are closed.
+- [x] 5.2 Open a PR that closes #22 and #23 and references #21, and merge it with all checks green. Verify: the PR is merged and #22 and #23 are closed. PR #38, opened 2026-11-17 at the maintainer's request; merged only with all checks green.
