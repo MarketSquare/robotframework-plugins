@@ -24,6 +24,22 @@ Each plugin SHALL have a reviewed baseline of accepted findings, at `security/ba
 - **WHEN** a baseline entry expires in 20 days
 - **THEN** the PR gate passes with a warning naming the entry, and the scheduled scan of `main` fails naming it
 
+### Requirement: Model-assisted scans run only after maintainer approval
+
+Scans that send plugin content to a model provider SHALL run only when a maintainer starts them for a PR by its number, or on pushes to `main`. They SHALL NOT use the `pull_request_target` event. They SHALL treat PR content as data and SHALL NOT execute it. When the maintainer names the reviewed head commit, the scan SHALL refuse a PR whose head has moved on. For a PR, the findings SHALL be posted as a comment, and a new HIGH or CRITICAL finding SHALL set a failing `security-deep-scan` status. On `main`, the model findings SHALL be reported in the run summary without failing the run, because they change between runs and can't be baselined; the run SHALL fail only when a scan stops before writing its summary.
+
+#### Scenario: Unlabelled fork PR
+- **WHEN** a maintainer has not started the scan for a fork PR
+- **THEN** no plugin content from it is sent to a model provider
+
+#### Scenario: The PR moved on after the review
+- **WHEN** a maintainer starts the scan with the reviewed head commit and the contributor has pushed since
+- **THEN** the run stops before sending anything to the model and names both commits
+
+#### Scenario: A model finding on main
+- **WHEN** the model pass reports a new HIGH finding during the push run on `main`
+- **THEN** the run passes with a warning, and the finding is listed in the run summary
+
 ## ADDED Requirements
 
 ### Requirement: Repository-level secret protection

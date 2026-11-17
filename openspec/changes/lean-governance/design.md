@@ -116,10 +116,20 @@ The launch change can't be archived with 15 open tasks, and several of them are 
 
 The carried-over tasks aren't about governance. They move here only so the launch change can close; their wording doesn't change.
 
+### D9 The deep scan starts by PR number, and only reports on main
+
+Two things showed up once the deep scan had a key (task 5.2):
+- **The label trigger stops working.** GitHub blocks `pull_request_target` in public repositories from 2026-12-02 unless an admin allows it, and `actions/checkout` then also needs an explicit opt-in to check out a fork's head. The labelled run on 2026-11-16 already hit the brownout (`startup_failure`).
+- **Model findings can't gate `main`.** The first push run on `main` (43915965731) failed on six new model findings, one of them a CRITICAL false positive. The same content scanned in #28 didn't produce them. The fingerprint includes the model's wording, so these findings can't be baselined either.
+
+The workflow therefore runs on `workflow_dispatch` with a `pr` input, plus an optional `sha` for the reviewed head. Only people with write access can start a workflow, which is the same approval the label was. The PR head is fetched as `refs/pull/<n>/head` with plain git, without credentials, and checked against the head commit the API reports. On `main`, findings become a warning and a summary; only a scan that stops before writing its summary fails the run. The static scanners still gate every PR (`Security gate result`) and the nightly `security-gate.yml` run.
+
+Rejected: asking an admin to allow `pull_request_target` and adding the checkout opt-in. That keeps the event that runs with secrets next to fork code, and it depends on an organisation setting.
+
 ## Risks / Trade-offs
 
 - **[A maintainer merges a harmful change of their own on green checks]** → The checks (house rules, scanners, Gitleaks, push protection) are the same for everyone. The bypass is logged on the PR. With one active maintainer, a second human approval was never actually happening anyway.
-- **[An external PR gets one approval from a maintainer who skims it]** → The security gate must pass too. The template's "for the reviewer" question points at what to read by hand, and the `security-deep-scan` label stays available.
+- **[An external PR gets one approval from a maintainer who skims it]** → The security gate must pass too. The template's "for the reviewer" question points at what to read by hand, and a maintainer can start the deep scan for the PR (D9).
 - **[Plugin maintainers from outside lose their say over changes to their plugin]** → They never had an enforceable say, because GitHub doesn't count approvals from people without write access. CONTRIBUTING asks authors to mention a plugin's maintainers in the PR, and maintainers can be given the Write role later.
 - **[Removing the `required-reviews` status before the rulesets exist]** → task 4 applies the rulesets first, and task 3 deletes the workflow after that.
 - **[Dependabot PRs add noise]** → Security updates only, no version updates.
