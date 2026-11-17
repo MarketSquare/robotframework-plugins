@@ -334,7 +334,8 @@ def materialise(skill_dir: Path, library: str, out: Path) -> tuple[dict[str, lis
 
 def _origin(tables: dict[str, list[Origin]], root: Path, path: str, line: int) -> Origin:
     rel = Path(path)
-    rel = rel.relative_to(root) if rel.is_absolute() else rel
+    # Resolve both sides: tools may report Windows' long name for a short (RUNNER~1) temp path.
+    rel = rel.resolve().relative_to(root.resolve()) if rel.is_absolute() else rel
     table = tables.get(rel.as_posix())
     if table is None or not 1 <= line <= len(table):
         return None
