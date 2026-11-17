@@ -33,7 +33,7 @@
 
 ## 6. Upstream gaps
 
-- [ ] 6.1 Draft the RobotCode issues listed in the design (import-failure code, `deprecated` in doc JSON, the AppiumLibrary deprecation message after checking plain `robot`, suggestions), each with version, minimal reproduction and AI disclosure, in a scratch file; the maintainer reviews and files them. Link the filed issues from the matching allowlist reasons.
+- [ ] 6.1 Draft the RobotCode issues listed in the design (import-failure code, `deprecated` in doc JSON, the AppiumLibrary deprecation message after checking plain `robot`, suggestions), each with version, minimal reproduction and AI disclosure, in a scratch file; the maintainer reviews and files them. Link the filed issues from the matching allowlist reasons. Drafts done 2026-11-17 (gaps 1–4, re-checked on 2.9.0.dev214; gap 5 is robotcode #148), outside the repository for review. Open: the maintainer files them. No allowlist entry is a workaround for one of these gaps, so there is nothing to link yet.
 
 ## 7. Re-baseline and PR
 
