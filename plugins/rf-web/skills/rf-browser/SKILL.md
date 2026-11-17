@@ -77,6 +77,7 @@ The browser and context opened in Suite Setup live until the suite ends; each te
 | Popup, new tab, several pages | `Switch Page    NEW`, `Get Page Ids`, `Close Page` | `references/browser-context-page.md` |
 | Log in once, reuse the session | `Save Storage State`, then `New Context    storageState=${state}` | `references/authentication-storage.md` |
 | Upload or download a file | `Upload File By Selector`; `Promise To Wait For Download` + `Wait For` | `references/downloads-uploads.md` |
+| Selector stopped matching after a UI change, or a test passes only some runs | stable locator (test id, then role); measure before any rerun | `references/selector-drift.md` |
 | Run JavaScript on the page | `Evaluate JavaScript    ${None}    () => document.title` | — |
 
 ## Agent workflow
@@ -118,6 +119,7 @@ Prefer, in order: test ids (`[data-testid="save"]`), accessible roles (`role=but
 | `references/authentication-storage.md` | reusing a login, HTTP auth, cookies or local/session storage |
 | `references/downloads-uploads.md` | a test uploads or downloads files |
 | `references/troubleshooting.md` | a run fails with an error message you need to decode |
+| `references/selector-drift.md` | a selector stopped matching after a UI change, matches several elements, or a test passes only some runs |
 
 Examples in `assets/examples/`: `basic-web-test.robot`, `form-handling.robot`, `authentication-flow.robot`, `iframe-shadow-dom.robot`.
 
