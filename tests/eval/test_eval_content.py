@@ -170,20 +170,25 @@ def test_fixture_smoke_suite_passes(tmp_path: Path, fixture: str, target: str) -
 
 
 @pytest.mark.parametrize(
-    ("fixture", "spec", "library"),
+    ("fixture", "module", "library"),
     [
-        ("sut-appium", "AppiumLibrary.json", "AppiumLibrary"),
-        ("sut-platynui", "PlatynUI.BareMetal.json", "PlatynUI.BareMetal"),
+        ("sut-appium", "AppiumLibrary", "AppiumLibrary"),
+        ("sut-platynui", "PlatynUI", "PlatynUI.BareMetal"),
     ],
 )
-def test_spec_only_fixture_stub_resolves(fixture: str, spec: str, library: str) -> None:
+def test_static_fixture_stub_resolves(fixture: str, module: str, library: str, tmp_path: Path) -> None:
+    from rf_skill_eval.grader.robot_runner import robotcode_binary
     from rf_skill_eval.scoring.keyword_resolution import resolve_suite_keywords
 
+    if robotcode_binary() is None:
+        pytest.skip("robotcode not installed")
+    pytest.importorskip(module)
     root = _FIXTURES / fixture
     result = resolve_suite_keywords(
         root / "tests" / "example.robot",
-        [_REPO / "eval" / "graders" / "specs" / spec],
         required_libraries=(library,),
+        cwd=root,
+        cache_dir=tmp_path / "cache",
     )
     assert result.ok, result.summary()
 
@@ -220,9 +225,10 @@ def test_fixture_reads_like_a_real_project(fixture: str) -> None:
     assert not hits, "\n".join(hits)
 
 
-def test_fixtures_ship_no_libdoc_specs() -> None:
-    # Specs are grader data (eval/graders/specs); agents check the installed library.
+def test_no_libdoc_specs_for_grading() -> None:
+    # keywords_resolve analyses against the installed libraries; no spec files.
     assert not list(_FIXTURES.glob("*/specs"))
+    assert not (_FIXTURES.parent / "graders" / "specs").exists()
 
 
 @pytest.mark.parametrize(

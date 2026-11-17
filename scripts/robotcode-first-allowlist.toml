@@ -1,0 +1,42 @@
+# Allowed uses for scripts/check-robotcode-first.py (spec robotcode-first-tooling).
+#
+# Tooling uses the robotcode CLI to run suites, discover tests, analyse code,
+# read results and read keyword documentation (AI_POLICY.md, "RobotCode
+# first"). An entry here allows one pattern in one file, for a reason that
+# RobotCode doesn't cover. When the gap is a RobotCode issue, link it.
+#
+# Fields (all required):
+#   file    = path relative to the repository root
+#   pattern = libdoc | execution-result | xml-parsing | suite-builder | parser-model | run-robot
+#   reason  = why RobotCode doesn't cover this use
+#
+# An entry that matches nothing fails the check, so remove it with the code.
+
+# --- Custom value: RobotCode has no such capability -------------------------
+
+[[allow]]
+file = "plugins/rf-core/skills/rf-python-library/scripts/check_library.py"
+pattern = "libdoc"
+reason = "Library-author defect analysis (rejected or leaked keywords, listener exposure) needs the library object in-process; robotcode doc gives only the listing."
+
+[[allow]]
+file = "plugins/rf-core/skills/rf-language/scripts/rf_conventions.py"
+pattern = "parser-model"
+reason = "Project convention detection (separators, naming, BDD, templates, layout) from the parser; RobotCode has no convention report."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/keyword_resolution.py"
+pattern = "parser-model"
+reason = "min_calls counts library calls through the user-keyword call graph; RobotCode has no call graph."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/custom/platynui.py"
+pattern = "parser-model"
+reason = "PlatynUI-specific usage checks (unsafe expressions) on the parsed model."
+
+[[allow]]
+file = "scripts/desktop-live-check.py"
+pattern = "parser-model"
+reason = "Screens model-written suites for disallowed libraries and keywords before they run on a maintainer's desktop; a safety screen, not keyword resolution."
+
+# --- Replaced by robotcode-first-tooling (tasks 2-5); remove with the code ---

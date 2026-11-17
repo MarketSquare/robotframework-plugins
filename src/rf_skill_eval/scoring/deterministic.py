@@ -16,7 +16,6 @@ import logging
 import re
 import shutil
 import subprocess
-import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -24,7 +23,7 @@ from typing import Any
 from ..domain.run import Run
 from ..domain.verdict import Verdict
 from ..errors import GraderError
-from ..grader.robot_runner import _parse_output_xml
+from ..grader.robot_runner import RobotcodeMissingError, run_robot
 from .session_based import (
     check_tool_call_count,
     check_tool_call_sequence,
@@ -32,7 +31,6 @@ from .session_based import (
 )
 
 _log = logging.getLogger(__name__)
-_REPO = Path(__file__).resolve().parents[3]
 
 
 def _resolve_base(run: Run, params: dict[str, Any]) -> Path:
@@ -106,14 +104,6 @@ def _missing_requirements(params: dict[str, Any]) -> list[str]:
     return missing
 
 
-def _robot_binary() -> str | None:
-    """``robot`` next to the running interpreter first, then PATH."""
-    candidate = Path(sys.executable).parent / "robot"
-    if candidate.is_file():
-        return str(candidate)
-    return shutil.which("robot")
-
-
 def _run_robot_check(
     run: Run, name: str, params: dict[str, Any], *, dryrun: bool
 ) -> Verdict:
@@ -130,34 +120,23 @@ def _run_robot_check(
         return Verdict.skipped(
             run.id, name, f"library not importable in grader env: {', '.join(missing)}"
         )
-    robot = _robot_binary()
-    if robot is None:
-        return Verdict.skipped(run.id, name, "robot CLI not installed (not on PATH)")
     outputdir = run.artifacts_dir / ("grader_dryrun" if dryrun else "grader_out") / _safe(name)
-    outputdir.mkdir(parents=True, exist_ok=True)
     extra = [str(a) for a in (params.get("args") or ())]
-    cmd = [robot, "--outputdir", str(outputdir), *(["--dryrun"] if dryrun else []), *extra, str(path)]
     try:
-        result = subprocess.run(
-            cmd,
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=int(params.get("timeout_seconds", 120 if not dryrun else 60)),
-            cwd=workspace,
-        )
-    except FileNotFoundError:
-        return Verdict.skipped(run.id, name, "robot CLI not installed (not on PATH)")
-    except subprocess.TimeoutExpired:
+        result = run_robot([path], outputdir, args=extra, cwd=workspace, dryrun=dryrun,
+                           timeout_seconds=int(params.get("timeout_seconds", 120 if not dryrun else 60)))
+    except RobotcodeMissingError:
+        return Verdict.skipped(run.id, name, "robotcode not installed (needed to run and read the suite)")
+    if result.timed_out:
         return Verdict.of(run.id, name, False, f"{kind} timed out")
-    total, passed_tests, failed_tests = _parse_output_xml(outputdir / "output.xml")
+    total, passed_tests, failed_tests = result.total_tests, result.passed_tests, result.failed_tests
     ok = result.returncode == 0 and total > 0
     details = f"exit={result.returncode} tests={total} passed={passed_tests} failed={failed_tests}"
     mismatch = _count_mismatch(params, total, passed_tests) if ok else None
     ok = ok and mismatch is None
     details += f" ({mismatch})" if mismatch else ""
     if not ok:
-        tail = (result.stdout or "").strip().splitlines()[-6:]
+        tail = result.failures() or result.output.strip().splitlines()[-6:]
         if tail:
             details += " | " + " / ".join(line.strip() for line in tail)[:400]
     return Verdict.of(run.id, name, ok, details)
@@ -230,44 +209,37 @@ def check_file_not_contains(run: Run, name: str, params: dict[str, Any]) -> Verd
 
 
 def check_keywords_resolve(run: Run, name: str, params: dict[str, Any]) -> Verdict:
-    """Static keyword resolution against libdoc specs (design D8)."""
+    """Static keyword resolution with ``robotcode analyze code`` against the installed libraries."""
     from .keyword_resolution import resolve_suite_keywords
 
     target = params.get("path")
-    specs = params.get("specs") or []
     if not target:
         raise GraderError("keywords_resolve requires a 'path' param")
     base = _resolve_base(run, params)
-    # A relative spec_dir is grader data in the repository (eval/graders/specs),
-    # kept out of the agent's workspace.
-    spec_dir = Path(params["spec_dir"]) if params.get("spec_dir") else None
-    if spec_dir is None:
-        spec_base = base
-    elif spec_dir.is_absolute():
-        spec_base = spec_dir
-    else:
-        spec_base = _REPO / spec_dir
-    spec_paths = [spec_base / str(s) for s in specs]
-    missing_specs = [str(p) for p in spec_paths if not p.is_file()]
-    if missing_specs:
-        return Verdict.skipped(run.id, name, f"libdoc spec missing: {', '.join(missing_specs)}")
     suite = base / target
     if not suite.exists():
         return Verdict.of(run.id, name, False, f"suite missing: {suite}")
-    result = resolve_suite_keywords(
-        suite,
-        spec_paths,
-        min_calls=int(params.get("min_calls", 1)),
-        required_libraries=tuple(str(x) for x in (params.get("required_libraries") or ())),
-    )
+    cache_dir = run.artifacts_dir / "grader_robotcode_cache"
+    try:
+        result = resolve_suite_keywords(
+            suite,
+            min_calls=int(params.get("min_calls", 1)),
+            required_libraries=tuple(str(x) for x in (params.get("required_libraries") or ())),
+            cwd=base,
+            cache_dir=cache_dir,
+        )
+    except RobotcodeMissingError:
+        return Verdict.skipped(run.id, name, "robotcode not installed (needed to analyse the suite)")
     return Verdict.of(run.id, name, result.ok, result.summary())
 
 
-_DEPRECATED_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\bRun Keyword If\b", re.IGNORECASE),
-    re.compile(r"\bRun Keyword Unless\b", re.IGNORECASE),
-    re.compile(r"\bReturn From Keyword\b", re.IGNORECASE),
-)
+#: Robocop's hard-deprecation rules, the set the rf-core hooks use: WITH NAME,
+#: singular headers, Force/Default Tags, Run Keyword If/Unless, Exit/Continue
+#: For Loop, Return From Keyword (If), [Return].
+HARD_DEPRECATION_RULES: tuple[str, ...] = ("DEPR03", "DEPR04", "DEPR07", "DEPR08", "DEPR09", "DEPR10", "DEPR11")
+# Robocop's simple output with a fixed issue format, as the rf-core hooks use (Robocop 8 and 9).
+_ROBOCOP_FORMAT = ("-c", "print_issues.output_format=simple", "--issue-format", "{rule_id}|{line}|{desc}")
+_ROBOCOP_FINDING = re.compile(r"^(DEPR\d+)\|(\d+)\|(.*)$")
 
 
 def check_no_deprecated_keywords(
@@ -275,28 +247,41 @@ def check_no_deprecated_keywords(
     name: str,
     params: dict[str, Any],
 ) -> Verdict:
+    """Deprecated keywords and syntax: RobotCode's ``DeprecatedKeyword`` plus Robocop's DEPR rules.
+
+    ``robotcode analyze code`` reports keywords their library marks deprecated;
+    Robocop's hard-deprecation rules report legacy syntax such as ``Run Keyword
+    If`` and ``[Return]``. Skipped when either tool is missing.
+    """
+    from .keyword_resolution import analyze
+
     target = params.get("path")
     if not target:
         raise GraderError("no_deprecated_keywords requires a 'path' param")
-    path = _resolve_base(run, params) / target
+    base = _resolve_base(run, params)
+    path = base / target
     if not path.is_file():
-        return Verdict(
-            run_id=run.id,
-            check_name=name,
-            status="failed",
-            score=0.0,
-            details=f"missing file {path}",
-        )
-    content = path.read_text(encoding="utf-8", errors="replace")
-    hits = [p.pattern for p in _DEPRECATED_PATTERNS if p.search(content)]
-    passed = not hits
-    return Verdict(
-        run_id=run.id,
-        check_name=name,
-        status="passed" if passed else "failed",
-        score=1.0 if passed else 0.0,
-        details=f"deprecated_hits={hits}",
-    )
+        return Verdict.of(run.id, name, False, f"missing file {path}")
+    try:
+        diagnostics = analyze([path], base, run.artifacts_dir / "grader_robotcode_cache")
+    except RobotcodeMissingError:
+        return Verdict.skipped(run.id, name, "robotcode not installed")
+    hits = [f"{d.line}: {d.message}" for d in diagnostics if d.code == "DeprecatedKeyword"]
+    cmd = [shutil.which("robocop") or "robocop", "check", "--no-cache", *_ROBOCOP_FORMAT]
+    for rule in HARD_DEPRECATION_RULES:
+        cmd += ["--select", rule]
+    try:
+        result = subprocess.run([*cmd, str(path)], check=False, capture_output=True, text=True,
+                                timeout=60, cwd=base)
+    except FileNotFoundError:
+        return Verdict.skipped(run.id, name, "robocop not installed")
+    except subprocess.TimeoutExpired:
+        return Verdict.of(run.id, name, False, "robocop timed out")
+    for line in (result.stdout or "").splitlines():
+        m = _ROBOCOP_FINDING.match(line.strip())
+        if m:
+            hits.append(f"{m.group(2)}: {m.group(1)} {m.group(3).strip()}")
+    return Verdict.of(run.id, name, not hits, f"deprecated: {hits[:8]}" if hits else "no deprecated keywords or syntax")
 
 
 def check_lint_clean(run: Run, name: str, params: dict[str, Any]) -> Verdict:

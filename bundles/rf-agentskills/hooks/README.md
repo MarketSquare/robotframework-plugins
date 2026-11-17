@@ -114,8 +114,10 @@ Fires from `PostToolUse` after a Write/Edit of a `.robot`/`.resource` file.
   three turns per written file in the evals.
 - **Opt-in per-file dry run:** with `RF_AGENTSKILLS_FILE_DRYRUN=1`, a written
   `.robot` suite (not `.resource`, not `__init__.robot`) is also run through
-  `robot --dryrun --output NONE --report NONE --log NONE` from the project
-  directory (20 s timeout). `[ ERROR ]` lines and failures such as "No keyword
+  `robotcode robot --dryrun --output NONE --report NONE --log NONE` from the
+  project directory (20 s timeout), so the project's `robot.toml` and profiles
+  apply (python-path, variables), as in the other tiers. Without robotcode the
+  dry run is skipped. `[ ERROR ]` lines and failures such as "No keyword
   with name" are reported as advisory context, capped like the deprecation
   warnings. It is off by default: a dry run imports libraries (import-time side
   effects, seconds for Browser/Selenium), and a keyword the agent writes next
@@ -236,7 +238,7 @@ It never blocks. It always exits 0, and unrelated or malformed input produces no
 
 `validate_robot.mjs`, `validate_robot_project.mjs`, and
 `check_rf_environment.mjs` run Robot Framework tooling (`robotcode`,
-`robocop`, `robot --dryrun`, `import robot` for the version probe). They share
+`robocop`, `robotcode robot --dryrun`, `import robot` for the version probe). They share
 `scripts/_python_env.mjs`, which takes the first environment that has the
 needed tool, in this order (for robotcode, the `robotcode` executable in that
 environment's `bin/` or `Scripts\` — robotcode has no `python -m` entry point):

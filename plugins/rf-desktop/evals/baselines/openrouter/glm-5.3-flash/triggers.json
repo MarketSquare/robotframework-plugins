@@ -7,24 +7,24 @@
   "skills": {
     "rf-platynui": {
       "train": {
-        "accuracy": 0.8261,
+        "accuracy": 0.8696,
         "fn": 0,
-        "fp": 4,
-        "negative_loads": 11,
+        "fp": 3,
+        "negative_loads": 10,
         "negative_runs": 33,
         "positive_loads": 36,
         "positive_runs": 36,
-        "precision": 0.75,
+        "precision": 0.8,
         "queries": 23,
         "recall": 1.0,
-        "tn": 7,
+        "tn": 8,
         "tp": 12
       },
       "validation": {
         "accuracy": 0.625,
         "fn": 0,
         "fp": 3,
-        "negative_loads": 8,
+        "negative_loads": 7,
         "negative_runs": 12,
         "positive_loads": 12,
         "positive_runs": 12,

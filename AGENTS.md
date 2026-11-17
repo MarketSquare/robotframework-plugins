@@ -24,6 +24,7 @@ CI (`.github/workflows/ci.yml`) runs these on every PR; run the ones your change
 - `python scripts/validate-skills.py --channel all`
 - `python3 scripts/check-plugin-references.py`
 - `python scripts/check-skill-keywords.py --require-all`
+- `python scripts/check-robotcode-first.py`
 - `bash scripts/check-drift.sh`
 - `python scripts/check-docs-voice.py`
 - `python -m pytest tests/test_marketplace_validation.py -v`

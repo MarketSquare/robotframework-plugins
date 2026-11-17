@@ -145,11 +145,13 @@ def test_mcp_servers_declared_and_validated() -> None:
 def test_new_check_types_validate_fields() -> None:
     _make(grader_checks=[{"type": "file_not_contains", "path": "a", "regex": "x"}])
     _make(grader_checks=[{"type": "robot_dryrun", "target": "tests"}])
-    _make(grader_checks=[{"type": "keywords_resolve", "target": "t.robot", "specs": ["s.json"]}])
+    _make(grader_checks=[{"type": "keywords_resolve", "target": "t.robot"}])
     with pytest.raises(ValidationError):
         _make(grader_checks=[{"type": "file_not_contains", "path": "a"}])
     with pytest.raises(ValidationError):
-        _make(grader_checks=[{"type": "keywords_resolve", "target": "t.robot"}])
+        _make(grader_checks=[{"type": "keywords_resolve"}])
+    with pytest.raises(ValidationError, match="specs"):
+        _make(grader_checks=[{"type": "keywords_resolve", "target": "t.robot", "specs": ["s.json"]}])
 
 
 def test_timeout_bounds() -> None:

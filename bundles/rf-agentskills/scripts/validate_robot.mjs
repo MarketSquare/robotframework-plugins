@@ -40,8 +40,9 @@
 //     Off by default: a formatting diff leads the agent to reformat and
 //     re-check a file that is otherwise correct.
 //
-//   Tier 3 (opt-in, RF_AGENTSKILLS_FILE_DRYRUN=1): `robot --dryrun` on the
-//     edited suite (.robot only, not __init__.robot). Advisory context only.
+//   Tier 3 (opt-in, RF_AGENTSKILLS_FILE_DRYRUN=1): `robotcode robot --dryrun`
+//     on the edited suite (.robot only, not __init__.robot) from the project
+//     root, so robot.toml and its profiles apply. Advisory context only.
 //
 // Advisory output (tiers 0-3) is written only when no exit-2 diagnostic is.
 // A file with blocking errors or unresolved names is also recorded per session
@@ -414,16 +415,21 @@ function deprecationText(deprFindings) {
 }
 
 // ── Tier 3 (opt-in): per-file dry run ───────────────────────────────────────
+// `robotcode robot --dryrun` from the project root, so robot.toml and its
+// profiles (python-path, variables) apply as in the other tiers.
 function dryRunText() {
   if (!isTruthy(process.env.RF_AGENTSKILLS_FILE_DRYRUN)) return "";
   if (!/\.robot$/i.test(filePath) || /^__init__\.robot$/i.test(basename(filePath))) return "";
-  const py = findInterpreterWith("robot", cwd);
-  if (!py) return "";
+  const rc = findRobotcode(cwd);
+  if (!rc) return "";
+  const rel = relative(cwd, filePath);
+  const runDir = rel && !rel.startsWith("..") && !isAbsolute(rel) ? cwd : dirname(filePath);
   const r = spawnSync(
-    py,
-    ["-m", "robot", "--dryrun", "--output", "NONE", "--report", "NONE", "--log", "NONE",
+    rc.exe,
+    ["--no-color", "robot", "--dryrun", "--output", "NONE", "--report", "NONE", "--log", "NONE",
       "--console", "dotted", filePath],
-    spawnOptions(DRYRUN_TIMEOUT_MS, { encoding: "utf-8", cwd }),
+    // UTF-8 output: robotcode crashes on non-ASCII text under a Windows code page.
+    spawnOptions(DRYRUN_TIMEOUT_MS, { encoding: "utf-8", cwd: runDir, env: { ...process.env, PYTHONIOENCODING: "utf-8" } }),
   );
   if (r.error || r.status === null) return "";
   const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`.split(/\r?\n/);
@@ -442,7 +448,7 @@ function dryRunText() {
   if (!items.length) return "";
   const shown = items.slice(0, MAX_LISTED).map((s) => `  ${s.length > 300 ? s.slice(0, 299) + "…" : s}`);
   if (items.length > MAX_LISTED) shown.push(`  … ${items.length - MAX_LISTED} more omitted.`);
-  let text = `robot --dryrun of ${filePath} (advisory; a keyword you write next may still be missing):\n` +
+  let text = `robotcode robot --dryrun of ${filePath} (advisory; a keyword you write next may still be missing):\n` +
     shown.join("\n");
   if (text.length > MAX_CHARS) text = text.slice(0, MAX_CHARS - 1) + "…";
   return text;

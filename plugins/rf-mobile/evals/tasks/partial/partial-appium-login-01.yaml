@@ -26,8 +26,6 @@ grader_checks:
   check:
     type: keywords_resolve
     target: tests/login.robot
-    spec_dir: eval/graders/specs
-    specs: [AppiumLibrary.json]
     required_libraries: [AppiumLibrary]
     min_calls: 4
   gating: true

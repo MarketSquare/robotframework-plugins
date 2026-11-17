@@ -131,7 +131,7 @@ def test_doctor_lists_grader_requirements_of_selected_tasks(monkeypatch) -> None
     _no_ping(monkeypatch)
     result = runner.invoke(app, ["doctor", "--tasks-dir", str(plugin_evals_dir(_REPO, "all") / "tasks" / "narrow")])
     assert result.exit_code == 0, result.stdout
-    for req in ("tool:robot", "module:Browser", "module:SeleniumLibrary", "module:REST"):
+    for req in ("tool:robotcode", "module:Browser", "module:SeleniumLibrary", "module:REST"):
         assert f"grader {req}" in result.stdout
 
 
@@ -170,8 +170,8 @@ def test_grader_requirements_mapping() -> None:
         grader_checks=[
             {"type": "robot_dryrun", "target": "a", "requires": ["AppiumLibrary"]},
             {"type": "lint_clean", "target": "a"},
-            {"type": "keywords_resolve", "target": "a", "specs": ["s.json"]},
+            {"type": "keywords_resolve", "target": "a"},
         ],
     )
     needs = cli_module.grader_requirements([task])
-    assert set(needs) == {"tool:robot", "tool:robocop", "module:robot", "module:AppiumLibrary"}
+    assert set(needs) == {"tool:robotcode", "tool:robocop", "module:robot", "module:AppiumLibrary"}

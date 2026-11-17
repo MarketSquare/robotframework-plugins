@@ -8,7 +8,7 @@ screens each one, and runs the safe ones with a fresh Calculator and a time
 limit. It reports pass counts per tier and arm and never writes baselines.
 
 It must run in the logged-in desktop session, inside a venv that has
-Robot Framework, robotframework-PlatynUI and platynui-cli; see
+Robot Framework, robotcode, robotframework-PlatynUI and platynui-cli; see
 docs/ci/desktop-live-check.md. Downloaded artifacts are untrusted: run this
 with ``python -I`` from outside the artifact directory.
 
@@ -22,12 +22,13 @@ from __future__ import annotations
 import argparse
 import ast
 import collections
+import json
+import os
 import re
 import shutil
 import subprocess
 import sys
 import time
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -161,8 +162,14 @@ def _cli() -> str:
     return str(exe) if exe.is_file() else (shutil.which("platynui-cli") or "platynui-cli")
 
 
-def _robot() -> list[str]:
-    return [sys.executable, "-m", "robot"]
+# UTF-8 output: robotcode crashes on non-ASCII text under a Windows code page.
+_UTF8_ENV = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
+
+
+def _robotcode() -> str:
+    """robotcode next to the interpreter (the venv), else on PATH: suites run and read through it."""
+    exe = Path(sys.executable).parent / ("robotcode.exe" if sys.platform == "win32" else "robotcode")
+    return str(exe) if exe.is_file() else (shutil.which("robotcode") or "robotcode")
 
 
 def stop_calculator() -> None:
@@ -185,18 +192,21 @@ def start_calculator(ready_timeout: float) -> str:
 
 
 def result_of(output_xml: Path) -> tuple[bool, str]:
-    try:
-        root = ET.parse(output_xml).getroot()
-    except (ET.ParseError, OSError):
+    """(all tests passed, first failure message) from ``robotcode results show``."""
+    if not output_xml.is_file():
         return False, "no output.xml (killed at the time limit?)"
-    tests = root.findall(".//test")
+    r = subprocess.run([_robotcode(), "--format", "json", "results", "show", "-o", str(output_xml),
+                        "--message-chars", "0"], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       check=False, env=_UTF8_ENV)
+    try:
+        tests = json.loads(r.stdout).get("tests", [])
+    except json.JSONDecodeError:
+        return False, f"robotcode results could not read {output_xml.name}: {(r.stderr or '').strip()[:120]}"
     if not tests:
-        status = root.find("suite/status")
-        return False, "no tests: " + ((status.text or "") if status is not None else "")
+        return False, "no tests"
     for test in tests:
-        status = test.find("status")
-        if status is not None and status.get("status") != "PASS":
-            return False, ((status.text or "").strip().splitlines() or [""])[0][:160]
+        if test.get("status") != "PASS":
+            return False, ((test.get("message") or "").strip().splitlines() or [""])[0][:160]
     return True, ""
 
 
@@ -211,8 +221,9 @@ def run_suite(suite: Suite, out: Path, *, timeout: float, ready_timeout: float) 
     target = out / f"{suite.tier}__{suite.session}__{suite.path.stem}"
     started = time.monotonic()
     try:
-        subprocess.run([*_robot(), "--outputdir", str(target), "--consolecolors", "off", str(suite.path)],
-                       capture_output=True, timeout=timeout, check=False)
+        subprocess.run([_robotcode(), "--no-color", "robot", "--outputdir", str(target), "--consolecolors", "off",
+                        str(suite.path)],
+                       capture_output=True, timeout=timeout, check=False, env=_UTF8_ENV)
         suite.passed, suite.message = result_of(target / "output.xml")
     except subprocess.TimeoutExpired:
         suite.passed, suite.message = False, f"time limit {timeout:.0f} s"

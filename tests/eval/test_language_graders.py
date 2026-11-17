@@ -70,9 +70,11 @@ def test_hidden_suite_skips_when_requirement_or_robot_missing(
     v = language.hidden_suite(_run(tmp_path, ws),
                               {"suite": "env_dev.robot", "requires": ["no_such_module_xyz"]})
     assert v.status == "skipped" and "no_such_module_xyz" in v.reason
-    monkeypatch.setattr(language, "_tool", lambda name: None)
+    from rf_skill_eval.grader import robot_runner
+
+    monkeypatch.setattr(robot_runner, "robotcode_binary", lambda: None)
     v = language.hidden_suite(_run(tmp_path, ws), {"suite": "env_dev.robot"})
-    assert v.status == "skipped" and "robot" in v.reason
+    assert v.status == "skipped" and "robotcode" in v.reason
 
 
 def test_hidden_suite_missing_variable_file_fails(tmp_path: Path) -> None:
@@ -95,6 +97,21 @@ def test_env_hidden_suite_with_yaml(tmp_path: Path) -> None:
     (ws / "variables" / "staging.yaml").write_text("BASE_URL: http://localhost:8080\nTIMEOUT: 5 s\n")
     assert language.hidden_suite(_run(tmp_path, ws), params).status == "failed"
 
+
+
+def test_env_hidden_suite_variable_file_beats_robot_toml_default(tmp_path: Path) -> None:
+    # A robot.toml that defaults to dev.yaml is a valid solution; the grader's
+    # staging.yaml must replace that default, not lose to it (PR #37 eval).
+    pytest.importorskip("yaml")
+    ws = _keywords_ws(tmp_path, None)
+    (ws / "variables").mkdir()
+    (ws / "variables" / "dev.yaml").write_text("BASE_URL: http://localhost:8080\nTIMEOUT: 5 s\n")
+    (ws / "variables" / "staging.yaml").write_text("BASE_URL: https://staging.example.com\nTIMEOUT: 30 s\n")
+    (ws / "robot.toml").write_text('variable-files = ["variables/dev.yaml"]\npaths = ["tests"]\n')
+    params = {"suite": "env_staging.robot", "variablefile": "variables/staging.yaml",
+              "also_run": ["tests/env.robot"], "expected_tests": 3}
+    v = language.hidden_suite(_run(tmp_path, ws), params)
+    assert v.status == "passed", v.details
 
 def test_file_unchanged(tmp_path: Path) -> None:
     ws = _keywords_ws(tmp_path, None)

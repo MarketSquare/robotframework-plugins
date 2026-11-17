@@ -149,7 +149,12 @@ jobs:
       - name: Lint skill zip builder
         run: ruff check scripts/build-skill-zips.py scripts/export-skills.py scripts/select-plugin-tests.py --select E,F,W --ignore E501
       - name: Lint repo QA scripts
-        run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py scripts/check-plugin-references.py --select E,F,W --ignore E501
+        run: ruff check scripts/check-skill-keywords.py scripts/validate-skills.py scripts/check-plugin-references.py scripts/check-robotcode-first.py --select E,F,W --ignore E501
+      - name: RobotCode first
+        # robotcode-first-tooling: tooling uses the robotcode CLI to run,
+        # analyse, read results and read keyword docs; exceptions need an
+        # entry with a reason in scripts/robotcode-first-allowlist.toml.
+        run: python scripts/check-robotcode-first.py
 
   template-plugin:
     name: Template plugin passes the PR checks
@@ -242,14 +247,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install Robot Framework and the skills' target libraries
-        # libdoc only introspects the Python libraries: no `rfbrowser init`,
-        # browser, WebDriver or Appium server is needed.
+      - name: Install RobotCode and the skills' target libraries
+        # robotcode analyze code only loads the Python libraries: no
+        # `rfbrowser init`, browser, WebDriver or Appium server is needed.
+        # robotcode[all] brings Robocop for the Run Keyword If check.
         run: |
-          pip install robotframework robotframework-browser robotframework-seleniumlibrary \
+          pip install robotframework "robotcode[all]>=2.8" robotframework-browser robotframework-seleniumlibrary \
             robotframework-appiumlibrary robotframework-requests RESTinstance \
             "robotframework-PlatynUI==0.12.0.dev330"
-      - name: Resolve every keyword call against libdoc
+      - name: Resolve every keyword call with robotcode analyze code
         # --require-all: a skill whose library failed to import fails the job
         # instead of being skipped silently.
         run: python scripts/check-skill-keywords.py --require-all

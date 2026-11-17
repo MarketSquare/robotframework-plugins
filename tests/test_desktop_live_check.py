@@ -95,3 +95,23 @@ def test_list_mode_reports_per_tier_and_arm(tmp_path: Path, capsys: pytest.Captu
     out = capsys.readouterr().out
     assert "narrow   baseline        1" in out
     assert "skipped (not run):" in out and "calls Evaluate" in out
+
+
+def test_results_are_read_through_robotcode(tmp_path: Path) -> None:
+    # robotcode-first-tooling 5.2: run and read through robotcode, not output.xml parsing.
+    import shutil
+    import subprocess
+
+    robotcode = dlc._robotcode()
+    if not (Path(robotcode).is_file() or shutil.which(robotcode)):
+        pytest.skip("robotcode not installed")
+    assert dlc.result_of(tmp_path / "missing.xml") == (False, "no output.xml (killed at the time limit?)")
+    suite = tmp_path / "s.robot"
+    suite.write_text("*** Test Cases ***\nPasses\n    Log    ok\nFails\n    Fail    boom here\n", encoding="utf-8")
+    subprocess.run([robotcode, "robot", "--outputdir", str(tmp_path / "out"), str(suite)],
+                   capture_output=True, check=False)
+    assert dlc.result_of(tmp_path / "out" / "output.xml") == (False, "boom here")
+    suite.write_text("*** Test Cases ***\nPasses\n    Log    ok\n", encoding="utf-8")
+    subprocess.run([robotcode, "robot", "--outputdir", str(tmp_path / "ok"), str(suite)],
+                   capture_output=True, check=False)
+    assert dlc.result_of(tmp_path / "ok" / "output.xml") == (True, "")

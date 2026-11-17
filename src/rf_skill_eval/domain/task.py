@@ -140,9 +140,10 @@ def _require_keywords_resolve(extras: dict[str, Any]) -> str | None:
     missing = _missing(extras, "target", "path")
     if missing:
         return missing
-    specs = extras.get("specs")
-    if not specs or not isinstance(specs, (list, tuple)):
-        return "requires non-empty 'specs' list (libdoc JSON spec paths)"
+    stale = [k for k in ("specs", "spec_dir") if k in extras]
+    if stale:
+        return (f"no longer takes {', '.join(repr(k) for k in stale)}: keywords resolve with "
+                "robotcode analyze code against the installed libraries")
     return None
 
 

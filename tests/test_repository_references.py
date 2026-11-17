@@ -19,8 +19,7 @@ OLD = re.compile(r"manykarim/robotframework-agentskills|robotframework-agentskil
 #: decision records).
 EXEMPT_PREFIXES = ("openspec/", "docs/archive/", "docs/ci/architecture/adr/")
 EXEMPT_NAMES = ("CHANGELOG.md",)
-#: libdoc JSON generated on a developer machine; the match is a local path.
-EXEMPT_GLOBS = ("eval/graders/specs/*.json",)
+EXEMPT_GLOBS: tuple[str, ...] = ()
 #: Migration notes: code and tests that recognise the old marketplace.
 MIGRATION_NOTES = (
     "installer/src/robotframework_plugins/adapters/_base.py",

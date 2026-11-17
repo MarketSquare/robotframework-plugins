@@ -51,6 +51,17 @@ It runs `robotcode --format json analyze code` once on the directory, maps each 
 
 Before switching, a parity run compares the new checker with the old on the current skills and on the test fixtures. Differences are explained in the PR; new true findings (for example argument errors the old checker never saw) are fixed or allowlisted.
 
+Parity run (task 4.1, 2026-11-17, robotcode 2.8.0, Robot Framework 7.4.2, Robocop 8.2.10):
+
+- **Real skills:** both checkers report 0 findings on all six library skills (68 files). On the materialised projects RobotCode reports no `KeywordNotFound` and no `DataError` at all, so the `looks_like_keyword` filter drops nothing. The other diagnostics are ignored on purpose: `VariableNotFound` (variables a real project sets at run time), `LibraryAlreadyImported`/`LibraryImportIgnored` (the generated imports next to a snippet's own), `MultipleKeywords` (the same name in two of the imported standard libraries) and two code-less "Keyword definition contains errors".
+- **Fixtures:** the same findings, with two differences. A keyword name on a `...` continuation row is now reported on its own line instead of the row's first line, and the new `ARGS` kind reports argument errors the old checker never saw.
+- **Planted errors in a copy of `rf-browser`:** a misspelled keyword in a reference (`Clik`, suggestion `Click`), one in an example `.robot` file, and `Convert To Upper Case` with three arguments are all reported with the right file and line.
+- **Robocop output:** the checker reads Robocop with the hooks' fixed format (`print_issues.output_format=simple` plus `--issue-format`), which reads the same on Robocop 8.2 and 9.1.
+- **Cost:** the whole tree takes about 100 s instead of 2 s, and `tests/test_skill_keywords.py` about 4 minutes, because every skill and fixture starts RobotCode. Acceptable for CI; caching the library docs across skills would be the first thing to try if it isn't.
+- **Not covered by RobotCode:** `Wait For Condition`'s condition names, since `analyze code` doesn't check enum arguments (gap 5). The vocabulary check stays and reads Browser's `ConditionInputs` enum directly instead of libdoc.
+
+Parity holds, so the materialised checker is the default and the only engine; the extractor, the parser visitor, `LibraryDocumentation` and the own matcher are deleted.
+
 Alternative: keep the extractor and matcher and only take keyword names from `robotcode doc keywords --format json` instead of `LibraryDocumentation`. It removes the libdoc import but keeps our own matching (embedded arguments, normalisation) and gains no argument checks. Fallback if the parity run shows that materialised snippets give noise that can't be suppressed (for example duplicate keyword definitions across blocks).
 
 ### D2. `keywords_resolve`: analyse, then count
@@ -63,7 +74,11 @@ Alternative: keep the specs as a fallback for libraries that don't install. Reje
 
 A single helper replaces `robot_runner.run_robot`, `_parse_output_xml` and `python_library._statuses`. It runs `robotcode robot --outputdir <dir> [--dryrun] [args] <path>` and then `robotcode --format json results show -o <dir>/output.xml`. It returns counts and per-test status and message. `robotcode` is found next to `sys.executable` first, then on PATH, as `_robot_binary()` does today.
 
-For pinned Robot Framework versions (`language.py`, task on `sut-rf71`), the helper runs `uvx --from robotframework==X --with "robotcode[runner]" robotcode robot …` if robotcode 2.8's runner supports that version (to verify for 7.1). If not, the `uvx … robot` call stays, allowlisted with the reason, and results are still read with `robotcode results` from the harness environment.
+For pinned Robot Framework versions (`language.py`, task on `sut-rf71`), the helper runs `uvx --from "robotcode[runner]==<harness version>" --with robotframework==X robotcode robot …`, and results are read with `robotcode results` from the harness environment. Checked on 2026-11-17 (task 2.2): robotcode 2.8.0's runner runs Robot Framework 7.1.1 and the `sut-rf71` suite passes (3 of 3, generator "Robot 7.1.1"), so no `uvx … robot` call or allowlist entry is needed.
+
+The analysis cache: `robotcode analyze code` writes `.robotcode_cache/` into the analysed project. The grader sets `ROBOTCODE_CACHE_DIR` to a folder in the run's artifacts, so nothing is added to the agent's workspace.
+
+Grader variable files (found on PR #37, 2026-11-17): because `robotcode robot` applies the workspace's `robot.toml`, a solution that sets a default `variable-files = ["variables/dev.yaml"]` there made the `env-varfiles` hidden suite read dev values: Robot Framework gives the first variable file priority, and robotcode puts the configured ones before `--variablefile`. A grader's variable files now replace the configured ones: the helper passes the project's config files and a generated override with `-c`, so the rest of `robot.toml` still applies. Encoding: every robotcode call runs with `PYTHONIOENCODING=utf-8`, since under a Windows code page robotcode can't print library docs with characters outside it.
 
 ### D4. `no_deprecated_keywords`
 
@@ -100,10 +115,13 @@ Tested on robotcode 2.8.0 with Robot Framework 7.5.1. None blocks this change; e
 
 1. **Import failures have no own diagnostic code.** A failed library import is reported as `DataError`, the same code as an argument-count error. Tools that must tell "the environment is missing a library" from "the code is wrong" have to parse the message text (`Importing test library '…' failed`). The hook (`validate_robot.mjs`) and D1/D2 all need this distinction. Proposal: a distinct code such as `ImportFailed` / `LibraryImportFailed`.
 2. **`doc keywords --format json` has no `deprecated` flag.** Deprecation is only in the free-text `doc`, written differently per library (`*DEPRECATED*`, `**DEPRECATED!!**`). Proposal: a boolean `deprecated` (Robot Framework's `KeywordDoc.deprecated`) in the JSON.
-3. **The `DeprecatedKeyword` message for AppiumLibrary reads "is deprecated: !!."** It comes from AppiumLibrary's `**DEPRECATED!!** Use Expect Element instead` doc. Check against plain `robot` first; if Robot Framework's own warning is equally garbled, report it to AppiumLibrary instead.
+3. **The `DeprecatedKeyword` message drops the reason: "is deprecated: !!."** Seen for AppiumLibrary (`**DEPRECATED!!** Use Expect Element instead`) and for Browser's `Wait Until Network Is Idle` (`**DEPRECATED!!** Use `Wait For Load State` instead`), so it isn't one library's doc format. Check against plain `robot` before filing: if Robot Framework's own deprecation warning is equally garbled, the issue belongs to Robot Framework. Meanwhile the skill checker shows the keyword's short doc from `robotcode doc keywords`.
 4. **`KeywordNotFound` has no suggestions.** Robot Framework's runtime error offers "Did you mean …"; the static diagnostic doesn't. Optional; we compute suggestions from `doc keywords` meanwhile.
+5. **Enum arguments aren't checked.** `Wait For Condition    Elementt Count    css=x    ==    1` gives no diagnostic, although the argument's type is Browser's `ConditionInputs` enum and Robot Framework rejects the value at run time. Found in task 4.1; the skill checker keeps its own `Wait For Condition` check until RobotCode converts literal arguments against enum types.
 
 `robotcode/issues#689` (reading libdoc spec files) is moot after D2: our need for spec files goes away. Whether to close it is the maintainer's call.
+
+Status 2026-11-17 (task 6.1): gaps 1–4 reproduce on robotcode 2.8.0 and 2.9.0.dev214 and are filed as robotcode #693 (gap 1), #694 (gap 2), #695 (gap 3) and #696 (gap 4). Gap 3 belongs to robotcode, not to the libraries: plain `robot` prints the reason correctly. Gap 5 needs no new issue: robotcode #148 already lists "analyse keyword arguments for correct values if type hints are given". Related but different from gap 1: #692 (closed), about repeated `KeywordNotFound` errors after a failed import.
 
 ## Risks / Trade-offs
 

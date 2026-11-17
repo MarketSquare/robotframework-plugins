@@ -61,9 +61,11 @@ def test_unknown_suite_is_an_error_and_missing_robot_skips(tmp_path: Path,
                                                            monkeypatch: pytest.MonkeyPatch) -> None:
     ws = _ws(tmp_path)
     assert python_library.hidden_suite(_run(tmp_path, ws), {"suite": "nope.robot"}).status == "error"
-    monkeypatch.setattr(python_library, "_tool", lambda name: None)
+    from rf_skill_eval.grader import robot_runner
+
+    monkeypatch.setattr(robot_runner, "robotcode_binary", lambda: None)
     v = python_library.hidden_suite(_run(tmp_path, ws), {"suite": "mode.robot"})
-    assert v.status == "skipped" and "robot" in v.reason
+    assert v.status == "skipped" and "robotcode" in v.reason
 
 
 def test_checker_findings_absent(tmp_path: Path) -> None:
