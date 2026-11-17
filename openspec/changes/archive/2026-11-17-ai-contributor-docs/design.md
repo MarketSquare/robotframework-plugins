@@ -85,4 +85,5 @@ It gets two rules, one for `proposal` and one for `tasks`, as listed in the prop
 - [The guide drifts on things the test can't see, such as the layout or the OpenSpec steps] → It's kept short, and `repo-cleanup` removes the material that changes most often. A stale line costs a failed CI run, not a wrong release.
 - [The RobotCode-first rule blocks a contribution where `robotcode` is close but not good enough] → The rule allows a custom script that names the upstream issue it bridges, and maintainers decide.
 - [Disclosure can't be enforced] → The template asks for it every time, and the policy lets maintainers close low-context PRs. As at RobotCode, the aim is honest contributors, not detection.
+- [PRs opened before the policy] → The policy applies to every open PR. Review comments say that the author couldn't have known it, ask for what it requires, and leave content decisions to the content.
 - [`@AGENTS.md` import syntax changes in Claude Code] → The test pins the one-line form; a change shows up as a failing test, not a silent gap.

@@ -28,9 +28,13 @@
 
 ## 7. Initial check
 
-- [ ] 7.1 After merge, check the new policy and agent guide in use: one full CI run on `main`, one local run of the checks in `AGENTS.md` or CONTRIBUTING, and the next contributor PR. Write down anything that broke or got harder. If a decision in `design.md` turns out wrong or risky, propose the change to the maintainer and update `design.md`. Verify that the findings are recorded in this change.
+- [x] 7.1 After merge, check the new policy and agent guide in use: one full CI run on `main`, one local run of the checks in `AGENTS.md` or CONTRIBUTING, and the next contributor PR. Write down anything that broke or got harder. If a decision in `design.md` turns out wrong or risky, propose the change to the maintainer and update `design.md`. Verify that the findings are recorded in this change.
 
-  Findings so far (2026-11-17):
+  Findings (2026-11-17):
   - Local run of the `AGENTS.md` Checks list, command by command, on `46067e0`: every command exists and runs as written; `tests/test_contributor_guidance.py` passes. The only failure was the rf-core venv test, a test bug recorded in repo-cleanup 7.1 and fixed in the follow-up PR.
   - Harder than it should be: the Checks list gives no setup step. The commands need Robot Framework, the libraries and pytest installed. CONTRIBUTING has `uv sync`, but `AGENTS.md` doesn't point to it, so an agent that reads only `AGENTS.md` has to guess. Fixed in the follow-up PR, with the maintainer's agreement: a setup line before the list (`uv sync --all-packages`, `uv run rfbrowser init chromium`).
-  - Still open: the next contributor PR, to see whether the "AI assistance" section and the RobotCode item get filled in. Tick this task once one has come in.
+  - CI on `main`: the merges of #33 (`46067e0`), #34 and the contributor PRs #13–#16 (last `d5a1e91`) passed.
+  - Contributor PRs: the policy was applied in the review of all eight open PRs (#11–#18), and gave a clear basis for each verdict, above all "RobotCode first" (#12, #18) and "does one thing" (#12, #15, #18). #13–#16 merged with small maintainer fixes; #11, #12, #17 and #18 got comments inviting a rework.
+  - Not observable yet: whether new PRs fill in the "AI assistance" section and the RobotCode item. All eight PRs were opened before the template had them, so none could. The review comments ask for the section; watch it on the next newly opened PR.
+  - New question the policy didn't answer: how it applies to PRs opened before it existed. Maintainer decision: it applies to all open PRs, and the comments say plainly that the author couldn't have known it. Recorded in `design.md` (Risks).
+  - No decision in `design.md` turned out wrong.

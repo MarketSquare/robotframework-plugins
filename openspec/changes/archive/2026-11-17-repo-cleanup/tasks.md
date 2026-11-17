@@ -86,10 +86,13 @@
 
 ## 7. Initial check
 
-- [ ] 7.1 After merge, check the removals and moves in use: one full CI run on `main`, one local run of the checks in `AGENTS.md` or CONTRIBUTING, and the next contributor PR. Write down anything that broke or got harder. If a decision in `design.md` turns out wrong or risky, propose the change to the maintainer and update `design.md`. Verify that the findings are recorded in this change.
+- [x] 7.1 After merge, check the removals and moves in use: one full CI run on `main`, one local run of the checks in `AGENTS.md` or CONTRIBUTING, and the next contributor PR. Write down anything that broke or got harder. If a decision in `design.md` turns out wrong or risky, propose the change to the maintainer and update `design.md`. Verify that the findings are recorded in this change.
 
-  Findings so far (2026-11-17):
+  Findings (2026-11-17):
   - CI on `main`: the merge of #32 (`b17d0de`) passed. The run before it (`8ae76f5`, #31) failed one Windows test, `test_opencode_plugin_appends_validation_errors`. It ran for about 1m48s against the hook's 60 s timeout and has failed once in the last 40 runs, so it reads as a slow runner rather than this change.
   - Local run of every check in `AGENTS.md` on `46067e0`: all pass. The one failure was `test_check_rf_environment_uses_project_venv`, the local-only failure noted in 6.1. The cause is in the test: it symlinked `<tmp>/.venv/bin/python` to the running interpreter, and a venv's python reached through a symlink outside its venv loses that venv's packages. So the test failed for anyone who runs pytest in a uv or other venv, and passed only on CI's system Python. Fixed in the follow-up PR with a shell shim that runs the same interpreter. It passes in both kinds of environment.
   - None of the removals or moves got in the way: no check looked for a deleted file, and the `docs/archive/` index answered where the old documents went.
-  - Still open: the next contributor PR. Tick this task once one has gone through CI on the new layout.
+  - Contributor PRs: #13, #14, #15 and #16 (fork PRs from before the cleanup) went through on the new layout. A maintainer merged `main` into each branch (no force-push needed, since the PRs allow maintainer edits), made small fixes and regenerated with `build-catalog.py` and `build-agent-variants.py`. None of them touched a removed or moved file, and all checks passed. The merges `f31c1da`, `21c8301`, `51ec999` and `d5a1e91` passed CI on `main`.
+  - Got harder: fork workflows wait for maintainer approval until the contributor has a merged PR, so a first contribution shows no CI until a maintainer starts it. That is GitHub's default, not this change, and it is worth knowing when reviewing.
+  - Not yet exercised: D6 (`release.yml` owns `latest`), since no release has run since #32. Check that `latest` moves with the next release.
+  - No decision in `design.md` turned out wrong.
