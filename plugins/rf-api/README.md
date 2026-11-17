@@ -1,6 +1,6 @@
 # rf-api plugin
 
-Robot Framework skills for API tests. Install instructions for every agent are in the [repository README](https://github.com/MarketSquare/robotframework-plugins#install).
+Robot Framework skills for API tests (REST and HTTP). Install instructions for every agent are in the [repository README](https://github.com/MarketSquare/robotframework-plugins#install).
 
 ## Install
 
