@@ -1,7 +1,7 @@
 [project]
 name = "sut-language-tests"
 version = "0.0.1"
-description = "Fixture for rf-language test-structure tasks: copy-pasted login tests, a calculator and an API suite without init file."
+description = "Robot Framework tests for login, a calculator and an API."
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.0",

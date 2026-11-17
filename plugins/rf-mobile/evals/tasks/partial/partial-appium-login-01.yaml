@@ -12,7 +12,7 @@ prompt: |
   emulator through the Appium server, logs in as demo/demo and verifies that
   the welcome text "Welcome, demo" is shown, then closes the app. There is no
   emulator on this machine, so you cannot run it — make sure every keyword you
-  use really exists in AppiumLibrary 3.x (a libdoc spec is in specs/).
+  use really exists in the installed AppiumLibrary.
 model: claude-haiku-5-5
 stage: [rf-core]
 max_turns: 14
@@ -26,7 +26,8 @@ grader_checks:
   check:
     type: keywords_resolve
     target: tests/login.robot
-    specs: [specs/AppiumLibrary.json]
+    spec_dir: eval/graders/specs
+    specs: [AppiumLibrary.json]
     required_libraries: [AppiumLibrary]
     min_calls: 4
   gating: true

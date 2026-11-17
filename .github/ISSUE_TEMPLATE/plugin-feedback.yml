@@ -9,6 +9,9 @@ body:
         Thanks for taking a minute. Feedback is how we learn which plugins work; the
         installer and plugins send nothing on their own. A label for the plugin you
         pick is added automatically.
+
+        If an AI tool wrote this report, say so and check it yourself first
+        (see AI_POLICY.md).
   - type: dropdown
     id: plugin
     attributes:

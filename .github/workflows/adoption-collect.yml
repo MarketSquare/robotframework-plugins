@@ -6,6 +6,8 @@
 # Snapshots overlap; scripts/adoption-report.py counts each day once.
 # The traffic API needs push access: the default token may be refused, in which
 # case set ADOPTION_TOKEN (fine-grained, this repository, Administration: read).
+# The token needs a MarketSquare owner's approval before it works; until then,
+# and after it expires, the run fails with a message that says so.
 name: Adoption data
 
 on:
@@ -39,8 +41,19 @@ jobs:
       - name: Fetch traffic
         env:
           GH_TOKEN: ${{ secrets.ADOPTION_TOKEN || github.token }}
+          HAS_TOKEN: ${{ secrets.ADOPTION_TOKEN != '' }}
           REPO: ${{ github.repository }}
         run: |
+          if ! gh api "repos/$REPO/traffic/views" --silent 2>/dev/null; then
+            if [ "$HAS_TOKEN" = true ]; then
+              why="ADOPTION_TOKEN was refused: it is waiting for approval by a MarketSquare owner, has expired, or lacks Administration: read on this repository"
+            else
+              why="no ADOPTION_TOKEN secret, and the default token can't read traffic"
+            fi
+            echo "::error::traffic API refused: $why. See the comment at the top of adoption-collect.yml."
+            echo "**Not collected:** $why." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
           day=$(date -u +%F)
           dir="traffic/$day"
           mkdir -p "$dir"

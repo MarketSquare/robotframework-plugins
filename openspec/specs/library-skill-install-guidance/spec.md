@@ -28,6 +28,7 @@ Longer post-install steps SHALL live in the skill's own `references/install.md`.
 #### Scenario: Companion section links setup
 - **WHEN** a library skill's companion-skills section is read
 - **THEN** it lists `rf-setup` (plugin `rf-core`) for creating the project environment
+
 ### Requirement: No bare pip install recipes in library skills
 
 Library-skill content (`SKILL.md`, `references/`, `assets/`) SHALL NOT contain `pip install` or `pip3 install` commands, except on a line explicitly labelled as a pip alternative (for example, text containing "pip alternative" or a `# pip:` comment next to the uv command). Tool-environment installs for standalone CLIs (`uv tool install …`) remain allowed.
@@ -74,11 +75,3 @@ rf-platynui SHALL show its install in uv form with an explicit pre-release opt-i
 - **WHEN** rf-platynui `SKILL.md` installation block is read
 - **THEN** it shows a `uv add` command with either the exact `0.12.0.dev…` pin or `--prerelease allow`
 - **AND** it warns that a plain install gets 0.9.2 without `PlatynUI.BareMetal`
-
-### Requirement: Install guidance changes are synced
-
-Changes SHALL be made in root `skills/` and propagated with the sync script. The drift check SHALL pass.
-
-#### Scenario: Channels stay in sync
-- **WHEN** `scripts/sync-skills.sh` and `scripts/check-drift.sh` run after the change
-- **THEN** the drift check reports no drift and the install-guidance test passes on the plugin copies too

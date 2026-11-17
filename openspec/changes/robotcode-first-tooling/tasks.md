@@ -1,0 +1,46 @@
+## 0. Preconditions
+
+- [ ] 0.1 PR #20 (`fix/realistic-eval-tasks`) is merged and `fix-desktop-eval-turn-overhead` is archived; verify `eval/graders/specs/` and the `min_calls` requirement are on `main`.
+
+## 1. Guard first (D5)
+
+- [ ] 1.1 Add `scripts/check-robotcode-first.py` and `scripts/robotcode-first-allowlist.toml` with an entry, and its reason, for every current use; verify it exits 0 on `main` and that tests cover "New re-implementation fails", "Allowlisted use passes", "Stale entry fails" and "Robocop is not flagged".
+- [ ] 1.2 Run it in `ci.yml` (lint job) and as `tests/test_robotcode_first.py`; verify the CI step fails on a throwaway commit that adds `from robot.api import ExecutionResult` under `src/`.
+
+## 2. Grader runs and results (D3)
+
+- [ ] 2.1 Replace `grader/robot_runner.py` (`run_robot`, `_parse_output_xml`) and `python_library._statuses` with one helper over `robotcode robot` and `robotcode --format json results show -o …`; switch `deterministic._run_robot_check`, `custom/language.py` and `custom/python_library.py` to it; verify the "Counts from RobotCode" and "RobotCode missing" scenarios in `tests/eval` and that the existing grader tests pass unchanged in meaning.
+- [ ] 2.2 Check whether `uvx --from robotframework==7.1 --with "robotcode[runner]" robotcode robot` runs the `sut-rf71` grader suite; use it if so, else keep the `uvx … robot` call with an allowlist entry; record the result in this design.
+- [ ] 2.3 Remove the allowlist entries the stale-entry rule now reports; verify the guard passes.
+
+## 3. Static keyword resolution (D2, D4)
+
+- [ ] 3.1 Rewrite `keywords_resolve` on `robotcode analyze code` plus `robotcode doc keywords --format json` for `min_calls`; delete `_libdoc()` and spec loading; verify "PlatynUI resolves without a desktop" and "Misspelled keyword fails" on Linux without a display, and the existing `min_calls` tests.
+- [ ] 3.2 Remove `spec_dir`/`specs` from the five PlatynUI and Appium task YAMLs, delete `eval/graders/specs/`, and make `validate-tasks` reject the params; verify "Spec params rejected" and `validate-tasks` for all plugins.
+- [ ] 3.3 Base `no_deprecated_keywords` on `DeprecatedKeyword` diagnostics and Robocop's hard-deprecation rules; verify tests for a library-deprecated keyword, `Run Keyword If` and `[Return]`.
+- [ ] 3.4 Reword the `min_calls` requirement in `openspec/specs/skill-eval-harness/spec.md` from "spec-covered libraries" to "imported non-standard libraries" (delta in this change); verify `openspec validate robotcode-first-tooling`.
+
+## 4. Skill keyword checker (D1)
+
+- [ ] 4.1 Build the materialising checker behind a flag and run a parity comparison with the current checker on all library skills and on the test fixtures; write the differences and their causes into this design.
+- [ ] 4.2 If parity holds, make it the default and delete `LibraryDocumentation`/matcher code; else take the D1 fallback (RobotCode keyword names, own matcher). Verify the skill-content-verification scenarios, including "Wrong argument count fails", and that the CI keyword job passes.
+- [ ] 4.3 Fix or allowlist the new true findings the stricter check reports; verify `scripts/check-skill-keywords.py --require-all` exits 0.
+
+## 5. Hook and manual tools
+
+- [ ] 5.1 Switch `validate_robot.mjs` tier 3 to `robotcode robot --dryrun` from the project root; verify the rf-validation-hooks scenarios, including "Profile settings apply", in `plugins/rf-core/tests`, and the variant check (`build-agent-variants.py --check`).
+- [ ] 5.2 Install `robotcode` in the Windows desktop venv (approved on 2026-11-16) and switch `scripts/desktop-live-check.py` to the D3 helper. Verify with one live run on the PC. If the install causes problems, keep the script allowlisted with that reason and tell the maintainer.
+
+## 6. Upstream gaps
+
+- [ ] 6.1 Draft the RobotCode issues listed in the design (import-failure code, `deprecated` in doc JSON, the AppiumLibrary deprecation message after checking plain `robot`, suggestions), each with version, minimal reproduction and AI disclosure, in a scratch file; the maintainer reviews and files them. Link the filed issues from the matching allowlist reasons.
+
+## 7. Re-baseline and PR
+
+- [ ] 7.1 Run `pytest tests`, `pytest tests/eval`, `pytest plugins/*/tests`, `ruff`, `mypy`, the guard and `validate-tasks`; verify all pass.
+- [ ] 7.2 Open the PR (ask before posting); verify the required checks pass.
+- [ ] 7.3 After merge, a maintainer dispatches the GLM re-baseline (OpenRouter `z-ai/glm-5.3-flash`, all tiers, both arms) and commits the baselines; optionally a local Haiku 5.5 run on the Claude Code subscription confirms the PlatynUI and Appium tasks. Verify the eval gate reports no `rebaseline-needed`.
+
+## 8. Initial check
+
+- [ ] 8.1 After the re-baseline in 7.3, review the confirmed decisions against the results. How many new findings do the stricter checks produce, and how many of them are true? How did eval scores and turns move per task? Did the Windows live check behave the same as before? Write down the findings. If a stricter rule mostly produces noise, or the switch causes another problem, propose the changed decision to the maintainer and update `design.md`. Verify that the findings are recorded in this change.

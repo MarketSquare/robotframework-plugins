@@ -5,7 +5,6 @@ Define the structure, content rules, size budget, reference and example rules, a
 
 ## Requirements
 
-
 ### Requirement: Library skills follow the standard SKILL.md skeleton
 
 Each library skill's `SKILL.md` (`skills/rf-{browser,selenium,appium,requests,restinstance}/SKILL.md`) SHALL contain these level-2 sections in this order:
@@ -149,14 +148,6 @@ Library skills SHALL explain the reason for a rule instead of relying on emphasi
 #### Scenario: No dated statements
 - **WHEN** the files are searched for phrases like "as of", "recently", "new in", "currently" or month/year dates
 - **THEN** none is found outside the version line
-
-### Requirement: Restructured skills are distributed to every channel
-
-After the canonical skills change, the plugin copy SHALL be regenerated so that deleted files are removed from them too, and the drift check SHALL pass.
-
-#### Scenario: No drift after sync
-- **WHEN** `scripts/sync-skills.sh` and then `scripts/check-drift.sh` run
-- **THEN** the drift check exits 0, and no distribution copy still contains a file deleted from the canonical skill
 
 ### Requirement: Success is shown by evaluation against a baseline
 

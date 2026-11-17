@@ -11,7 +11,10 @@ The gate fails on:
   - a HIGH or CRITICAL finding that is not in the baseline;
   - a baseline entry that has expired, or whose expiry is more than 12 months
     after today, or that lacks a reason.
-MEDIUM and lower findings are reported, never fatal.
+MEDIUM and lower findings are reported, never fatal. An entry that expires
+within ``--warn-days`` (default 30) is a warning; ``--fail-on-warn``, which the
+scheduled scan of ``main`` passes, makes it fatal, so a maintainer renews or
+removes it before it blocks a PR ("Expiry is flagged ahead").
 
 Usage:
   compare-findings.py --baseline security/baselines/rf-core.yaml \\
@@ -67,6 +70,7 @@ class Result:
     accepted: list[tuple[Finding, dict]] = field(default_factory=list)
     unused: list[dict] = field(default_factory=list)
     invalid: list[tuple[dict, str]] = field(default_factory=list)
+    expiring: list[tuple[dict, int]] = field(default_factory=list)
 
     @property
     def failed(self) -> list[Finding]:
@@ -170,7 +174,12 @@ def _entry_problem(entry: dict, today: dt.date) -> str | None:
     return None
 
 
-def compare(findings: list[Finding], baseline: list[dict], today: dt.date) -> Result:
+def _expires(entry: dict) -> dt.date:
+    expires = entry["expires"]
+    return expires if isinstance(expires, dt.date) else dt.date.fromisoformat(str(expires))
+
+
+def compare(findings: list[Finding], baseline: list[dict], today: dt.date, warn_days: int = 30) -> Result:
     res = Result()
     entries: dict[tuple, dict] = {}
     for entry in baseline:
@@ -178,6 +187,9 @@ def compare(findings: list[Finding], baseline: list[dict], today: dt.date) -> Re
         if problem:
             res.invalid.append((entry, problem))
             continue
+        days = (_expires(entry) - today).days
+        if days <= warn_days:
+            res.expiring.append((entry, days))
         entries[(entry["scanner"], entry["rule"], entry["file"], str(entry["fingerprint"]))] = entry
     used = set()
     for f in findings:
@@ -207,6 +219,11 @@ def summary(res: Result, plugin: str) -> str:
     if res.invalid:
         lines += ["", "### Baseline problems", ""]
         lines += [f"- `{e.get('scanner')}` `{e.get('rule')}` `{e.get('file')}`: {p}" for e, p in res.invalid]
+    if res.expiring:
+        lines += ["", "### Baseline entries that expire soon", "",
+                  "Renew each with a new review, or remove it, before it expires and fails every PR.", ""]
+        lines += [f"- `{e.get('scanner')}` `{e.get('rule')}` `{e.get('file')}`: expires {_expires(e).isoformat()}, "
+                  f"in {d} day{'' if d == 1 else 's'}" for e, d in res.expiring]
     for title, items in (("New findings that fail the gate", res.failed),
                          ("New findings below HIGH (reported only)", [f for f in res.new if f.severity not in FATAL])):
         if items:
@@ -254,6 +271,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--draft", type=Path, help="write draft baseline entries for the new findings")
     parser.add_argument("--plugin", default="", help="plugin name for the summary (default: the baseline's)")
     parser.add_argument("--today", type=dt.date.fromisoformat, default=dt.date.today())
+    parser.add_argument("--warn-days", type=int, default=30,
+                        help="warn about baseline entries that expire within this many days (default 30)")
+    parser.add_argument("--fail-on-warn", action="store_true",
+                        help="fail on those entries too (the scheduled scan of main)")
     args = parser.parse_args(argv)
 
     findings = [f for scanner, path, base in args.sarif for f in read_sarif(scanner, path, base)]
@@ -263,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
     if not plugin and first.is_file():
         plugin = (yaml.safe_load(first.read_text(encoding="utf-8")) or {}).get("plugin", "")
     plugin = plugin or first.stem
-    res = compare(findings, baseline, args.today)
+    res = compare(findings, baseline, args.today, args.warn_days)
     text = summary(res, plugin)
     if args.summary:
         args.summary.write_text(text, encoding="utf-8")
@@ -271,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write(text)
     if args.draft:
         args.draft.write_text(draft(res, plugin), encoding="utf-8")
+    if args.fail_on_warn and res.expiring:
+        return 1
     return 0 if res.ok else 1
 
 

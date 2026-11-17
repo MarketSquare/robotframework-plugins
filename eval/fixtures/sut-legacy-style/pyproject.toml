@@ -1,7 +1,7 @@
 [project]
 name = "sut-legacy-style"
 version = "0.0.1"
-description = "Fixture for the adversarial legacy-syntax task: an order resource written in pre-RF 7 style."
+description = "Shopping cart and order tests (Robot Framework)."
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.4,<8",
