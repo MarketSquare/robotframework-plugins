@@ -64,7 +64,7 @@ Escape hatch: for one or two calls to full URLs, use the sessionless keywords (`
 | Assert body or headers | `Should Be Equal    ${resp.json()}[id]    ${1}`, `${resp.headers}[Content-Type]` | references/response-validation.md |
 | Basic / digest / NTLM / client cert | `Create Session … auth=`, `Create Digest Session`, `Create Ntlm Session`, `Create Client Cert Session` | references/authentication.md |
 | Bearer token for all later calls | `Update Session    api    headers=${auth}` | references/authentication.md |
-| Wait for an async job to finish | bounded WHILE poll, no Sleep | references/async-jobs.md |
+| Wait for an async job to finish | bounded WHILE poll with a short pause, no fixed Sleep | references/async-jobs.md |
 | Unexpected error message | — | references/troubleshooting.md |
 
 ## Agent workflow
