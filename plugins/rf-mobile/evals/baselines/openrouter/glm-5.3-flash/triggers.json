@@ -24,7 +24,7 @@
         "accuracy": 0.875,
         "fn": 0,
         "fp": 1,
-        "negative_loads": 3,
+        "negative_loads": 2,
         "negative_runs": 12,
         "positive_loads": 12,
         "positive_runs": 12,
