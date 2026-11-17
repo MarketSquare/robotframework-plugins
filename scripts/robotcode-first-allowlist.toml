@@ -47,16 +47,6 @@ pattern = "run-robot"
 reason = "Opt-in tier-3 dry run still starts python -m robot; moves to robotcode robot --dryrun (task 5.1)."
 
 [[allow]]
-file = "scripts/check-skill-keywords.py"
-pattern = "parser-model"
-reason = "Keyword extraction and matching; moves to robotcode analyze code (task 4)."
-
-[[allow]]
-file = "scripts/check-skill-keywords.py"
-pattern = "libdoc"
-reason = "Library keyword lists; move to robotcode analyze code and robotcode doc keywords (task 4)."
-
-[[allow]]
 file = "scripts/desktop-live-check.py"
 pattern = "run-robot"
 reason = "Runs suites with python -m robot; moves to robotcode robot (task 5.2)."

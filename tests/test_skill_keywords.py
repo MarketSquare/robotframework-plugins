@@ -1,15 +1,27 @@
-"""Tests for scripts/check-skill-keywords.py (library-skill keyword checker)."""
+"""Tests for scripts/check-skill-keywords.py (library-skill keyword checker,
+spec skill-content-verification)."""
 
 from __future__ import annotations
 
+import contextlib
+import functools
 import importlib.util
+import io
+import shutil
 import sys
 from pathlib import Path
 
 import pytest
 
 pytest.importorskip("tomllib")  # checker reads its allowlist with tomllib (3.11+)
-pytest.importorskip("robot")
+
+
+def _tool(name: str) -> bool:
+    return (Path(sys.executable).parent / name).is_file() or shutil.which(name) is not None
+
+
+if not (_tool("robotcode") and _tool("robocop")):
+    pytest.skip("the checker needs robotcode and robocop (robotcode[all])", allow_module_level=True)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "check-skill-keywords.py"
@@ -61,8 +73,8 @@ def test_deprecated_keyword_fails(capsys, browser):
     else:
         kind = "UNKNOWN"
     assert f"browser SKILL.md:4 {kind} Wait Until Network Is Idle" in out
-    # wrapped keyword name on a "..." continuation row is checked too
-    assert f"browser SKILL.md:5 {kind} Wait Until Network Is Idle" in out
+    # wrapped keyword name on a "..." continuation row is checked too, on its own line
+    assert f"browser SKILL.md:6 {kind} Wait Until Network Is Idle" in out
 
 
 # (c)
@@ -73,6 +85,14 @@ def test_unknown_keyword_fails_with_suggestion(capsys, browser):
     assert "Fill Text" in out
     # keyword-name argument of a wrapper keyword is checked too
     assert "browser SKILL.md:5 UNKNOWN Get Titel ~ Get Title" in out
+
+
+def test_wrong_argument_count_fails(capsys, browser):
+    # Scenario "Wrong argument count fails": RobotCode's argument message.
+    code, out = run(capsys, FIXTURES / "args")
+    assert code == 1
+    assert "browser SKILL.md:4 ARGS Convert To Upper Case ~" in out
+    assert "expected 1 argument, got 3" in out
 
 
 # (e)
@@ -126,7 +146,17 @@ def test_missing_library_is_reported_as_skipped(capsys, monkeypatch):
     assert code == 1
 
 
-# (i) real tree, one test per library skill
+# (i) real tree, one test per library skill; the checker runs once for all six
+
+
+@functools.lru_cache(maxsize=1)
+def _real_tree_output() -> str:
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        checker.main([])
+    return buf.getvalue()
+
+
 @pytest.mark.parametrize(
     ("skill", "module"),
     [
@@ -138,10 +168,9 @@ def test_missing_library_is_reported_as_skipped(capsys, monkeypatch):
         ("platynui", "PlatynUI"),
     ],
 )
-def test_real_skill_is_clean(capsys, skill, module):
+def test_real_skill_is_clean(skill, module):
     pytest.importorskip(module)
-    checker.main([])
-    out = capsys.readouterr().out
+    out = _real_tree_output()
     findings = [line for line in out.splitlines() if line.startswith(f"{skill} ")]
     stale = [line for line in out.splitlines() if line.startswith("STALE") and f"skill={skill} " in line]
     assert not findings, "\n".join(findings)

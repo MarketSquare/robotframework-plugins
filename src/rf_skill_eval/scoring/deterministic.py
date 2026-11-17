@@ -237,7 +237,9 @@ def check_keywords_resolve(run: Run, name: str, params: dict[str, Any]) -> Verdi
 #: singular headers, Force/Default Tags, Run Keyword If/Unless, Exit/Continue
 #: For Loop, Return From Keyword (If), [Return].
 HARD_DEPRECATION_RULES: tuple[str, ...] = ("DEPR03", "DEPR04", "DEPR07", "DEPR08", "DEPR09", "DEPR10", "DEPR11")
-_ROBOCOP_FINDING = re.compile(r":(\d+):\d+ (DEPR\d+) (.*)$")
+# Robocop's simple output with a fixed issue format, as the rf-core hooks use (Robocop 8 and 9).
+_ROBOCOP_FORMAT = ("-c", "print_issues.output_format=simple", "--issue-format", "{rule_id}|{line}|{desc}")
+_ROBOCOP_FINDING = re.compile(r"^(DEPR\d+)\|(\d+)\|(.*)$")
 
 
 def check_no_deprecated_keywords(
@@ -265,7 +267,7 @@ def check_no_deprecated_keywords(
     except RobotcodeMissingError:
         return Verdict.skipped(run.id, name, "robotcode not installed")
     hits = [f"{d.line}: {d.message}" for d in diagnostics if d.code == "DeprecatedKeyword"]
-    cmd = [shutil.which("robocop") or "robocop", "check", "--no-cache"]
+    cmd = [shutil.which("robocop") or "robocop", "check", "--no-cache", *_ROBOCOP_FORMAT]
     for rule in HARD_DEPRECATION_RULES:
         cmd += ["--select", rule]
     try:
@@ -276,9 +278,9 @@ def check_no_deprecated_keywords(
     except subprocess.TimeoutExpired:
         return Verdict.of(run.id, name, False, "robocop timed out")
     for line in (result.stdout or "").splitlines():
-        m = _ROBOCOP_FINDING.search(line)
+        m = _ROBOCOP_FINDING.match(line.strip())
         if m:
-            hits.append(f"{m.group(1)}: {m.group(2)} {m.group(3).strip()}")
+            hits.append(f"{m.group(2)}: {m.group(1)} {m.group(3).strip()}")
     return Verdict.of(run.id, name, not hits, f"deprecated: {hits[:8]}" if hits else "no deprecated keywords or syntax")
 
 

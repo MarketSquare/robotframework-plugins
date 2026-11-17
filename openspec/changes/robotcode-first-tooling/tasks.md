@@ -22,9 +22,9 @@
 
 ## 4. Skill keyword checker (D1)
 
-- [ ] 4.1 Build the materialising checker behind a flag and run a parity comparison with the current checker on all library skills and on the test fixtures; write the differences and their causes into this design.
-- [ ] 4.2 If parity holds, make it the default and delete `LibraryDocumentation`/matcher code; else take the D1 fallback (RobotCode keyword names, own matcher). Verify the skill-content-verification scenarios, including "Wrong argument count fails", and that the CI keyword job passes.
-- [ ] 4.3 Fix or allowlist the new true findings the stricter check reports; verify `scripts/check-skill-keywords.py --require-all` exits 0.
+- [x] 4.1 Build the materialising checker behind a flag and run a parity comparison with the current checker on all library skills and on the test fixtures; write the differences and their causes into this design. Done: built behind `--engine robotcode`; parity results and their causes are in design D1.
+- [x] 4.2 If parity holds, make it the default and delete `LibraryDocumentation`/matcher code; else take the D1 fallback (RobotCode keyword names, own matcher). Verify the skill-content-verification scenarios, including "Wrong argument count fails", and that the CI keyword job passes. Done: parity held, so the materialised checker is the only engine; the extractor, the parser visitor, `LibraryDocumentation` and the matcher are deleted (617 → 534 lines, no Robot Framework import). New fixture `args/` covers "Wrong argument count fails"; the real-tree tests run the checker once. The CI keyword job installs `robotcode[all]`. 17 tests pass.
+- [x] 4.3 Fix or allowlist the new true findings the stricter check reports; verify `scripts/check-skill-keywords.py --require-all` exits 0. Done: no new findings on the real skills, so nothing to fix or allowlist; `--require-all` reports all six skills checked, 0 findings, RESULT OK.
 
 ## 5. Hook and manual tools
 
