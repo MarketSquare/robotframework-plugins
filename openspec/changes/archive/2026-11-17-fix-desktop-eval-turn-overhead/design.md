@@ -105,7 +105,7 @@ The change branches from `main` after PR #2 (OpenRouter tier) and PR #3 (its bas
 
 ### D10. The CI eval model switches to GLM 5.3 Flash
 
-The maintainer chose GLM 5.3 Flash for all CI evals (2026-11-13). The switch goes into this change, so no CI run uses DeepSeek again and the one re-baseline of D9 runs on GLM: `OPENROUTER_MODELS` holds only `z-ai/glm-5.3-flash`, the price table gets its list prices (input $0.0399, cache read $0.03, output $0.0784 per million; cache writes priced as input, since OpenRouter lists none), the workflow's `OPENROUTER_MODEL` changes, and baselines move to `baselines/openrouter/glm-5.3-flash/`. The DeepSeek baselines of run 43263363544 are removed; git keeps them. The turn factor stays 1.5 until GLM's turn-limit stops are known from the re-baseline.
+The maintainer chose GLM 5.3 Flash for all CI evals (2026-11-13). The switch goes into this change, so no CI run uses DeepSeek again and the one re-baseline of D9 runs on GLM: `OPENROUTER_MODELS` holds only `z-ai/glm-5.3-flash`, the price table gets its list prices (input $0.0399, cache read $0.03, output $0.0784 per million; cache writes priced as input, since OpenRouter lists none), the workflow's `OPENROUTER_MODEL` changes, and baselines move to `baselines/openrouter/glm-5.3-flash/`. The DeepSeek baselines of run 43263363544 are removed; git keeps them. The turn factor stays 1.5 until GLM's turn-limit stops are known from the re-baseline. Claude runs are no longer dispatched in CI; the Claude baselines become a local reference (Haiku 5.5), so task 11.4 is superseded.
 
 ## Risks / Trade-offs
 
