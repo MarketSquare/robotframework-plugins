@@ -19,7 +19,6 @@ without a device, PlatynUI without a desktop session), but installs and loads:
 from __future__ import annotations
 
 import json
-import os
 import re
 import subprocess
 from dataclasses import dataclass, field
@@ -27,7 +26,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from ..grader.robot_runner import RobotcodeMissingError, robotcode_binary
+from ..grader.robot_runner import RobotcodeMissingError, robotcode_binary, robotcode_env
 
 _STANDARD_LIBRARIES = frozenset(
     {
@@ -94,7 +93,8 @@ def _library_keywords(library: str, cwd: str) -> tuple[str, ...] | None:
     if robotcode is None:
         raise RobotcodeMissingError("robotcode is not installed")
     proc = subprocess.run([robotcode, "--format", "json", "doc", "keywords", library],
-                          capture_output=True, text=True, check=False, timeout=180, cwd=cwd)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
+                          timeout=180, cwd=cwd, env=robotcode_env())
     try:
         data = json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -119,11 +119,10 @@ def analyze(targets: list[Path], cwd: Path, cache_dir: Path | None = None) -> li
     robotcode = robotcode_binary()
     if robotcode is None:
         raise RobotcodeMissingError("robotcode is not installed")
-    env = dict(os.environ)
-    if cache_dir is not None:
-        env["ROBOTCODE_CACHE_DIR"] = str(cache_dir)
+    env = robotcode_env({"ROBOTCODE_CACHE_DIR": str(cache_dir)} if cache_dir is not None else None)
     proc = subprocess.run([robotcode, "--format", "json", "analyze", "code", *[str(t) for t in targets]],
-                          capture_output=True, text=True, check=False, timeout=600, cwd=cwd, env=env)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
+                          timeout=600, cwd=cwd, env=env)
     try:
         data = json.loads(proc.stdout)
     except json.JSONDecodeError as exc:

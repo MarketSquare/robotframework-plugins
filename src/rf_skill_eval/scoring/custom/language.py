@@ -27,7 +27,7 @@ from typing import Any
 
 from ...domain.run import Run
 from ...domain.verdict import Verdict
-from ...grader.robot_runner import RobotcodeMissingError, RobotResult, run_robot
+from ...grader.robot_runner import RobotcodeMissingError, RobotResult, robotcode_env, run_robot
 
 _REPO = Path(__file__).resolve().parents[4]
 GRADERS_DIR = _REPO / "eval" / "graders" / "language"
@@ -201,8 +201,8 @@ def _pinned_robot_available(spec: str) -> str | None:
         return "uvx not installed"
     launcher = _pinned_launcher(spec)
     try:
-        proc = subprocess.run([*launcher, "robot", "--version"],
-                              capture_output=True, text=True, timeout=300, check=False)
+        proc = subprocess.run([*launcher, "robot", "--version"], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=300, check=False, env=robotcode_env())
     except subprocess.TimeoutExpired:
         return f"uvx with {spec} timed out (no network?)"
     version = spec.split("==", 1)[-1]

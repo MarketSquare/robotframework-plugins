@@ -45,6 +45,14 @@ def run(capsys, skills_root: Path, allowlist: Path = EMPTY_ALLOWLIST, *extra: st
     return code, capsys.readouterr().out
 
 
+def test_library_with_non_ascii_docs_loads_under_windows_code_page(monkeypatch):
+    # BuiltIn's docs contain characters cp1252 can't encode; robotcode must still answer.
+    monkeypatch.setenv("PYTHONIOENCODING", "cp1252")
+    checker.robotcode_keywords.cache_clear()
+    keywords = checker.robotcode_keywords("BuiltIn")
+    assert keywords and "Should Be Equal" in keywords
+
+
 @pytest.fixture
 def browser():
     return pytest.importorskip("Browser")

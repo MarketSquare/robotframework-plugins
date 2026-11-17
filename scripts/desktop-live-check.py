@@ -23,6 +23,7 @@ import argparse
 import ast
 import collections
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -161,6 +162,10 @@ def _cli() -> str:
     return str(exe) if exe.is_file() else (shutil.which("platynui-cli") or "platynui-cli")
 
 
+# UTF-8 output: robotcode crashes on non-ASCII text under a Windows code page.
+_UTF8_ENV = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
+
+
 def _robotcode() -> str:
     """robotcode next to the interpreter (the venv), else on PATH: suites run and read through it."""
     exe = Path(sys.executable).parent / ("robotcode.exe" if sys.platform == "win32" else "robotcode")
@@ -191,7 +196,8 @@ def result_of(output_xml: Path) -> tuple[bool, str]:
     if not output_xml.is_file():
         return False, "no output.xml (killed at the time limit?)"
     r = subprocess.run([_robotcode(), "--format", "json", "results", "show", "-o", str(output_xml),
-                        "--message-chars", "0"], capture_output=True, text=True, check=False)
+                        "--message-chars", "0"], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       check=False, env=_UTF8_ENV)
     try:
         tests = json.loads(r.stdout).get("tests", [])
     except json.JSONDecodeError:
@@ -217,7 +223,7 @@ def run_suite(suite: Suite, out: Path, *, timeout: float, ready_timeout: float) 
     try:
         subprocess.run([_robotcode(), "--no-color", "robot", "--outputdir", str(target), "--consolecolors", "off",
                         str(suite.path)],
-                       capture_output=True, timeout=timeout, check=False)
+                       capture_output=True, timeout=timeout, check=False, env=_UTF8_ENV)
         suite.passed, suite.message = result_of(target / "output.xml")
     except subprocess.TimeoutExpired:
         suite.passed, suite.message = False, f"time limit {timeout:.0f} s"

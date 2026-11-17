@@ -428,7 +428,8 @@ function dryRunText() {
     rc.exe,
     ["--no-color", "robot", "--dryrun", "--output", "NONE", "--report", "NONE", "--log", "NONE",
       "--console", "dotted", filePath],
-    spawnOptions(DRYRUN_TIMEOUT_MS, { encoding: "utf-8", cwd: runDir }),
+    // UTF-8 output: robotcode crashes on non-ASCII text under a Windows code page.
+    spawnOptions(DRYRUN_TIMEOUT_MS, { encoding: "utf-8", cwd: runDir, env: { ...process.env, PYTHONIOENCODING: "utf-8" } }),
   );
   if (r.error || r.status === null) return "";
   const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`.split(/\r?\n/);

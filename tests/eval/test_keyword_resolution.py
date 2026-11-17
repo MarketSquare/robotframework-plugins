@@ -14,9 +14,16 @@ from rf_skill_eval.domain.run import Run
 from rf_skill_eval.domain.task import Task
 from rf_skill_eval.grader.robot_runner import robotcode_binary
 from rf_skill_eval.scoring.deterministic import check_keywords_resolve
-from rf_skill_eval.scoring.keyword_resolution import resolve_suite_keywords
+from rf_skill_eval.scoring.keyword_resolution import _library_keywords, resolve_suite_keywords
 
 pytestmark = pytest.mark.skipif(robotcode_binary() is None, reason="robotcode not installed")
+
+
+def test_library_with_non_ascii_docs_loads_under_windows_code_page(monkeypatch, tmp_path):
+    # BuiltIn's docs contain characters cp1252 can't encode; robotcode must still answer.
+    monkeypatch.setenv("PYTHONIOENCODING", "cp1252")
+    _library_keywords.cache_clear()
+    assert "Should Be Equal" in (_library_keywords("BuiltIn", str(tmp_path)) or ())
 
 
 def _run(workspace: Path) -> Run:

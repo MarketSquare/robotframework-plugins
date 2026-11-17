@@ -196,11 +196,17 @@ def _robotcode() -> str:
     return str(exe) if exe.is_file() else (shutil.which("robotcode") or "robotcode")
 
 
+def _robotcode_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """UTF-8 output, so library docs with non-ASCII text don't crash robotcode on a Windows code page."""
+    return {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1", **(extra or {})}
+
+
 @functools.lru_cache(maxsize=None)
 def robotcode_keywords(library: str) -> dict[str, str] | None:
     """Keyword name -> short doc of ``library`` from ``robotcode doc keywords``; None when it doesn't load."""
     proc = subprocess.run([_robotcode(), "--format", "json", "doc", "keywords", library],
-                          capture_output=True, text=True, check=False, timeout=300)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
+                          timeout=300, env=_robotcode_env())
     try:
         return {str(k["name"]): str(k.get("short_doc") or "") for k in json.loads(proc.stdout).get("keywords", [])}
     except (json.JSONDecodeError, AttributeError):
@@ -356,9 +362,10 @@ def check_skill(skill: str, skill_dir: Path, library: str,
     with tempfile.TemporaryDirectory(prefix="skill-keywords-") as tmp:
         root = Path(tmp) / "project"
         tables, nfiles = materialise(skill_dir, library, root)
-        env = {**os.environ, "ROBOTCODE_CACHE_DIR": str(Path(tmp) / "cache")}
+        env = _robotcode_env({"ROBOTCODE_CACHE_DIR": str(Path(tmp) / "cache")})
         proc = subprocess.run([_robotcode(), "--format", "json", "analyze", "code", "."],
-                              capture_output=True, text=True, check=False, timeout=1800, cwd=root, env=env)
+                              capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
+                              timeout=1800, cwd=root, env=env)
         data = json.loads(proc.stdout)
         for path, diags in (data.get("diagnostics") or {}).items():
             for d in diags:

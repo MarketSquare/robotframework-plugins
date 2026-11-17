@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -66,6 +67,12 @@ def robotcode_binary() -> str | None:
     return shutil.which("robotcode")
 
 
+def robotcode_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """Environment for robotcode: UTF-8 output, so library docs with non-ASCII text
+    don't crash it on a Windows code page."""
+    return {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1", **(extra or {})}
+
+
 def read_results(output_xml: Path, *, robotcode: str | None = None) -> tuple[dict[str, int], tuple[TestResult, ...]]:
     """Counts and per-test results of a finished run, from ``robotcode results show``.
 
@@ -79,7 +86,8 @@ def read_results(output_xml: Path, *, robotcode: str | None = None) -> tuple[dic
         return empty, ()
     proc = subprocess.run(
         [robotcode, "--format", "json", "results", "show", "-o", str(output_xml), "--message-chars", "0"],
-        capture_output=True, text=True, check=False, timeout=120, cwd=output_xml.parent,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", check=False, timeout=120,
+        cwd=output_xml.parent, env=robotcode_env(),
     )
     try:
         data = json.loads(proc.stdout)
@@ -121,8 +129,8 @@ def run_robot(
            *(["--dryrun"] if dryrun else []), *[str(a) for a in args], *[str(t) for t in targets]]
     _log.info("Invoking grader: %s", " ".join(cmd))
     try:
-        proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False,
-                              timeout=timeout_seconds)
+        proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                              check=False, timeout=timeout_seconds, env=robotcode_env())
     except FileNotFoundError as exc:
         raise RobotcodeMissingError(f"{cmd[0]} is not installed") from exc
     except subprocess.TimeoutExpired:
