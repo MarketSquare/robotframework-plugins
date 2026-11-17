@@ -15,6 +15,8 @@ Facts and commands for working in this repository. The rules for AI-assisted con
 
 ## Checks
 
+Set up first: `uv sync --all-packages`, then `uv run rfbrowser init chromium` for the browser tests (see [CONTRIBUTING.md](CONTRIBUTING.md)). Run the commands below in that environment, with `uv run` or the activated `.venv`.
+
 CI (`.github/workflows/ci.yml`) runs these on every PR; run the ones your change touches before you push:
 
 - `python scripts/build-catalog.py --check`

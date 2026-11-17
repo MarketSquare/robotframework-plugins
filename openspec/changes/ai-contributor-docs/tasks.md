@@ -32,5 +32,5 @@
 
   Findings so far (2026-11-17):
   - Local run of the `AGENTS.md` Checks list, command by command, on `46067e0`: every command exists and runs as written; `tests/test_contributor_guidance.py` passes. The only failure was the rf-core venv test, a test bug recorded in repo-cleanup 7.1 and fixed in the follow-up PR.
-  - Harder than it should be: the Checks list gives no setup step. The commands need Robot Framework, the libraries and pytest installed. CONTRIBUTING has `uv sync`, but `AGENTS.md` doesn't point to it, so an agent that reads only `AGENTS.md` has to guess. Proposed: one line before the list, "Set up first: `uv sync --all-packages` (see CONTRIBUTING)", after the maintainer agrees.
+  - Harder than it should be: the Checks list gives no setup step. The commands need Robot Framework, the libraries and pytest installed. CONTRIBUTING has `uv sync`, but `AGENTS.md` doesn't point to it, so an agent that reads only `AGENTS.md` has to guess. Fixed in the follow-up PR, with the maintainer's agreement: a setup line before the list (`uv sync --all-packages`, `uv run rfbrowser init chromium`).
   - Still open: the next contributor PR, to see whether the "AI assistance" section and the RobotCode item get filled in. Tick this task once one has come in.
