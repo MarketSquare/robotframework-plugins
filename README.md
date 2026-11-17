@@ -82,7 +82,7 @@ The plugin does not set a default main agent. The three subagents are available 
 }
 ```
 
-Enable `rf-agentskills@robotframework-plugins` instead to get everything. Add `"ref"` to the source to pin the marketplace to a tag, or use `stable` for the latest release. Each plugin release is tagged `<plugin>--v<version>` (for example `rf-core--v1.0.0`); the older `v<version>` tags install `rf-agentskills` up to 3.0.0.
+Enable `rf-agentskills@robotframework-plugins` instead to get everything. Add `"ref"` to the source to pin the marketplace to a tag, or use `stable` for the latest release. `stable` is created by the first plugin release; until then, use `latest` or a tag. Each plugin release is tagged `<plugin>--v<version>` (for example `rf-core--v1.0.0`); the older `v<version>` tags install `rf-agentskills` up to 3.0.0.
 
 #### Claude Code
 

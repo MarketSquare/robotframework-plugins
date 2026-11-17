@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
-from robotframework_plugins import _snapshot, bundle
+from robotframework_plugins import __version__, _snapshot, bundle
 
 SHA = "a" * 40
 OTHER = "b" * 40
@@ -60,6 +60,12 @@ class FakeGitHub:
         self.refs: dict[str, str] = {"main": SHA}
         self.archives: dict[str, bytes] = {SHA: _tarball(_tree())}
         self.requests: list[str] = []
+        #: (path, Authorization header or None) per request.
+        self.auth: list[tuple[str, str | None]] = []
+        #: When set, the tarball endpoint redirects here (``/<sha>`` is appended).
+        self.redirect_to: str | None = None
+        #: When set, every request is answered with this HTTP status.
+        self.status: int | None = None
         self.delay = 0.0
         fake = self
 
@@ -69,9 +75,22 @@ class FakeGitHub:
 
             def do_GET(self) -> None:
                 fake.requests.append(self.path)
+                fake.auth.append((self.path, self.headers.get("Authorization")))
                 time.sleep(fake.delay)
+                if fake.status:
+                    self._send(fake.status, b'{"message": "Bad credentials"}')
+                    return
                 prefix = f"/repos/{_snapshot.REPOSITORY}/commits/"
-                if self.path.startswith(prefix):
+                tarball = f"/repos/{_snapshot.REPOSITORY}/tarball/"
+                if self.path.startswith(tarball) and fake.redirect_to:
+                    self.send_response(302)
+                    self.send_header("Location", f"{fake.redirect_to}/{self.path[len(tarball):]}")
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                elif self.path.startswith(tarball) or self.path.startswith("/blob/"):
+                    data = fake.archives.get(self.path.rsplit("/", 1)[1])
+                    self._send(200 if data else 404, data or b"")
+                elif self.path.startswith(prefix):
                     sha = fake.refs.get(self.path[len(prefix):])
                     body = sha.encode() if sha else b'{"message": "No commit found"}'
                     self._send(200 if sha else 422, body)
@@ -92,7 +111,22 @@ class FakeGitHub:
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
     def downloads(self) -> int:
-        return sum("/tar.gz/" in r for r in self.requests)
+        return sum("/tar.gz/" in r or "/tarball/" in r for r in self.requests)
+
+
+@pytest.fixture(autouse=True)
+def _no_source_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A developer's or CI's own settings must not change what the tests send."""
+    for name in (_snapshot.SOURCE_ENV, _snapshot.TOKEN_ENV, "GITHUB_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+
+
+@pytest.fixture
+def mirror():
+    """A second fake GitHub used as a configured source; github.com is not patched."""
+    fake = FakeGitHub()
+    yield fake
+    fake.server.shutdown()
 
 
 @pytest.fixture
@@ -173,8 +207,15 @@ def test_network_down(cache: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_unknown_ref(github: FakeGitHub, cache: Path) -> None:
-    with pytest.raises(bundle.FetchError, match="ref 'stable' not found"):
+    with pytest.raises(bundle.FetchError, match="ref 'nope' not found") as err:
+        bundle.fetch("nope", cache_dir=cache)
+    assert "first plugin release" not in str(err.value)
+
+
+def test_missing_stable_names_the_alternatives(github: FakeGitHub, cache: Path) -> None:
+    with pytest.raises(bundle.FetchError, match="ref 'stable' not found") as err:
         bundle.fetch(cache_dir=cache)
+    assert "first plugin release" in str(err.value) and "'latest'" in str(err.value)
 
 
 def test_timeout(github: FakeGitHub, cache: Path) -> None:
@@ -256,3 +297,125 @@ def test_snapshot_passes_library_skills_through(github: FakeGitHub, cache: Path)
     libs = {lib["name"]: lib for lib in web["libraries"]}
     assert libs["Browser"]["skills"] == ["rf-web-skill"]
     assert "skills" not in libs["Other"]
+
+
+# bundle-fetch-sources: mirror, token, catalogue format (#22, #23).
+
+def test_mirror_as_argument(mirror: FakeGitHub, cache: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(_snapshot, "GITHUB_API", "https://github.invalid")
+    monkeypatch.setattr(_snapshot, "CODELOAD", "https://github.invalid")
+    snap = bundle.fetch("main", source=mirror.url + "/", cache_dir=cache)
+    assert snap.commit == SHA and snap.skills_dirs()
+    assert mirror.requests == [f"/repos/{_snapshot.REPOSITORY}/commits/main",
+                               f"/repos/{_snapshot.REPOSITORY}/tarball/{SHA}"]
+
+
+def test_mirror_from_the_environment(mirror: FakeGitHub, cache: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(_snapshot.SOURCE_ENV, mirror.url)
+    assert bundle.fetch("main", cache_dir=cache).commit == SHA
+    assert mirror.downloads() == 1
+
+
+def test_token_reaches_the_source(mirror: FakeGitHub, cache: Path) -> None:
+    bundle.fetch("main", source=mirror.url, token="t0k", cache_dir=cache)
+    assert [auth for _, auth in mirror.auth] == ["Bearer t0k", "Bearer t0k"]
+
+
+def test_token_from_the_environment(mirror: FakeGitHub, cache: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(_snapshot.TOKEN_ENV, "env-t0k")
+    bundle.fetch("main", source=mirror.url, cache_dir=cache)
+    assert {auth for _, auth in mirror.auth} == {"Bearer env-t0k"}
+
+
+def test_empty_token_sends_none(mirror: FakeGitHub, cache: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(_snapshot.TOKEN_ENV, "env-t0k")
+    bundle.fetch("main", source=mirror.url, token="", cache_dir=cache)
+    assert {auth for _, auth in mirror.auth} == {None}
+
+
+def test_redirect_does_not_carry_the_token(mirror: FakeGitHub, github: FakeGitHub, cache: Path) -> None:
+    mirror.redirect_to = github.url + "/blob"
+    snap = bundle.fetch("main", source=mirror.url, token="t0k", cache_dir=cache)
+    assert snap.commit == SHA
+    assert github.auth == [(f"/blob/{SHA}", None)]
+    assert all(auth == "Bearer t0k" for _, auth in mirror.auth)
+
+
+def test_github_token_stays_with_github(mirror: FakeGitHub, github: FakeGitHub, cache: Path,
+                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "gh-t0k")
+    bundle.fetch("main", source=mirror.url, cache_dir=cache)
+    assert {auth for _, auth in mirror.auth} == {None}
+    other = cache.parent / "other"
+    bundle.fetch("main", cache_dir=other)
+    assert (other / SHA).is_dir()
+    # github.com: the API gets the token, the public archive host doesn't.
+    assert github.auth == [(f"/repos/{_snapshot.REPOSITORY}/commits/main", "Bearer gh-t0k"),
+                           (f"/{_snapshot.REPOSITORY}/tar.gz/{SHA}", None)]
+
+
+def test_plain_http_refused_for_a_token(cache: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    attempts = _block_network(monkeypatch)
+    with pytest.raises(bundle.FetchError, match=r"plain HTTP to mirror\.example\.com") as err:
+        bundle.fetch("main", source="http://mirror.example.com", token="t0k", cache_dir=cache)
+    assert "t0k" not in str(err.value)
+    assert attempts == []
+
+
+@pytest.mark.parametrize("status", [401, 422])
+def test_errors_never_contain_the_token(mirror: FakeGitHub, cache: Path, status: int) -> None:
+    mirror.status = status
+    with pytest.raises(bundle.FetchError) as err:
+        bundle.fetch("main", source=mirror.url, token="t0k", cache_dir=cache)
+    assert "t0k" not in str(err.value)
+    assert "at 127.0.0.1:" in str(err.value)
+    if status == 401:
+        assert "HTTP 401" in str(err.value)
+
+
+def test_errors_never_contain_url_credentials(mirror: FakeGitHub, cache: Path) -> None:
+    with pytest.raises(bundle.FetchError) as err:
+        bundle.fetch("main", source=mirror.url.replace("http://", "http://user:s3cret@"), cache_dir=cache)
+    assert "s3cret" not in str(err.value)
+
+
+def test_source_must_be_http(cache: Path) -> None:
+    with pytest.raises(bundle.FetchError, match="not an http"):
+        bundle.fetch("main", source="file:///etc", cache_dir=cache)
+
+
+def test_snapshot_records_its_format(github: FakeGitHub, cache: Path) -> None:
+    snap = bundle.fetch("main", cache_dir=cache)
+    meta = json.loads((snap.path / "snapshot.json").read_text())
+    assert snap.catalog_format == meta["catalog_format"] == bundle.CATALOG_FORMAT
+    assert meta["built_by"] == f"robotframework-plugins {__version__}"
+    assert bundle.fetch(SHA, cache_dir=cache).catalog_format == bundle.CATALOG_FORMAT
+
+
+@pytest.mark.parametrize("recorded", [None, bundle.CATALOG_FORMAT + 1])
+def test_stale_snapshot_is_rebuilt(github: FakeGitHub, cache: Path, recorded) -> None:
+    folder = bundle.fetch("main", cache_dir=cache).path
+    meta = json.loads((folder / "snapshot.json").read_text())
+    meta.pop("catalog_format")
+    if recorded is not None:
+        meta["catalog_format"] = recorded
+    (folder / "snapshot.json").write_text(json.dumps(meta))
+    (folder / "leftover.txt").write_text("from the old snapshot")
+    snap = bundle.fetch(SHA, cache_dir=cache)
+    assert github.downloads() == 2
+    assert snap.catalog_format == bundle.CATALOG_FORMAT and snap.path == folder
+    assert not (folder / "leftover.txt").exists()
+    assert sorted(p.name for p in cache.iterdir()) == [SHA]
+
+
+def test_failed_rebuild_keeps_the_stale_snapshot(github: FakeGitHub, cache: Path) -> None:
+    folder = bundle.fetch("main", cache_dir=cache).path
+    meta = json.loads((folder / "snapshot.json").read_text())
+    meta.pop("catalog_format")
+    (folder / "snapshot.json").write_text(json.dumps(meta))
+    github.archives.clear()
+    with pytest.raises(bundle.FetchError, match="HTTP 404"):
+        bundle.fetch(SHA, cache_dir=cache)
+    assert (folder / "catalog.json").is_file()
+    assert "catalog_format" not in json.loads((folder / "snapshot.json").read_text())
+    assert sorted(p.name for p in cache.iterdir()) == [SHA]
