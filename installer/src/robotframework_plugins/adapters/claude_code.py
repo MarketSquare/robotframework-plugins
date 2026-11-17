@@ -284,7 +284,7 @@ class ClaudeCodeAdapter(AdapterBase):
         # No per-OS rewrite needed: every hook command invokes Node
         # (e.g. ``node "<…>.mjs"``), and Node is cross-platform. The
         # previous v0.4.1 ``.sh→.ps1`` rewrite was the source of the
-        # broken Windows install — see docs/issues/.
+        # broken Windows install — see docs/archive/issues/.
 
         # Ownership marker: every rf-agentskills hook command references
         # this install dir, so it uniquely identifies the groups we add.

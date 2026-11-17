@@ -65,18 +65,6 @@ The skill SHALL document the `platynui-cli` / `platynui-inspector` locator-devel
 - **WHEN** the platform-setup reference is read
 - **THEN** it states that Linux requires a running AT-SPI2 bus, recommends X11 (or XWayland) over a pure Wayland session and explains why, and describes the mock provider as the deterministic/display-less path
 
-### Requirement: Skill is integrated into distribution channels without drift
-
-The skill SHALL be registered in the sync tooling so the Claude Code plugin channel is generated from the single source under the same `rf-platynui` identifier, and the drift check SHALL pass.
-
-#### Scenario: Sync registers the skill
-- **WHEN** `scripts/sync-skills.sh` runs
-- **THEN** the skill is propagated to `plugins/rf-agentskills/skills/rf-platynui/` with `name: rf-platynui`
-
-#### Scenario: Drift check passes
-- **WHEN** `scripts/check-drift.sh` runs after sync
-- **THEN** it reports no drift
-
 ### Requirement: PlatynUI prompts trigger skill context injection
 
 The `UserPromptSubmit` context-injection hook SHALL treat `platynui` as a Robot Framework signal so that PlatynUI-related prompts surface the available skills.

@@ -212,7 +212,7 @@ Agents read project skills from `.claude/skills/` (Claude Code, Copilot), `.agen
 
 Every plugin has a tier, shown in the catalogue above.
 
-- **verified**: the Foundation reviewers approved it. It has at least two maintainers, trigger tests and eval tasks for every skill, and eval baselines on the current models that it keeps passing.
+- **verified**: it has trigger tests and eval tasks for every skill and eval baselines on the current models that it keeps passing, and it passes the security gate and the keyword check.
 - **community**: it passes the same automated checks (house content rules, the security scanners, frontmatter and example checks) and a maintainer review, without the eval evidence.
 
 A tier describes the evidence behind a plugin, not a warranty. The checks and reviews lower the risk of a harmful or broken plugin; they don't prove that one is safe. Plugins give instructions to an agent that can run commands on your machine, so read what you install, as you would any other dependency. [GOVERNANCE.md](GOVERNANCE.md) has the full criteria, and [SECURITY.md](SECURITY.md) says what the security checks cover.
@@ -303,6 +303,8 @@ The [rf-agentskills changelog](plugins/rf-agentskills/CHANGELOG.md) lists the sk
 ## More
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): add or change a plugin, run the checks and tests, and which version to bump.
+- [AI_POLICY.md](AI_POLICY.md): what AI-assisted contributions must meet, and why RobotCode is the base for Robot Framework capabilities.
+- [AGENTS.md](AGENTS.md): the guide for coding agents working in this repository.
 - [GOVERNANCE.md](GOVERNANCE.md): tiers, review, maintainer expectations, deprecation and removal.
 - [SECURITY.md](SECURITY.md): report a vulnerability privately; what the checks cover and what they can't.
 - [RELEASING.md](RELEASING.md): plugin and installer releases.

@@ -1,7 +1,7 @@
 [project]
 name = "sut-browser"
 version = "0.0.1"
-description = "Browser-library Robot Framework fixture for the rf-agentskills eval harness."
+description = "Login page tests with the Browser library."
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.0",

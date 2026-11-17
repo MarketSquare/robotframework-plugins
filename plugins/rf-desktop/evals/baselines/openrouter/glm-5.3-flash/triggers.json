@@ -7,17 +7,17 @@
   "skills": {
     "rf-platynui": {
       "train": {
-        "accuracy": 0.8696,
+        "accuracy": 0.8261,
         "fn": 0,
-        "fp": 3,
-        "negative_loads": 9,
+        "fp": 4,
+        "negative_loads": 11,
         "negative_runs": 33,
         "positive_loads": 36,
         "positive_runs": 36,
-        "precision": 0.8,
+        "precision": 0.75,
         "queries": 23,
         "recall": 1.0,
-        "tn": 8,
+        "tn": 7,
         "tp": 12
       },
       "validation": {

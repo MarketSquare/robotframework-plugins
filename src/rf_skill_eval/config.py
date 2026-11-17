@@ -35,12 +35,6 @@ class Settings(BaseSettings):
     #: OpenRouter models (openrouter-ci-eval-tier).
     openrouter_api_key: str | None = Field(default=None)
 
-    # Model selection
-    claude_model_default: str = Field(default="claude-haiku-5-5")
-
-    # Logging
-    rf_skill_eval_log_level: str = Field(default="INFO")
-
     def has_auth(self, provider: str = "anthropic") -> bool:
         """Return True iff the credentials ``provider`` needs are present."""
 

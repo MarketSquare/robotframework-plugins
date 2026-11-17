@@ -1,6 +1,6 @@
 # sut-api
 
-HTTP API fixture for the RequestsLibrary and RESTinstance tasks. The API is a
+API tests with RequestsLibrary and RESTinstance. The API under test is a
 tiny standard-library `http.server` (`libraries/ApiServer.py`) started from a
 suite's `Suite Setup` on a free local port — no network, no extra services.
 

@@ -8,7 +8,8 @@ document. Code (fenced blocks and inline code), link targets and HTML
 comments are not prose and are skipped. Everything else in the guide is a
 review checklist item.
 
-Documents: the top-level *.md files, docs/ (without generated reports),
+Documents: the top-level *.md files, docs/ (without generated reports and the
+archive of historical documents),
 installer/README.md, every plugin's and template's README.md, and the
 template's other Markdown. Changelogs and dated records (a ``**Date:**``
 line near the top: reports, test results, plans) are history and are skipped.
@@ -61,7 +62,8 @@ def is_dated_record(path: Path) -> bool:
 
 def documents(root: Path) -> list[Path]:
     found: set[Path] = set(root.glob("*.md"))
-    found |= {p for p in (root / "docs").rglob("*.md") if "reports" not in p.relative_to(root / "docs").parts}
+    found |= {p for p in (root / "docs").rglob("*.md")
+              if not {"reports", "archive"} & set(p.relative_to(root / "docs").parts)}
     found |= {root / "installer" / "README.md"}
     found |= set(root.glob("plugins/*/README.md"))
     found |= set((root / "templates").rglob("*.md")) if (root / "templates").is_dir() else set()

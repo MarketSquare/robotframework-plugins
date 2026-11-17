@@ -1,22 +1,12 @@
-# sut-appium
+# Demo Login app tests
 
-Spec-only AppiumLibrary fixture. There is no device, emulator or Appium server
-on the CI runner, so tasks on this fixture are graded **statically** with the
-`keywords_resolve` check: the produced suite must parse and every keyword must
-resolve against the committed libdoc spec `specs/AppiumLibrary.json` (plus the
-suite's own user keywords and standard libraries).
+Robot Framework tests for the Demo Login Android app, written with
+AppiumLibrary. `app/SCREENS.md` lists the screens, accessibility ids and the
+Appium server URL.
 
-- `app/SCREENS.md` — the Demo Login app contract (accessibility ids, activity).
-- `tests/example.robot` — a stub that resolves cleanly.
-- `specs/AppiumLibrary.json` — libdoc spec (AppiumLibrary 3.2.1).
-
-Real execution against an emulator stays a manual, local activity.
-
-## Refreshing the spec
+The tests need an Android emulator and an Appium 2 server
+(`http://127.0.0.1:4723`, UiAutomator2 driver):
 
 ```bash
-uv run python -m robot.libdoc AppiumLibrary eval/fixtures/sut-appium/specs/AppiumLibrary.json
+uv run robot tests
 ```
-
-Refreshing the spec changes the fixture hash, so the affected baseline entries
-report `rebaseline-needed` until the next weekly baseline is promoted.

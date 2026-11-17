@@ -1245,9 +1245,13 @@ def test_check_rf_environment_flags_old_robotcode(tmp_path: Path) -> None:
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX .venv layout")
 def test_check_rf_environment_uses_project_venv(tmp_path: Path) -> None:
     """Same interpreter resolution as the validation hooks: <cwd>/.venv first."""
+    import stat
     venv_py = tmp_path / ".venv" / "bin" / "python"
     venv_py.parent.mkdir(parents=True)
-    venv_py.symlink_to(sys.executable)
+    # A shim, not a symlink: a symlink to a venv's python outside its venv
+    # loses that venv's site-packages, so `import robot` fails under uv.
+    venv_py.write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n', encoding="utf-8")
+    venv_py.chmod(venv_py.stat().st_mode | stat.S_IEXEC)
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
     _out, err, rc = _run(CHECK_ENV_SCRIPT, {"cwd": str(tmp_path)}, env=env)
     assert rc == 0

@@ -1,1 +1,1 @@
-"""Persistence adapters — SQLite for metadata, Parquet for metrics."""
+"""Persistence adapters — SQLite run records."""

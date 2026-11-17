@@ -1,20 +1,32 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Shown to agents when they draft a proposal, design, specs or tasks.
+context: |
+  MarketSquare/robotframework-plugins ships Robot Framework plugins for coding
+  agents (Claude Code, Copilot, Codex, Cursor, OpenCode) and the tools around them:
+  - plugins/<name>/: one folder per marketplace plugin (skills, subagents, hooks,
+    catalog.yaml); the only copy of its content. bundles/rf-agentskills/ is a
+    generated copy of the plugins listed in plugins/rf-agentskills/catalog.yaml.
+  - installer/: the robotframework-plugins package on PyPI (installs the plugins
+    into agents without a marketplace).
+  - src/rf_skill_eval/ and eval/: the internal eval harness that grades skills in
+    live agent sessions against committed baselines (never published).
+  - security/ and the security gate: scanners plus reviewed baselines of accepted
+    findings; plugin content is read and run by other people's agents.
+  - scripts/: build and check utilities; tests/: shared tests; docs/archive/ is
+    history only.
+  AGENTS.md lists the checks CI runs, the generated files and their commands.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  RobotCode first: the robotcode CLI (https://robotcode.io/guides/cli/) is the core
+  of the Robot Framework AI toolstack. Running, discovery, analysis, results, the
+  REPL, keyword documentation and debugging go through robotcode, not new custom
+  code; a missing capability is raised upstream at robotcode.
+
+  Text for people follows the Robot Framework Voice (CONTRIBUTING.md, "Writing"):
+  open with what the reader gets, short sections, plain words.
+
+rules:
+  proposal:
+    - When the change touches a Robot Framework capability (running, discovery, analysis, results, REPL, keyword documentation, debugging), name the robotcode command it uses, or say why none fits and which upstream issue covers the gap.
+  tasks:
+    - Every task ends with a verify clause that says how to check it is done.

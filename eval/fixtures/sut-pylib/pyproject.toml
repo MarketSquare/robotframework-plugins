@@ -1,7 +1,7 @@
 [project]
 name = "sut-pylib"
 version = "0.0.1"
-description = "Fixture for rf-python-library tasks: an empty libraries/ folder on the python-path."
+description = "Robot Framework tests with project keyword libraries in libraries/."
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.0",

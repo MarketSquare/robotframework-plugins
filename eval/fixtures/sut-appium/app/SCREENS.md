@@ -1,8 +1,7 @@
-# Demo Login app (Android, spec only)
+# Demo Login app (Android)
 
-The app binary is not shipped — this fixture is graded statically
-(`keywords_resolve` against `specs/AppiumLibrary.json`). The screens below are
-the contract a test must target.
+The app is built and installed on the emulator by the app team; this
+repository holds only the tests. The screens below are what the tests target.
 
 | Package / activity | `com.example.demologin` / `.LoginActivity` |
 |---|---|

@@ -15,7 +15,7 @@ statistical scoring, persistence, reporting, and CI glue. A naive "one big modul
 environment variables, CLI flags bleeding into statistics, or storage schemas driving
 domain types.
 
-The implementation plan (`rf-agentskills-eval-implementation-plan.md`) sketches a layered
+The implementation plan (`docs/archive/rf-agentskills-eval-implementation-plan.md`) sketches a layered
 layout (`telemetry/`, `runner/`, `tasks/`, `analysis/`, `report/`). This is a reasonable
 start but is organized by **technical function**, not by **domain boundary**. Without
 explicit bounded contexts we get:
@@ -112,7 +112,7 @@ infrastructure  ──depends on──▶  application  ──depends on──�
   `domain/scoring/gate.py` (if primary). Mitigated by: the registry pattern makes each
   touch small and mechanical.
 - **Upfront design cost.** Engineers unfamiliar with DDD may find the layout heavier than
-  "just put it in `analysis.py`." Mitigated by: the `ddd-design.md` document names every
+  "just put it in `analysis.py`." Mitigated by: the `docs/archive/ddd-design.md` document names every
   aggregate/entity/VO; newcomers have a map.
 - **Risk of anemic-domain anti-pattern.** Value objects and aggregates can degenerate into
   dataclasses if behavior is all pushed into `application/`. Mitigated by: invariants are
@@ -184,6 +184,6 @@ Domain entities at the center, use cases around, gateways outside, UI outermost.
 
 - Evans, *Domain-Driven Design* (2003) — bounded contexts, context map.
 - Vernon, *Implementing DDD* (2013) — pragmatic context patterns.
-- `docs/ci/rf-agentskills-eval-implementation-plan.md` — original flat layout.
-- `docs/skill-architecture-review.md` — precedent for "single source of truth +
+- `docs/archive/rf-agentskills-eval-implementation-plan.md` — original flat layout.
+- `docs/archive/skill-architecture-review.md` — precedent for "single source of truth +
   derived channels" in this repo.

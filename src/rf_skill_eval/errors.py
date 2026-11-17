@@ -23,13 +23,5 @@ class SkillRunnerError(RfSkillEvalError):
     """Raised for generic failures while invoking the skill runner."""
 
 
-class ConfigError(RfSkillEvalError):
-    """Raised when harness configuration is malformed or missing."""
-
-
-class PersistenceError(RfSkillEvalError):
-    """Raised when a repository fails to persist or fetch data."""
-
-
 class GraderError(RfSkillEvalError):
     """Raised when the deterministic grader fails to execute."""

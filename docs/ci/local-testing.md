@@ -22,12 +22,11 @@ PR. For the full user guide, see [usage.md](usage.md).
 
 | Your change touches…                        | Recommended check        |
 | ------------------------------------------- | ------------------------ |
-| `skills/**/SKILL.md` (prompt content)       | `eval-local.sh`          |
-| `skills/**/scripts/*.py` (skill script)     | `eval-smoke.sh` + unit tests |
-| `eval/src/**` (harness code)                | `uv run pytest` + smoke  |
-| `eval/tasks/**` (new task)                  | Manual one-off on that task |
+| `plugins/*/skills/**/SKILL.md` (prompt content) | `eval-local.sh`      |
+| `plugins/*/skills/**/scripts/*.py` (skill script) | `eval-smoke.sh` + unit tests |
+| `src/rf_skill_eval/**` (harness code)       | `uv run pytest` + smoke  |
+| `plugins/*/evals/tasks/**` (new task)       | Manual one-off on that task |
 | `docs/**`, `README.md`, `CHANGELOG.md`      | Skip — CI skips too      |
-| `plugins/rf-agentskills/**` (only plugin)   | Skip — sync-skills CI handles this |
 | `.github/workflows/**`                      | Skip locally; CI validates |
 
 When in doubt, run smoke. It is two minutes.
@@ -48,14 +47,14 @@ scripts/eval-local.sh
 
 # 3. If a specific task fails, rerun it with DEBUG logging
 uv run rf-skill-eval run \
-  --task eval/tasks/narrow/<task-file>.yaml \
+  --task plugins/<plugin>/evals/tasks/narrow/<task-file>.yaml \
   --arm treatment \
   --max-cost-usd 1 \
   --output eval/runs/debug-$(date +%s)
 # (DEBUG logging: RF_SKILL_EVAL_LOG_LEVEL=DEBUG)
 
 # 4. Re-grade and re-render without re-invoking Claude
-uv run rf-skill-eval score-batch --runs-dir eval/runs/batch-<date>/ --tasks-dir eval/tasks
+uv run rf-skill-eval score-batch --runs-dir eval/runs/batch-<date>/ --tasks-dir plugins/<plugin>/evals/tasks
 uv run rf-skill-eval report \
   --runs-dir eval/runs/batch-<date>/ \
   --format md \
@@ -213,7 +212,7 @@ When a task fails and you need to debug the agent's behavior:
 
 ```bash
 uv run rf-skill-eval run \
-  --task eval/tasks/narrow/<task>.yaml \
+  --task plugins/<plugin>/evals/tasks/narrow/<task>.yaml \
   --arm treatment \
   --max-cost-usd 1 \
   --output eval/runs/debug-$(date +%s)
@@ -264,16 +263,16 @@ uv run rf-skill-eval score eval/runs/debug-<id>/ --mode deterministic-only
 
 ## Adding a new skill to the eval task bank
 
-When you add a new skill under `skills/<skill-name>/`, add its eval
-tasks in the same PR:
+When you add a new skill under `plugins/<plugin>/skills/<skill-name>/`,
+add its eval tasks in the same PR:
 
 1. **Create at least 3 narrow tasks.** Each tests one clearly-scoped
-   behavior. Put them under `eval/tasks/narrow/`:
+   behavior. Put them under `plugins/<plugin>/evals/tasks/narrow/`:
 
    ```
-   eval/tasks/narrow/narrow-<skill-name>-01.yaml
-   eval/tasks/narrow/narrow-<skill-name>-02.yaml
-   eval/tasks/narrow/narrow-<skill-name>-03.yaml
+   plugins/<plugin>/evals/tasks/narrow/narrow-<skill-name>-01.yaml
+   plugins/<plugin>/evals/tasks/narrow/narrow-<skill-name>-02.yaml
+   plugins/<plugin>/evals/tasks/narrow/narrow-<skill-name>-03.yaml
    ```
 
 2. **Pin a fixture.** Reuse `sut-minimal` if the skill does not need
@@ -307,11 +306,11 @@ tasks in the same PR:
 6. **Validate schemas** before committing:
 
    ```bash
-   for f in eval/tasks/narrow/narrow-<skill-name>-*.yaml; do
+   for f in plugins/<plugin>/evals/tasks/narrow/narrow-<skill-name>-*.yaml; do
      uv run rf-skill-eval tasks validate "$f"
    done
    ```
 
-See [`eval/tasks/README.md`](../../eval/tasks/README.md) for the full
+See [`plugins/rf-core/evals/tasks/README.md`](../../plugins/rf-core/evals/tasks/README.md) for the full
 schema. See [usage.md](usage.md#adding-a-new-task) for a worked
 example.

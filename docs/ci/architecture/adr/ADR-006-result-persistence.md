@@ -1,6 +1,6 @@
 # ADR-006: Result Persistence & Reporting — SQLite + Parquet + On-Disk Artifacts
 
-**Status:** Accepted
+**Status:** Accepted. The Parquet writer was removed in 2026-11 (change `repo-cleanup`): nothing read its files, and runs are stored in SQLite and on disk.
 **Date:** 2026-04-14
 **Deciders:** System Architecture
 **Related:** ADR-002, ADR-004, ADR-005
@@ -279,6 +279,6 @@ presentation-only, never round-tripped back into state.
 
 ## References
 
-- `docs/ci/rf-agentskills-eval-implementation-plan.md` §7 — scorecard format.
+- `docs/archive/rf-agentskills-eval-implementation-plan.md` §7 — scorecard format.
 - Polars docs — lazy Parquet scans: https://docs.pola.rs/.
 - SQLite append-only patterns — the `INSERT`-only schema as audit-log discipline.

@@ -4,7 +4,7 @@ The package bundles the plugin tree (skills, subagents, hooks, scripts)
 inside ``robotframework_plugins/_assets/`` and provides per-agent adapters that
 copy / transform that tree into each target's expected install paths.
 
-See ``docs/installer/proposal.md`` (in the source repo) for the full
+See ``docs/archive/installer-proposal.md`` (in the source repo) for the full
 design and compatibility matrix.
 """
 

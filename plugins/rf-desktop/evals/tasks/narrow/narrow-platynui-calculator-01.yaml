@@ -13,8 +13,8 @@ prompt: |
   Write tests/calculator.robot that brings the Calculator window to the front,
   clicks 1, +, 2, =, and verifies that the result display shows 3. There is no
   desktop session on this machine, so you cannot run it — make sure every
-  keyword really exists in the PlatynUI.BareMetal library (a libdoc spec is in
-  specs/).
+  keyword really exists in the PlatynUI.BareMetal library
+  installed in this project.
 model: claude-haiku-5-5
 max_turns: 14
 timeout_seconds: 300
@@ -34,7 +34,8 @@ grader_checks:
   - type: keywords_resolve
     name: platynui_keywords_resolve
     target: tests/calculator.robot
-    specs: [specs/PlatynUI.BareMetal.json]
+    spec_dir: eval/graders/specs
+    specs: [PlatynUI.BareMetal.json]
     required_libraries: [PlatynUI.BareMetal]
     min_calls: 4
   - type: custom_python

@@ -1,8 +1,8 @@
 """Generate the `.mcp.json` for an isolated Claude profile.
 
 Servers are registered explicitly: per-task servers (``mcp_servers:`` in the
-task YAML, e.g. ``rf-mcp``) in both arms, plugin servers (``rf-tools``) in the
-treatment arm only. Nothing is registered by default.
+task YAML, e.g. ``rf-mcp``), the same in both arms. Nothing is registered by
+default.
 """
 
 from __future__ import annotations
