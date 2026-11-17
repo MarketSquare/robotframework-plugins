@@ -37,7 +37,7 @@
 
 ## 7. Re-baseline and PR
 
-- [ ] 7.1 Run `pytest tests`, `pytest tests/eval`, `pytest plugins/*/tests`, `ruff`, `mypy`, the guard and `validate-tasks`; verify all pass.
+- [x] 7.1 Run `pytest tests`, `pytest tests/eval`, `pytest plugins/*/tests`, `ruff`, `mypy`, the guard and `validate-tasks`; verify all pass. Done 2026-11-17: shared tests 888 passed (2 skipped), `tests/eval` 678, `plugins/rf-core/tests` 554, `plugins/rf-desktop/tests` 6; ruff, mypy, the guard (15 allowlisted uses in 5 files), `validate-tasks` (34 tasks), `openspec validate --all --strict` and the AGENTS.md checks pass. The first run found `tests/test_library_skill_structure.py` still calling the deleted `load_library`; it now reads keyword names through the checker's `robotcode_keywords`. AGENTS.md lists the guard among the checks.
 - [ ] 7.2 Open the PR (ask before posting); verify the required checks pass.
 - [ ] 7.3 After merge, a maintainer dispatches the GLM re-baseline (OpenRouter `z-ai/glm-5.3-flash`, all tiers, both arms) and commits the baselines; optionally a local Haiku 5.5 run on the Claude Code subscription confirms the PlatynUI and Appium tasks. Verify the eval gate reports no `rebaseline-needed`.
 

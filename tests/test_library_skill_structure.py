@@ -235,24 +235,26 @@ def _load_checker():
 
 
 def keyword_problems(names: list[str], import_name: str) -> list[str]:
-    """Names that are unknown or deprecated in the library + standard libraries."""
-    pytest.importorskip("robot")
+    """Names that are unknown or deprecated in the library + standard libraries (via robotcode doc keywords)."""
+    import shutil
+
+    if shutil.which("robotcode") is None and not (Path(sys.executable).parent / "robotcode").is_file():
+        pytest.skip("robotcode not installed")
     checker = _load_checker()
-    lib = checker.load_library(import_name)
+    lib = checker.robotcode_keywords(import_name)
     if lib is None:
         pytest.skip(f"{import_name} is not importable")
-    std: dict[str, object] = {}
+    docs: dict[str, str] = {}
     for std_name in checker.STANDARD_LIBRARIES:
-        info = checker.load_library(std_name)
-        if info:
-            std.update(info.keywords)
+        docs.update({checker.normalize(k): v for k, v in (checker.robotcode_keywords(std_name) or {}).items()})
+    docs.update({checker.normalize(k): v for k, v in lib.items()})
     probs = []
     for name in names:
-        norm = checker.normalize(name)
-        kw = lib.keywords.get(norm) or std.get(norm)
-        if kw is None:
+        short_doc = docs.get(checker.normalize(name))
+        if short_doc is None:
             probs.append(f"UNKNOWN {name}")
-        elif kw.deprecated:
+        elif short_doc.lstrip("*").upper().startswith("DEPRECATED"):
+            # doc keywords has no deprecated flag (robotcode issue draft 2); the doc marks it.
             probs.append(f"DEPRECATED {name}")
     return probs
 
