@@ -63,17 +63,56 @@ def test_file_contains_missing_params(tmp_path: Path) -> None:
         check_file_contains(_run(tmp_path), "c", {"path": "x"})
 
 
+def _needs_robotcode_and_robocop() -> None:
+    from rf_skill_eval.grader.robot_runner import robotcode_binary
+
+    if robotcode_binary() is None or shutil.which("robocop") is None:
+        pytest.skip("robotcode or robocop CLI not installed")
+
+
 def test_no_deprecated_keywords_clean(tmp_path: Path) -> None:
+    _needs_robotcode_and_robocop()
     (tmp_path / "f.robot").write_text("*** Test Cases ***\nFoo\n    Log    hi\n")
     v = check_no_deprecated_keywords(_run(tmp_path), "d", {"path": "f.robot"})
-    assert v.passed is True
+    assert v.passed is True, v.details
 
 
-def test_no_deprecated_keywords_flags(tmp_path: Path) -> None:
-    (tmp_path / "f.robot").write_text("Run Keyword If    ${x}    Log    hi\n")
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        ("*** Test Cases ***\nT\n    Run Keyword If    ${True}    Log    hi\n", "DEPR08"),
+        ("*** Test Cases ***\nT\n    K\n\n*** Keywords ***\nK\n    [Return]    1\n", "DEPR11"),
+        ("*** Settings ***\nForce Tags    smoke\n\n*** Test Cases ***\nT\n    Log    x\n", "DEPR07"),
+    ],
+)
+def test_no_deprecated_keywords_flags_legacy_syntax(tmp_path: Path, body: str, expected: str) -> None:
+    _needs_robotcode_and_robocop()
+    (tmp_path / "f.robot").write_text(body)
     v = check_no_deprecated_keywords(_run(tmp_path), "d", {"path": "f.robot"})
     assert v.passed is False
-    assert "Run Keyword If" in v.details
+    assert expected in v.details
+
+
+def test_no_deprecated_keywords_flags_a_library_deprecated_keyword(tmp_path: Path) -> None:
+    _needs_robotcode_and_robocop()
+    pytest.importorskip("AppiumLibrary")
+    (tmp_path / "f.robot").write_text(
+        "*** Settings ***\nLibrary    AppiumLibrary\n\n"
+        "*** Test Cases ***\nT\n    Element Should Be Visible    id=x\n"
+    )
+    v = check_no_deprecated_keywords(_run(tmp_path), "d", {"path": "f.robot"})
+    assert v.passed is False
+    assert "Element Should Be Visible" in v.details
+
+
+def test_no_deprecated_keywords_skips_without_robocop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _needs_robotcode_and_robocop()
+    from rf_skill_eval.scoring import deterministic
+
+    (tmp_path / "f.robot").write_text("*** Test Cases ***\nFoo\n    Log    hi\n")
+    monkeypatch.setattr(deterministic.shutil, "which", lambda name: f"/nonexistent/{name}")
+    v = check_no_deprecated_keywords(_run(tmp_path), "d", {"path": "f.robot"})
+    assert v.status == "skipped" and "robocop" in v.reason
 
 
 def test_import_resolves_ok() -> None:

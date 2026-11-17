@@ -233,11 +233,11 @@ def check_keywords_resolve(run: Run, name: str, params: dict[str, Any]) -> Verdi
     return Verdict.of(run.id, name, result.ok, result.summary())
 
 
-_DEPRECATED_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\bRun Keyword If\b", re.IGNORECASE),
-    re.compile(r"\bRun Keyword Unless\b", re.IGNORECASE),
-    re.compile(r"\bReturn From Keyword\b", re.IGNORECASE),
-)
+#: Robocop's hard-deprecation rules, the set the rf-core hooks use: WITH NAME,
+#: singular headers, Force/Default Tags, Run Keyword If/Unless, Exit/Continue
+#: For Loop, Return From Keyword (If), [Return].
+HARD_DEPRECATION_RULES: tuple[str, ...] = ("DEPR03", "DEPR04", "DEPR07", "DEPR08", "DEPR09", "DEPR10", "DEPR11")
+_ROBOCOP_FINDING = re.compile(r":(\d+):\d+ (DEPR\d+) (.*)$")
 
 
 def check_no_deprecated_keywords(
@@ -245,28 +245,41 @@ def check_no_deprecated_keywords(
     name: str,
     params: dict[str, Any],
 ) -> Verdict:
+    """Deprecated keywords and syntax: RobotCode's ``DeprecatedKeyword`` plus Robocop's DEPR rules.
+
+    ``robotcode analyze code`` reports keywords their library marks deprecated;
+    Robocop's hard-deprecation rules report legacy syntax such as ``Run Keyword
+    If`` and ``[Return]``. Skipped when either tool is missing.
+    """
+    from .keyword_resolution import analyze
+
     target = params.get("path")
     if not target:
         raise GraderError("no_deprecated_keywords requires a 'path' param")
-    path = _resolve_base(run, params) / target
+    base = _resolve_base(run, params)
+    path = base / target
     if not path.is_file():
-        return Verdict(
-            run_id=run.id,
-            check_name=name,
-            status="failed",
-            score=0.0,
-            details=f"missing file {path}",
-        )
-    content = path.read_text(encoding="utf-8", errors="replace")
-    hits = [p.pattern for p in _DEPRECATED_PATTERNS if p.search(content)]
-    passed = not hits
-    return Verdict(
-        run_id=run.id,
-        check_name=name,
-        status="passed" if passed else "failed",
-        score=1.0 if passed else 0.0,
-        details=f"deprecated_hits={hits}",
-    )
+        return Verdict.of(run.id, name, False, f"missing file {path}")
+    try:
+        diagnostics = analyze([path], base, run.artifacts_dir / "grader_robotcode_cache")
+    except RobotcodeMissingError:
+        return Verdict.skipped(run.id, name, "robotcode not installed")
+    hits = [f"{d.line}: {d.message}" for d in diagnostics if d.code == "DeprecatedKeyword"]
+    cmd = [shutil.which("robocop") or "robocop", "check", "--no-cache"]
+    for rule in HARD_DEPRECATION_RULES:
+        cmd += ["--select", rule]
+    try:
+        result = subprocess.run([*cmd, str(path)], check=False, capture_output=True, text=True,
+                                timeout=60, cwd=base)
+    except FileNotFoundError:
+        return Verdict.skipped(run.id, name, "robocop not installed")
+    except subprocess.TimeoutExpired:
+        return Verdict.of(run.id, name, False, "robocop timed out")
+    for line in (result.stdout or "").splitlines():
+        m = _ROBOCOP_FINDING.search(line)
+        if m:
+            hits.append(f"{m.group(1)}: {m.group(2)} {m.group(3).strip()}")
+    return Verdict.of(run.id, name, not hits, f"deprecated: {hits[:8]}" if hits else "no deprecated keywords or syntax")
 
 
 def check_lint_clean(run: Run, name: str, params: dict[str, Any]) -> Verdict:
