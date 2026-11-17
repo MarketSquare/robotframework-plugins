@@ -119,7 +119,7 @@ Tested on robotcode 2.8.0 with Robot Framework 7.5.1. None blocks this change; e
 
 `robotcode/issues#689` (reading libdoc spec files) is moot after D2: our need for spec files goes away. Whether to close it is the maintainer's call.
 
-Status 2026-11-17 (task 6.1): gaps 1–4 reproduce on robotcode 2.8.0 and 2.9.0.dev214 and are drafted for the maintainer's review. Gap 3 belongs to robotcode, not to the libraries: plain `robot` prints the reason correctly. Gap 5 needs no new issue: robotcode #148 already lists "analyse keyword arguments for correct values if type hints are given". Related but different from gap 1: #692 (closed), about repeated `KeywordNotFound` errors after a failed import.
+Status 2026-11-17 (task 6.1): gaps 1–4 reproduce on robotcode 2.8.0 and 2.9.0.dev214 and are filed as robotcode #693 (gap 1), #694 (gap 2), #695 (gap 3) and #696 (gap 4). Gap 3 belongs to robotcode, not to the libraries: plain `robot` prints the reason correctly. Gap 5 needs no new issue: robotcode #148 already lists "analyse keyword arguments for correct values if type hints are given". Related but different from gap 1: #692 (closed), about repeated `KeywordNotFound` errors after a failed import.
 
 ## Risks / Trade-offs
 

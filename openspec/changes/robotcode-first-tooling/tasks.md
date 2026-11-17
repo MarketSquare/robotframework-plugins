@@ -5,7 +5,7 @@
 ## 1. Guard first (D5)
 
 - [x] 1.1 Add `scripts/check-robotcode-first.py` and `scripts/robotcode-first-allowlist.toml` with an entry, and its reason, for every current use; verify it exits 0 on `main` and that tests cover "New re-implementation fails", "Allowlisted use passes", "Stale entry fails" and "Robocop is not flagged". Done: 36 uses in 12 files allowlisted with reasons (5 lasting, 14 marked for removal by tasks 2–5); `tests/test_robotcode_first.py` has 28 cases, including the four scenarios. `[robotcode, "robot", …]` and JS `spawnSync(robotcode, ["robot", …])` are the robotcode subcommand and pass; the first version of the pattern flagged them, and a test now covers it.
-- [ ] 1.2 Run it in `ci.yml` (lint job) and as `tests/test_robotcode_first.py`; verify the CI step fails on a throwaway commit that adds `from robot.api import ExecutionResult` under `src/`.
+- [x] 1.2 Run it in `ci.yml` (lint job) and as `tests/test_robotcode_first.py`; verify the CI step fails on a throwaway commit that adds `from robot.api import ExecutionResult` under `src/`. Done 2026-11-17 on PR #37: the throwaway commit `d677c3a` failed the Lint job's "RobotCode first" step (`src/rf_skill_eval/_guard_probe.py:1: execution-result`, run 44145232332); the next commit reverts it.
 
 ## 2. Grader runs and results (D3)
 
@@ -33,12 +33,12 @@
 
 ## 6. Upstream gaps
 
-- [ ] 6.1 Draft the RobotCode issues listed in the design (import-failure code, `deprecated` in doc JSON, the AppiumLibrary deprecation message after checking plain `robot`, suggestions), each with version, minimal reproduction and AI disclosure, in a scratch file; the maintainer reviews and files them. Link the filed issues from the matching allowlist reasons. Drafts done 2026-11-17 (gaps 1–4, re-checked on 2.9.0.dev214; gap 5 is robotcode #148), outside the repository for review. Open: the maintainer files them. No allowlist entry is a workaround for one of these gaps, so there is nothing to link yet.
+- [x] 6.1 Draft the RobotCode issues listed in the design (import-failure code, `deprecated` in doc JSON, the AppiumLibrary deprecation message after checking plain `robot`, suggestions), each with version, minimal reproduction and AI disclosure, in a scratch file; the maintainer reviews and files them. Link the filed issues from the matching allowlist reasons. Drafts done 2026-11-17 (gaps 1–4, re-checked on 2.9.0.dev214; gap 5 is robotcode #148), outside the repository for review. Filed 2026-11-17 with the maintainer's approval: robotcode #693 (import-failure code), #694 (`deprecated` flag), #695 ("!!." message, bug) and #696 (suggestions). No allowlist entry is a workaround for one of these gaps, so there is nothing to link yet.
 
 ## 7. Re-baseline and PR
 
 - [x] 7.1 Run `pytest tests`, `pytest tests/eval`, `pytest plugins/*/tests`, `ruff`, `mypy`, the guard and `validate-tasks`; verify all pass. Done 2026-11-17: shared tests 888 passed (2 skipped), `tests/eval` 678, `plugins/rf-core/tests` 554, `plugins/rf-desktop/tests` 6; ruff, mypy, the guard (15 allowlisted uses in 5 files), `validate-tasks` (34 tasks), `openspec validate --all --strict` and the AGENTS.md checks pass. The first run found `tests/test_library_skill_structure.py` still calling the deleted `load_library`; it now reads keyword names through the checker's `robotcode_keywords`. AGENTS.md lists the guard among the checks.
-- [ ] 7.2 Open the PR (ask before posting); verify the required checks pass.
+- [x] 7.2 Open the PR (ask before posting); verify the required checks pass. PR #37, opened 2026-11-17 at the maintainer's request; merged only with all checks green.
 - [ ] 7.3 After merge, a maintainer dispatches the GLM re-baseline (OpenRouter `z-ai/glm-5.3-flash`, all tiers, both arms) and commits the baselines; optionally a local Haiku 5.5 run on the Claude Code subscription confirms the PlatynUI and Appium tasks. Verify the eval gate reports no `rebaseline-needed`.
 
 ## 8. Initial check
