@@ -1098,7 +1098,7 @@ def test_file_dryrun_is_off_by_default(tmp_path: Path) -> None:
     assert "-m robot " not in calls and "import robot\n" not in calls
 
 
-@pytest.mark.skipif(not _HAS_ROBOT, reason="robotframework not installed")
+@_needs_robotcode
 def test_file_dryrun_reports_unknown_keyword(tmp_path: Path) -> None:
     suite = tmp_path / "dry.robot"
     suite.write_text("*** Test Cases ***\nT\n    This Keyword Does Not Exist    1\n", encoding="utf-8")
@@ -1114,6 +1114,21 @@ def test_file_dryrun_reports_unknown_keyword(tmp_path: Path) -> None:
         other.write_text("*** Keywords ***\nK\n    Nope Nope\n", encoding="utf-8")
         out, _err, rc = _run(VALIDATE_SCRIPT, _write_payload(other, tmp_path), env=env)
         assert rc == 0 and "robot --dryrun of" not in out
+
+
+@_needs_robotcode
+def test_file_dryrun_applies_robot_toml(tmp_path: Path) -> None:
+    # Scenario "Profile settings apply": robot.toml's python-path reaches the dry run.
+    (tmp_path / "robot.toml").write_text('python-path = ["libs"]\n', encoding="utf-8")
+    (tmp_path / "libs").mkdir()
+    (tmp_path / "libs" / "ShopKeywords.py").write_text("def add_to_cart(item):\n    return item\n", encoding="utf-8")
+    suite = tmp_path / "shop.robot"
+    suite.write_text("*** Settings ***\nLibrary    ShopKeywords\n\n*** Test Cases ***\nT\n    Add To Cart    apple\n",
+                     encoding="utf-8")
+    env = _hook_env(RF_AGENTSKILLS_FILE_DRYRUN="1", RF_AGENTSKILLS_DEPRECATION_CHECK="off")
+    out, err, rc = _run(VALIDATE_SCRIPT, _write_payload(suite, tmp_path), env=env)
+    assert rc == 0, err
+    assert "ShopKeywords" not in out and "robot --dryrun of" not in out, out
 
 
 def test_hooks_json_declares_timeouts() -> None:

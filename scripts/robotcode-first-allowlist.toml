@@ -42,11 +42,6 @@ reason = "Screens model-written suites for disallowed libraries and keywords bef
 # --- Replaced by robotcode-first-tooling (tasks 2-5); remove with the code ---
 
 [[allow]]
-file = "plugins/rf-core/scripts/validate_robot.mjs"
-pattern = "run-robot"
-reason = "Opt-in tier-3 dry run still starts python -m robot; moves to robotcode robot --dryrun (task 5.1)."
-
-[[allow]]
 file = "scripts/desktop-live-check.py"
 pattern = "run-robot"
 reason = "Runs suites with python -m robot; moves to robotcode robot (task 5.2)."
