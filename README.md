@@ -43,7 +43,9 @@ Install `rf-core` for the Robot Framework language, environment setup and Python
    codex plugin add rf-web@robotframework-plugins
    ```
 
-   **VS Code, Cursor, OpenCode, Goose, Claude Desktop**, or plain files for any agent:
+   **VS Code (GitHub Copilot)**: in your user settings, set `"chat.plugins.enabled": true`, `"chat.useHooks": true` and `"chat.plugins.marketplaces": ["MarketSquare/robotframework-plugins#stable"]`. Then install `rf-core` and `rf-web` in the Extensions view. VS Code doesn't install `rf-core` for you.
+
+   **Cursor, OpenCode, Goose, Claude Desktop**, or plain files for any agent:
    ```bash
    uvx robotframework-plugins install      # asks which agents; picks the plugins from your project's libraries
    ```
@@ -85,7 +87,7 @@ There are two ways to install, and both work at **user scope** (every project on
 | `rf-mobile` | AppiumLibrary (`rf-appium`) |
 | `rf-desktop` | PlatynUI (`rf-platynui`) |
 
-Install `rf-core` plus the plugins for the libraries you test with, for example `rf-core` and `rf-web` for a Browser project. Claude Code installs `rf-core` with any technology plugin. Copilot CLI and Codex don't install plugin dependencies, so install `rf-core` there too. The Python installer picks the plugins from the libraries your `pyproject.toml` or `requirements*.txt` declares.
+Install `rf-core` plus the plugins for the libraries you test with, for example `rf-core` and `rf-web` for a Browser project. Claude Code installs `rf-core` with any technology plugin. Copilot CLI, VS Code and Codex don't install plugin dependencies, so install `rf-core` there too. The Python installer picks the plugins from the libraries your `pyproject.toml` or `requirements*.txt` declares.
 
 Each skill carries its plugin's prefix, for example `/rf-web:rf-browser` or `/rf-core:rf-language`. Up to 4.0.0, the `rf-agentskills` plugin used `/rf-agentskills:rf-browser`; update project instructions that still name that prefix.
 
@@ -154,11 +156,16 @@ Plugins and hooks are preview features. In your **user** settings, enable them a
 {
   "chat.plugins.enabled": true,
   "chat.useHooks": true,
-  "chat.plugins.marketplaces": ["MarketSquare/robotframework-plugins"]
+  "chat.plugins.marketplaces": ["MarketSquare/robotframework-plugins#stable"]
 }
 ```
 
-Pin with `"MarketSquare/robotframework-plugins#v5.0.0"`. Then install `rf-core` and the technology plugins you need from that marketplace in the Extensions view. For project scope, the committed `.claude/settings.json` recommends the plugin to everyone who opens the workspace (`chat.plugins.marketplaces` itself is a user-only setting). VS Code asks before running hook commands unless your chat approval mode allows them. The [RobotCode extension](https://marketplace.visualstudio.com/items?itemName=d-biehl.robotcode) already bundles the `robotcode` plugin for Copilot Chat, so it needs no separate install.
+Use `#v5.0.0` instead of `#stable` to pin one release. Then install `rf-core` and the technology plugins you need from that marketplace in the Extensions view.
+- **Dependencies:** VS Code doesn't install plugin dependencies (checked with 1.142), so install `rf-core` yourself.
+- **Every profile:** agent plugins are installed for your user, in every VS Code profile.
+- **Project scope:** `chat.plugins.marketplaces` is a user-only setting. In a check with VS Code 1.142, a committed `.claude/settings.json` that names this marketplace and enables a plugin neither added the marketplace nor offered the plugin, so each user adds the marketplace in their own settings.
+
+ VS Code asks before running hook commands unless your chat approval mode allows them. The [RobotCode extension](https://marketplace.visualstudio.com/items?itemName=d-biehl.robotcode) already bundles the `robotcode` plugin for Copilot Chat, so it needs no separate install.
 
 VS Code 1.142 has two agent harnesses, with different gaps:
 

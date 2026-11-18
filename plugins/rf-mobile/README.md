@@ -16,7 +16,7 @@ That one step works on Claude Code 2.1.275 or later. The commands for other agen
 
 ## Needs rf-core
 
-This plugin depends on `rf-core`, which holds Robot Framework syntax, environment setup, the subagents and the validation hooks. Claude Code installs `rf-core` with it. Copilot CLI and Codex don't install plugin dependencies, so install `rf-core` there too:
+This plugin depends on `rf-core`, which holds Robot Framework syntax, environment setup, the subagents and the validation hooks. Claude Code installs `rf-core` with it. Copilot CLI, VS Code and Codex don't install plugin dependencies, so install `rf-core` there too:
 
 ```bash
 copilot plugin install rf-core@robotframework-plugins
