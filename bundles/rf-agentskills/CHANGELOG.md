@@ -5,7 +5,7 @@ the five Robot Framework plugins, before that the plugin with all the content. T
 installer is versioned independently; see `RELEASING.md` at the repo root
 for the policy. (Until 2.0.0 this file lived in `vscode-extension/`.)
 
-## 4.0.0 (unreleased)
+## 4.0.0 (2026-11-18)
 
 The split: the content now lives in five plugins, `rf-core`, `rf-web`, `rf-api`, `rf-mobile` and `rf-desktop` (each 1.0.0), and `rf-agentskills` ships a copy of all five, generated for each release. Existing installs keep the same nine skills, three subagents and hooks, under the same `rf-agentskills:` prefix.
 
