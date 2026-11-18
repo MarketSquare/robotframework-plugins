@@ -102,11 +102,8 @@ class Detection:
 
 def detect(project: Path, catalog: list[dict[str, Any]], core: str = "rf-core") -> Detection:
     """``core`` plus every active verified plugin whose library packages the
-    project declares; with no match, every active verified plugin with content.
-
-    Bundles are never chosen: their dependencies are listed instead."""
-    candidates = [p for p in catalog
-                  if p.get("status") == "active" and p.get("tier") == "verified" and not p.get("bundle")]
+    project declares; with no match, every active verified plugin."""
+    candidates = [p for p in catalog if p.get("status") == "active" and p.get("tier") == "verified"]
     candidates.sort(key=lambda p: p["name"] != core)  # core first: the others depend on it
     declared = declared_packages(project)
     reasons: dict[str, list[tuple[str, str]]] = {}

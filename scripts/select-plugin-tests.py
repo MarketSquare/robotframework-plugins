@@ -22,12 +22,9 @@ Prints one plugin name per line. ``--github-output`` also appends
 
 ``--security`` chooses the plugins the security gate scans instead
 (content-security-scanning; plugin-catalogue "Shared files have one owner"):
-every plugin with shipped content (skills, subagents, hooks or scripts) and
-every bundle. A plugin is scanned when a file under ``plugins/<name>/``
-changed; a bundle when its own folder, its generated copy under
-``bundles/<name>/`` or one of its member plugins changed, since the bundle
-carries copies of their files. A change outside ``plugins/`` and ``bundles/``
-(the scanners, baselines, workflows) scans everything.
+every plugin with shipped content (skills, subagents, hooks or scripts). A
+plugin is scanned when a file under ``plugins/<name>/`` changed. A change
+outside ``plugins/`` (the scanners, baselines, workflows) scans everything.
 """
 from __future__ import annotations
 
@@ -105,26 +102,13 @@ def select(root: Path, changed: list[str] | None) -> list[str]:
 CONTENT_DIRS = ("skills", "agents", "hooks", "scripts")
 
 
-def bundles(root: Path) -> dict[str, set[str]]:
-    """``{bundle: its member plugins}`` from each ``catalog.yaml`` ``bundle:`` list."""
-    import yaml
-
-    out: dict[str, set[str]] = {}
-    for cat in sorted((root / "plugins").glob("*/catalog.yaml")):
-        data = yaml.safe_load(cat.read_text(encoding="utf-8")) or {}
-        if data.get("bundle"):
-            out[cat.parent.name] = set(data["bundle"])
-    return out
-
-
 def content_plugins(root: Path) -> list[str]:
     return sorted(p.name for p in (root / "plugins").iterdir()
                   if p.is_dir() and any((p / d).is_dir() for d in CONTENT_DIRS))
 
 
 def select_security(root: Path, changed: list[str] | None) -> list[str]:
-    members = bundles(root)
-    every = sorted(set(content_plugins(root)) | set(members))
+    every = content_plugins(root)
     if changed is None:
         return every
     selected: set[str] = set()
@@ -132,11 +116,10 @@ def select_security(root: Path, changed: list[str] | None) -> list[str]:
         parts = PurePosixPath(raw.strip()).parts
         if not parts:
             continue
-        if parts[0] not in ("plugins", "bundles"):
+        if parts[0] != "plugins":
             return every
         if len(parts) > 1 and parts[1] in every:
             selected.add(parts[1])
-    selected |= {b for b, m in members.items() if m & selected}
     return sorted(selected & set(every))
 
 

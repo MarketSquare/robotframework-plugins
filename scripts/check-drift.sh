@@ -8,7 +8,7 @@
 #   * no symbolic links in skill trees or plugin scripts;
 #   * no flat plugins/<name>/scripts/*.py (scripts ship per skill);
 #   * SKILL.md runs bundled scripts through the project environment;
-#   * no plugin or bundle ships an MCP server (.mcp.json or servers/).
+#   * no plugin ships an MCP server (.mcp.json or servers/).
 #
 # REPO_ROOT can be overridden (used by tests to run against a scratch tree).
 set -euo pipefail
@@ -68,13 +68,12 @@ else
     echo "  OK: no flat plugin scripts"
 fi
 
-# ── MCP: no plugin or bundle ships an MCP server (skill-catalog, "The bundle
-# ships no MCP server"); the rf-tools server was retired in content 2.0.0 ──
+# ── MCP: no plugin ships an MCP server (skill-catalog, "The bundle ships no
+# MCP server"); the rf-tools server was retired in content 2.0.0 ──
 echo ""
 echo "=== Checking for plugin MCP servers ==="
 MCP=0
-for item in "$REPO_ROOT"/plugins/*/.mcp.json "$REPO_ROOT"/plugins/*/servers \
-            "$REPO_ROOT"/bundles/*/.mcp.json "$REPO_ROOT"/bundles/*/servers; do
+for item in "$REPO_ROOT"/plugins/*/.mcp.json "$REPO_ROOT"/plugins/*/servers; do
     [ -e "$item" ] || continue
     echo "MCP SERVER: ${item#"$REPO_ROOT"/} (plugins ship no MCP server)"
     MCP=1

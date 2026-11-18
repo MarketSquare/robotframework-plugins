@@ -18,8 +18,9 @@ Rules (spec capability ``skill-metadata-conformance``):
   xml-tag            no XML/HTML tag in ``name`` or ``description``
   unknown-key        only name/description/license/compatibility/metadata/allowed-tools
   license            ``license: Apache-2.0``
-  metadata-*         ``metadata`` is a string->string map with ``author`` and ``version``
-  version-mismatch   ``metadata.version`` equals the version in the plugin's ``plugin.json``
+  metadata-*         ``metadata`` is a string->string map with ``author``
+  metadata-version   no ``metadata.version``: plugins carry the release version
+                     in ``plugin.json`` (spec release-train), not each skill
 
 Output: one ``path: rule: detail`` line per violation; exit 1 if any.
 """
@@ -40,19 +41,8 @@ def channels(repo_root: Path) -> dict[str, Path]:
             if (d / "skills").is_dir()}
 
 
-def plugin_version(repo_root: Path, plugin: str) -> str | None:
-    """``version`` from ``plugins/<plugin>/.claude-plugin/plugin.json``, if any."""
-    import json
-
-    path = repo_root / "plugins" / plugin / ".claude-plugin" / "plugin.json"
-    try:
-        return json.loads(path.read_text(encoding="utf-8")).get("version")
-    except (OSError, ValueError):
-        return None
-
-
 ALLOWED_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
-REQUIRED_METADATA = ("author", "version")
+REQUIRED_METADATA = ("author",)
 LICENSE = "Apache-2.0"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 TAG_RE = re.compile(r"</?[A-Za-z][A-Za-z0-9_:-]*(?:\s[^<>]*)?/?>")
@@ -200,7 +190,7 @@ def _text(data: dict, key: str) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def validate_skill(skill_dir: Path, version: str | None, use_yaml: bool = True) -> list[tuple[str, str]]:
+def validate_skill(skill_dir: Path, use_yaml: bool = True) -> list[tuple[str, str]]:
     """Return (rule, detail) violations for one skill directory."""
     skill_md = skill_dir / "SKILL.md"
     if not skill_md.is_file():
@@ -263,8 +253,9 @@ def validate_skill(skill_dir: Path, version: str | None, use_yaml: bool = True) 
         for k in REQUIRED_METADATA:
             if k not in metadata:
                 out.append(("metadata-missing", f"metadata.{k} is missing"))
-        if version is not None and isinstance(metadata.get("version"), str) and metadata["version"] != version:
-            out.append(("version-mismatch", f"metadata.version {metadata['version']!r} != plugin.json version {version!r}"))
+        if "version" in metadata:
+            out.append(("metadata-version", "metadata.version is not allowed: every plugin carries the release "
+                        "version in .claude-plugin/plugin.json"))
     return out
 
 
@@ -284,10 +275,9 @@ def validate(repo_root: Path, plugins: list[str] | None = None, use_yaml: bool =
         if not channel_dir.is_dir():
             lines.append(f"{rel_dir.as_posix()}: channel-missing: directory does not exist")
             continue
-        version = plugin_version(repo_root, plugin)
         for d in skill_dirs(channel_dir):
             rel = (rel_dir / d.name / "SKILL.md").as_posix()
-            lines.extend(f"{rel}: {rule}: {detail}" for rule, detail in validate_skill(d, version, use_yaml))
+            lines.extend(f"{rel}: {rule}: {detail}" for rule, detail in validate_skill(d, use_yaml))
     return lines
 
 

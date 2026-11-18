@@ -24,7 +24,7 @@ A `verified` plugin meets every community criterion and also:
 - has eval baselines measured on the current models, and passes the eval gate;
 - passes the security gate and the library-skill keyword check.
 
-The tier is decided by this evidence alone, not by the number of maintainers. `scripts/check-governance.py` checks the evals and baselines in CI; the security gate and the keyword check are required checks on every PR. A bundle is `verified` when every plugin it bundles is. No check fails because a date has passed, except the security baseline's expiry (see [SECURITY.md](SECURITY.md)).
+The tier is decided by this evidence alone, not by the number of maintainers. `scripts/check-governance.py` checks the evals and baselines in CI; the security gate and the keyword check are required checks on every PR. No check fails because a date has passed, except the security baseline's expiry (see [SECURITY.md](SECURITY.md)).
 
 ### What a tier doesn't promise
 

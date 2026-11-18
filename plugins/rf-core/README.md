@@ -36,3 +36,5 @@ claude plugin install robotcode@robotframework-agent-plugins
 | The robotcode plugin owns | rf-core owns |
 |---|---|
 | running, discovery, keyword documentation, result analysis, static analysis, `robot.toml` configuration, the REPL and the debugger | Robot Framework syntax (`rf-language`), Python keyword libraries (`rf-python-library`), environment setup (`rf-setup`), the validation hooks, and the `rf-test-architect`, `rf-debug-expert` and `rf-migration-guide` subagents |
+
+Changes: [CHANGELOG.md](../../CHANGELOG.md) at the repository root.

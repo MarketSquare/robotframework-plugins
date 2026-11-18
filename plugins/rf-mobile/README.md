@@ -23,4 +23,6 @@ copilot plugin install rf-core@robotframework-plugins
 codex plugin add rf-core@robotframework-plugins
 ```
 
-The `robotframework-plugins` installer adds `rf-core` for you. Don't install this plugin next to the `rf-agentskills` bundle: the bundle carries its own copy of every skill, and you would see each skill twice.
+The `robotframework-plugins` installer adds `rf-core` for you.
+
+Changes: [CHANGELOG.md](../../CHANGELOG.md) at the repository root.

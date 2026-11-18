@@ -1,6 +1,6 @@
 {
   "name": "rf-desktop",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "description": "PlatynUI skill for Robot Framework desktop UI tests.",
   "author": {
     "name": "manykarim",
@@ -16,9 +16,6 @@
     "platynui"
   ],
   "dependencies": [
-    {
-      "name": "rf-core",
-      "version": "^1.0"
-    }
+    "rf-core"
   ]
 }

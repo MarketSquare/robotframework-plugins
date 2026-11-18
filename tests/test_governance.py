@@ -42,12 +42,6 @@ def test_verified_without_evals_is_refused(repo: Path) -> None:
     assert gov.tier_problems(repo) == ["rf-mobile (verified): trigger-sets: no trigger set for rf-appium"]
 
 
-def test_bundle_with_an_unverified_member_is_refused(repo: Path) -> None:
-    cat = repo / "plugins" / "rf-mobile" / "catalog.yaml"
-    cat.write_text(cat.read_text().replace("tier: verified", "tier: community"))
-    assert gov.tier_problems(repo) == ["rf-agentskills (verified): bundled-plugins: bundles rf-mobile, which is not verified"]
-
-
 def test_one_maintainer_is_enough(repo: Path) -> None:
     cat = repo / "plugins" / "rf-web" / "catalog.yaml"
     data = gov.catalogs(repo)["rf-web"]

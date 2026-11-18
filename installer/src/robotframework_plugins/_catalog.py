@@ -32,13 +32,6 @@ class CatalogError(ValueError):
     """A plugin folder whose manifest can't be turned into a catalogue entry."""
 
 
-def has_content(plugin_dir: Path) -> bool:
-    """Ships a skill, a subagent or a hook."""
-    return (any((s / "SKILL.md").is_file() for s in (plugin_dir / "skills").glob("*"))
-            or any((plugin_dir / "agents").glob("*.md"))
-            or (plugin_dir / "hooks" / "hooks.json").is_file())
-
-
 def _manifest(plugin_dir: Path) -> dict[str, Any]:
     path = plugin_dir / "catalog.yaml"
     if not path.is_file():
@@ -86,10 +79,10 @@ def catalog_entries(plugins_dir: Path) -> list[dict[str, Any]]:
             "libraries": m.get("libraries", []),
             "robotframework": str(m.get("robotframework", "")),
             "dependencies": deps,
-            # A bundle ships a copy of other plugins (catalog.yaml ``bundle``) and
-            # no content of its own; file mode installs those plugins instead.
-            "bundle": bool(m.get("bundle")) and not has_content(d),
-            "bundled": list(m.get("bundle", [])),
+            # Kept, always false and empty, since the bundle was removed in
+            # 5.0.0: catalog() entries keep their keys while CATALOG_FORMAT is 1.
+            "bundle": False,
+            "bundled": [],
         }
         for key in ("replacement", "deprecated_since"):
             if key in m:
@@ -109,9 +102,8 @@ CORE_PLUGIN = "rf-core"
 
 def skill_dirs(entries: list[dict[str, Any]], root: Path) -> dict[str, Path]:
     """``{name: <root>/plugins/<name>/skills}`` for every active plugin in ``entries``
-    that isn't a bundle and has at least one ``*/SKILL.md``; ``rf-core`` first,
-    then catalogue order."""
-    names = [e["name"] for e in entries if e.get("status") == "active" and not e.get("bundle")]
+    that has at least one ``*/SKILL.md``; ``rf-core`` first, then catalogue order."""
+    names = [e["name"] for e in entries if e.get("status") == "active"]
     if CORE_PLUGIN in names:
         names.remove(CORE_PLUGIN)
         names.insert(0, CORE_PLUGIN)

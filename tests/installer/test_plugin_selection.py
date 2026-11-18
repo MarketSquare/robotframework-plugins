@@ -45,14 +45,15 @@ def test_default_skips_the_bundle_and_installs_every_content_plugin(
     assert len(_skills(prefix)) == 9
 
 
-def test_bundle_in_file_mode_installs_its_plugins(two_plugin_bundle: Path, fake_home: Path, tmp_path: Path) -> None:
-    """``--plugins rf-agentskills`` copies the content of the five plugins it depends on."""
+def test_removed_bundle_is_an_unknown_plugin(two_plugin_bundle: Path, fake_home: Path, tmp_path: Path,
+                                            capsys: pytest.CaptureFixture[str]) -> None:
+    """``rf-agentskills`` was removed in 5.0.0: naming it lists the plugins to install instead."""
     prefix = tmp_path / "root"
     assert main(["install", "--agent", "claude-code", "--prefix", str(prefix), "--yes",
-                 "--plugins", "rf-agentskills"]) == 0
-    assert len(_skills(prefix)) == 9
-    assert (prefix / "rf-core-files" / "scripts").is_dir()
-    assert not (prefix / "rf-agentskills-files").exists()
+                 "--plugins", "rf-agentskills"]) != 0
+    err = capsys.readouterr().err
+    assert "rf-agentskills" in err and "rf-core" in err
+    assert not prefix.exists() or not any(prefix.rglob("SKILL.md"))
 
 
 def test_unknown_plugin_is_refused(
@@ -100,10 +101,8 @@ def test_catalog_json(two_plugin_bundle: Path, capsys: pytest.CaptureFixture[str
     data = json.loads(capsys.readouterr().out)
     assert data["installer"]
     by_name = {p["name"]: p for p in data["plugins"]}
-    assert set(by_name) == {"rf-agentskills", "rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop",
-                            "rf-example", "rf-old"}
-    assert by_name["rf-agentskills"]["bundle"] is True
-    assert by_name["rf-agentskills"]["bundled"] == ["rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop"]
+    assert set(by_name) == {"rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop", "rf-example", "rf-old"}
+    assert all(p["bundle"] is False and p["bundled"] == [] for p in by_name.values())
     assert by_name["rf-web"]["dependencies"] == ["rf-core"]
     for p in by_name.values():
         assert {"name", "version", "tier", "status", "summary"} <= set(p)

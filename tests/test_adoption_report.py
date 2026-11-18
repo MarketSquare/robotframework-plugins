@@ -96,3 +96,31 @@ def test_feedback_form_lists_every_listed_plugin() -> None:
     helped = next(b for b in form["body"] if b.get("id") == "helped")
     assert helped["attributes"]["label"] == "Did the plugin help?"
     assert "feedback" in form["labels"]
+
+
+def test_eval_history_reads_plugin_and_release_tags(tmp_path: Path) -> None:
+    """Eval history per plugin from the old <plugin>--v* tags and the shared
+    v<version> release tags above 3.0.0 (release-train); old content tags and
+    candidates don't count."""
+    import os
+    import subprocess
+
+    repo = tmp_path / "repo"
+    baseline = repo / "plugins" / "rf-core" / "evals" / "baselines" / "narrow.json"
+    baseline.parent.mkdir(parents=True)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid"}
+
+    def commit(rate: float, *tags: str) -> None:
+        baseline.write_text(json.dumps({"entries": {"x": {"arm": "treatment", "pass_rate": rate}}}))
+        subprocess.run(["git", "add", "-A"], cwd=repo, check=True, env=env)
+        subprocess.run(["git", "commit", "-qm", str(rate)], cwd=repo, check=True, env=env)
+        for tag in tags:
+            subprocess.run(["git", "tag", tag], cwd=repo, check=True, env=env)
+
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True, env=env)
+    commit(0.5, "v3.0.0", "rf-core--v1.0.0")
+    commit(0.75, "v5.0.0", "v5.1.0rc1")
+    history = ar.evals_from_git(repo, ["rf-core", "rf-web"])
+    assert [(e["release"], e["score"]) for e in history["rf-core"]] == [("1.0.0", 0.5), ("5.0.0", 0.75)]
+    assert "rf-web" not in history

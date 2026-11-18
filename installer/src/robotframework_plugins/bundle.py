@@ -37,7 +37,8 @@ def catalog() -> list[dict[str, Any]]:
 
     Each entry has at least ``name``, ``version``, ``status``, ``tier``,
     ``summary``, ``libraries`` (``[{name, package, versions}]``),
-    ``robotframework``, ``dependencies``, ``bundle`` and ``bundled``. The list
+    ``robotframework``, ``dependencies``, ``bundle`` and ``bundled`` (always
+    ``False`` and ``[]`` since 5.0.0; kept while ``CATALOG_FORMAT`` is 1). The list
     is a copy: changing it doesn't change later results. Empty for a broken
     build without a catalogue.
     """

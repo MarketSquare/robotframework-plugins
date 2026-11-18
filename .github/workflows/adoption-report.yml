@@ -4,7 +4,7 @@
 # for the quarter that just ended and opens a PR with it, so a person reads the
 # report before it is published. Sources: the adoption-data branch (GitHub
 # traffic), pypistats.org (PyPI downloads), this repository's issues, and the
-# eval baselines at each <plugin>--v* tag.
+# eval baselines at each release tag (v<version>, and the older <plugin>--v* tags).
 name: Adoption report
 
 on:

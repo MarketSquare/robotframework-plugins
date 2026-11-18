@@ -119,7 +119,7 @@ jobs:
         # skill-evaluation workflow against real Claude Code; locally
         # run with `uv sync --all-extras && uv run pytest tests/eval/`.
         # This CI job stays focused on the plugin's own Python scripts
-        # plus the public rf-agentskills installer (installed above).
+        # plus the robotframework-plugins installer (installed above).
         # Shared tests first, then each selected plugin's tests in its own run
         # (plugins may reuse test module names).
         env:
@@ -280,7 +280,7 @@ jobs:
           python-version: "3.12"
       # Stdlib-only: name == dir, charset/length, description <= 1024,
       # compatibility <= 500, no tags, allowed keys, license, metadata,
-      # metadata.version == the plugin.json version.
+      # and no metadata.version (plugins carry the release version).
       - name: Validate every plugin
         run: python scripts/validate-skills.py --channel all
       # Non-blocking cross-check against the reference implementation, so we

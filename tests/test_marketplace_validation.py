@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-PLUGIN_ROOT = ROOT / "plugins" / "rf-agentskills"
+PLUGIN_ROOT = ROOT / "plugins" / "rf-core"
 
 
 def test_marketplace_json_exists():
@@ -88,9 +88,7 @@ def test_marketplace_and_plugin_manifests_agree():
     marketplace = _json(ROOT / ".claude-plugin" / "marketplace.json")
     manifest = _json(PLUGIN_ROOT / ".claude-plugin" / "plugin.json")
     [entry] = [p for p in marketplace["plugins"] if p["name"] == manifest["name"]]
-    # The bundle installs from its generated copy, which carries the same plugin.json.
-    assert entry["source"] == "./bundles/rf-agentskills"
-    assert _json(ROOT / "bundles" / "rf-agentskills" / ".claude-plugin" / "plugin.json") == manifest
+    assert entry["source"] == "./plugins/rf-core"
     for e in marketplace["plugins"]:
         assert _json(ROOT / e["source"] / ".claude-plugin" / "plugin.json")["name"] == e["name"]
     # One version per plugin, only in plugin.json: Claude Code reads it first

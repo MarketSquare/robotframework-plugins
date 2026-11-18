@@ -11,7 +11,8 @@ Builds ``docs/reports/adoption-<YYYY>-Q<n>.md`` from public signals only:
   DATA/issues.json      issues: [{number, state, labels: [names], created_at, body}]
   DATA/evals.json       {plugin: [{release, date, score}]}, oldest first: the
                         narrow-tier pass rate of each plugin release's baseline
-                        (``--evals-from-git`` builds it from <plugin>--v* tags)
+                        (``--evals-from-git`` builds it from the release tags
+                        v<version> above 3.0.0, and the older <plugin>--v* tags)
 
 Per plugin it shows feedback (helped / partly / didn't, from the feedback
 form), open issues, the latest eval score and its trend, and lists candidates:
@@ -114,21 +115,42 @@ def narrow_score(baseline: dict) -> float | None:
     return round(sum(rates) / len(rates), 4) if rates else None
 
 
+_RELEASE_TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+
+
+def _tags(root: Path, pattern: str) -> list[tuple[str, str]]:
+    """``(tag, date)`` of the tags matching ``pattern``, oldest first."""
+    lines = subprocess.run(["git", "tag", "--list", pattern, "--sort=creatordate",
+                            "--format=%(refname:short) %(creatordate:short)"],
+                           cwd=root, capture_output=True, text=True, check=False).stdout.split("\n")
+    return [tuple(line.split()) for line in filter(None, lines)]  # type: ignore[misc]
+
+
+def release_tags(root: Path) -> list[tuple[str, str, str]]:
+    """``(tag, date, version)`` of every release of all plugins together
+    (``v<version>``, above 3.0.0; spec release-train), oldest first."""
+    out = []
+    for tag, date in _tags(root, "v*"):
+        m = _RELEASE_TAG.match(tag)
+        if m and tuple(int(g) for g in m.groups()) > (3, 0, 0):
+            out.append((tag, date, tag[1:]))
+    return out
+
+
 def evals_from_git(root: Path, names: list[str]) -> dict[str, list[dict]]:
     out: dict[str, list[dict]] = {}
+    shared = release_tags(root)
     for name in names:
-        tags = subprocess.run(["git", "tag", "--list", f"{name}--v*", "--sort=creatordate",
-                               "--format=%(refname:short) %(creatordate:short)"],
-                              cwd=root, capture_output=True, text=True, check=False).stdout.split("\n")
-        for line in filter(None, tags):
-            tag, date = line.split()
+        # The per-plugin tags from before the one release version, then the releases.
+        tags = [(tag, date, tag.split("--v", 1)[1]) for tag, date in _tags(root, f"{name}--v*")] + shared
+        for tag, date, release in sorted(tags, key=lambda t: t[1]):
             show = subprocess.run(["git", "show", f"{tag}:plugins/{name}/evals/baselines/narrow.json"],
                                   cwd=root, capture_output=True, text=True, check=False)
             if show.returncode != 0:
                 continue
             score = narrow_score(json.loads(show.stdout))
             if score is not None:
-                out.setdefault(name, []).append({"release": tag.split("--v", 1)[1], "date": date, "score": score})
+                out.setdefault(name, []).append({"release": release, "date": date, "score": score})
     return out
 
 

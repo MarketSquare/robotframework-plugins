@@ -108,8 +108,8 @@ def test_upgrade_adds_a_newly_declared_library(fake_home: Path, tmp_path: Path) 
     assert _recorded_plugins(tmp_path) == {"rf-core", "rf-api", "rf-web"}
 
 
-def test_plugin_mode_upgrade_keeps_the_bundle(fake_home: Path, tmp_path: Path) -> None:
-    """Settings that enable rf-agentskills keep it enabled: the bundle still installs everything."""
+def test_plugin_mode_upgrade_replaces_the_removed_bundle(fake_home: Path, tmp_path: Path) -> None:
+    """Settings that enable rf-agentskills (removed in 5.0.0) get the five plugins that carry its content."""
     project = tmp_path / "proj"
     (project / ".claude").mkdir(parents=True)
     settings = project / ".claude" / "settings.json"
@@ -117,4 +117,5 @@ def test_plugin_mode_upgrade_keeps_the_bundle(fake_home: Path, tmp_path: Path) -
     (project / "requirements.txt").write_text("robotframework-browser\n")
     assert main(["install", "--scope", "project", "--project", str(project), "--agent", "claude-code",
                  "--mode", "plugin", "--yes"]) == 0
-    assert json.loads(settings.read_text())["enabledPlugins"] == {"rf-agentskills@robotframework-plugins": True}
+    assert json.loads(settings.read_text())["enabledPlugins"] == {
+        f"{p}@robotframework-plugins": True for p in ("rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop")}

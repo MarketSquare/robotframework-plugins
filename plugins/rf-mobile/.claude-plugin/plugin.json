@@ -1,6 +1,6 @@
 {
   "name": "rf-mobile",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "description": "AppiumLibrary skill for Robot Framework mobile tests on Android and iOS.",
   "author": {
     "name": "manykarim",
@@ -16,9 +16,6 @@
     "appium"
   ],
   "dependencies": [
-    {
-      "name": "rf-core",
-      "version": "^1.0"
-    }
+    "rf-core"
   ]
 }

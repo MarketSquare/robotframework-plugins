@@ -60,8 +60,8 @@ class ClaudeCodeRunner:
         self._fixtures_root = fixtures_root
         self._repo_root = (repo_root or Path.cwd()).resolve()
         self._warned_inside_repo = False
-        # Default: every content plugin merged (a full install, as the
-        # rf-agentskills bundle gives); built lazily, see ``_plugin_root``.
+        # Default: every content plugin merged (as installing all of them
+        # gives); built lazily, see ``_plugin_root``.
         self._plugin_root_arg = plugin_root.resolve() if plugin_root is not None else None
         self._merged_root: Path | None = None
         self._partial_roots: dict[tuple[str, ...], Path] = {}

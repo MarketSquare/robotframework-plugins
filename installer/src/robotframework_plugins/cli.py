@@ -235,10 +235,8 @@ class _PluginError(Exception):
 
 
 def _default_plugins(catalog: list[dict]) -> list[str]:
-    """Every active verified plugin with content, in catalogue order (a bundle
-    adds nothing its dependencies don't)."""
-    return [p["name"] for p in catalog
-            if p.get("status") == "active" and p.get("tier") == "verified" and not _assets.is_bundle(p)]
+    """Every active verified plugin, in catalogue order."""
+    return [p["name"] for p in catalog if p.get("status") == "active" and p.get("tier") == "verified"]
 
 
 def _resolve_plugins(args: argparse.Namespace, catalog: list[dict]) -> list[str] | None:
@@ -264,11 +262,9 @@ def _resolve_plugins(args: argparse.Namespace, catalog: list[dict]) -> list[str]
 
 
 def _skill_owners(catalog: list[dict]) -> dict[str, str]:
-    """``{skill folder: plugin}`` over the bundled content plugins."""
+    """``{skill folder: plugin}`` over the bundled plugins."""
     owners: dict[str, str] = {}
     for p in catalog:
-        if _assets.is_bundle(p):
-            continue
         try:
             with _assets.asset_root_path(p["name"]) as root:
                 for md in (root / "skills").glob("*/SKILL.md"):
@@ -294,16 +290,15 @@ def _upgrade_selection(manifest_path: Path, agents: list[str], scope: str, catal
     chosen: list[str] = []
 
     def add(name: str) -> None:
-        for n in _assets.expand_bundles([name], catalog):
-            if n in known and n not in chosen:
-                chosen.append(n)
+        if name in known and name not in chosen:
+            chosen.append(name)
 
     for agent in agents:
         inst = manifest.for_agent(agent, scope)
         if inst is None:
             continue
         for entry in inst.files:
-            if entry.plugin and not _assets.is_bundle(known.get(entry.plugin, {})):
+            if entry.plugin in known:
                 add(entry.plugin)
                 continue
             parts = Path(entry.path).parts
@@ -506,8 +501,7 @@ def cmd_install(args: argparse.Namespace) -> int:
     _warn_deprecated(plugins, catalog)
 
     opts = replace(_opts_from_args(args), plugins=tuple(plugins), plugin=plugins[0], plugins_explicit=explicit)
-    # File mode copies content per plugin: a bundle there means the plugins it bundles.
-    file_plugins = tuple(_assets.expand_bundles(plugins, catalog))
+    file_plugins = tuple(plugins)
     if opts.ref and opts.mode != "plugin":
         err_console.print("[red]error:[/red] --ref needs --mode plugin")
         return 2
@@ -900,17 +894,21 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
 
 
 def cmd_version(_args: argparse.Namespace) -> int:
-    """Print the installer version and the version of each bundled plugin.
+    """Print the release version and the bundled plugins.
 
-    The two are versioned independently on purpose (see RELEASING.md): the
-    installer's ``__version__`` tracks adapter / CLI / manifest changes; each
-    plugin has its own version in its ``plugin.json``. Both are printed so
-    support tickets and triage can be precise without requiring alignment.
+    Every plugin and the installer share one release version (RELEASING.md;
+    spec release-train), so it is printed once. A plugin whose ``plugin.json``
+    says otherwise, which the catalogue check prevents, is printed with its own.
     """
+    import re
+
     console.print(f"robotframework-plugins {__version__}")
+    m = re.fullmatch(r"(\d+\.\d+\.\d+)rc(\d+)", __version__)
+    release = f"{m.group(1)}-rc.{m.group(2)}" if m else __version__
     plugins = [p for p in _assets.bundled_catalog() if p.get("version")]
     if plugins:
-        console.print("bundled plugins: " + ", ".join(f"{p['name']} {p['version']}" for p in plugins), soft_wrap=True)
+        names = [p["name"] if p["version"] == release else f"{p['name']} {p['version']}" for p in plugins]
+        console.print(f"bundled plugins ({__version__}): " + ", ".join(names), soft_wrap=True)
     return 0
 
 

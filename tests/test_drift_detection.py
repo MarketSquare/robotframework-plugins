@@ -95,7 +95,7 @@ def test_drift_check_names_flat_plugin_script(scratch_repo: Path):
 
 
 @requires_posix_bash
-@pytest.mark.parametrize("item", ["plugins/x/.mcp.json", "plugins/rf-core/servers/run.py", "bundles/b/.mcp.json"])
+@pytest.mark.parametrize("item", ["plugins/x/.mcp.json", "plugins/rf-core/servers/run.py"])
 def test_drift_check_rejects_a_plugin_mcp_server(scratch_repo: Path, item: str):
     path = scratch_repo / item
     path.parent.mkdir(parents=True, exist_ok=True)

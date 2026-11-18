@@ -15,7 +15,8 @@ from robotframework_plugins import transforms as _x
 from robotframework_plugins.cli import main
 
 MARKETPLACE = "robotframework-plugins"
-PLUGIN_ID = "rf-agentskills@robotframework-plugins"  # the bundle
+#: What an rf-agentskills entry (old marketplace, or the bundle removed in 5.0.0) becomes.
+REPLACEMENT_IDS = {f"{p}@robotframework-plugins": True for p in ("rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop")}
 #: A fresh install in a project that declares no library enables every content plugin.
 CONTENT = ("rf-core", "rf-api", "rf-desktop", "rf-mobile", "rf-web")
 FRESH = {f"{p}@robotframework-plugins": True for p in CONTENT}
@@ -189,9 +190,22 @@ def test_old_marketplace_entry_migrated(
     data = _settings(settings)
     assert data["model"] == "opus"
     assert set(data["extraKnownMarketplaces"]) == {"mkt", MARKETPLACE}
-    assert data["enabledPlugins"] == {"other@mkt": True, PLUGIN_ID: True}
+    assert data["enabledPlugins"] == {"other@mkt": True, **REPLACEMENT_IDS}
     out = " ".join(capsys.readouterr().out.split())
     assert "replaced the robotframework-agentskills marketplace" in out
+
+
+def test_bundle_entry_replaced(tmp_path: Path, fake_home: Path) -> None:
+    """``rf-agentskills@robotframework-plugins``, the bundle removed in 5.0.0, becomes the five plugins."""
+    project = tmp_path / "proj"
+    (project / ".claude").mkdir(parents=True)
+    settings = project / ".claude" / "settings.json"
+    settings.write_text(json.dumps({
+        "extraKnownMarketplaces": {MARKETPLACE: {"source": {"source": "github", "repo": "MarketSquare/robotframework-plugins"}}},
+        "enabledPlugins": {"rf-agentskills@robotframework-plugins": True, "other@mkt": True},
+    }), encoding="utf-8")
+    assert _install(project, "--agent", "claude-code", "--mode", "plugin", "--yes") == 0
+    assert _settings(settings)["enabledPlugins"] == {"other@mkt": True, **REPLACEMENT_IDS}
 
 
 def test_old_marketplace_ref_pin_is_kept(tmp_path: Path, fake_home: Path) -> None:
@@ -230,4 +244,5 @@ def test_copilot_settings_migrated_too(tmp_path: Path, fake_home: Path) -> None:
     assert _install(project, "--agent", "copilot", "--mode", "plugin", "--yes") == 0
     for rel in (".claude/settings.json", ".github/copilot/settings.json"):
         assert OLD_MARKETPLACE not in _settings(project / rel)["extraKnownMarketplaces"]
-        assert PLUGIN_ID in _settings(project / rel)["enabledPlugins"]
+        enabled = _settings(project / rel)["enabledPlugins"]
+        assert REPLACEMENT_IDS.items() <= enabled.items() and "rf-agentskills@robotframework-plugins" not in enabled

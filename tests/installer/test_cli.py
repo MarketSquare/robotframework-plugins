@@ -4,27 +4,34 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import json
 import pytest
 
 from robotframework_plugins.cli import main
 
 
 def test_cli_version(capsys) -> None:
+    """One release version for the installer and every plugin (release-train), printed once."""
     from robotframework_plugins import __version__
 
     rc = main(["version"])
     assert rc == 0
     out = capsys.readouterr().out
-    # Installer version is the robotframework_plugins package version — pulled
-    # from __version__ so the assertion follows future bumps.
-    assert "rf-agentskills" in out
-    assert __version__ in out
-    # Each bundled plugin's version, independent of the installer version
-    # on purpose (see RELEASING.md for the versioning policy).
-    line = next(ln for ln in out.splitlines() if ln.startswith("bundled plugins:"))
-    for plugin in ("rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop", "rf-agentskills"):
-        assert f"{plugin} " in line, plugin
+    assert out.splitlines()[0] == f"robotframework-plugins {__version__}"
+    line = " ".join(ln for ln in out.splitlines()[1:])
+    assert line.startswith(f"bundled plugins ({__version__}): ")
+    for plugin in ("rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop"):
+        assert plugin in line, plugin
+    assert "rf-agentskills" not in line and line.count(__version__) == 1
 
+
+def test_cli_catalog_json_keeps_versions(capsys) -> None:
+    from robotframework_plugins import __version__
+
+    assert main(["catalog", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["installer"] == __version__
+    assert {p["version"] for p in data["plugins"]} == {__version__}
 
 def test_cli_targets_runs(capsys) -> None:
     rc = main(["targets"])

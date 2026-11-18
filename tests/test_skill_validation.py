@@ -25,7 +25,7 @@ VALID = {
     "description": "Demo skill. Use when testing the validator.",
     "license": "Apache-2.0",
     "compatibility": "Requires Python 3.10+ and robotframework>=7.",
-    "metadata": {"author": "manykarim", "version": f'"{VERSION}"'},
+    "metadata": {"author": "manykarim"},
 }
 
 # Both parsers must agree: PyYAML (when installed) and the stdlib fallback.
@@ -95,11 +95,11 @@ def test_folded_and_quoted_description_pass(tmp_path, use_yaml):
         pytest.param("rf-demo", {"description": "Use <b>this</b> skill."}, "xml-tag", id="tag-in-description"),
         pytest.param("rf-demo", {"version": "1.0"}, "unknown-key", id="unknown-key"),
         pytest.param("rf-demo", {"license": None}, "license", id="no-license"),
-        pytest.param("rf-demo", {"metadata": {"author": "manykarim", "version": "2.0"}}, "metadata-type",
+        pytest.param("rf-demo", {"metadata": {"author": "manykarim", "team": "2.0"}}, "metadata-type",
                      id="non-string-metadata"),
-        pytest.param("rf-demo", {"metadata": {"author": "manykarim"}}, "metadata-missing", id="no-metadata-version"),
-        pytest.param("rf-demo", {"metadata": {"author": "manykarim", "version": '"0.0.1"'}}, "version-mismatch",
-                     id="version-mismatch"),
+        pytest.param("rf-demo", {"metadata": {"owner": "manykarim"}}, "metadata-missing", id="no-metadata-author"),
+        pytest.param("rf-demo", {"metadata": {"author": "manykarim", "version": '"1.0.0"'}}, "metadata-version",
+                     id="metadata-version"),
     ],
 )
 def test_each_rule_fails(tmp_path, use_yaml, dir_name, override, rule):
@@ -113,17 +113,12 @@ def test_missing_frontmatter(tmp_path):
     assert rules(tmp_path, "rf-demo", "# no frontmatter\n", True) == {"frontmatter"}
 
 
-def test_every_plugin_is_validated_against_its_own_version(tmp_path):
-    repo = make_repo(tmp_path, {"rf-demo": render(VALID)})
-    other = repo / "plugins" / "rf-other"
-    (other / ".claude-plugin").mkdir(parents=True)
-    (other / ".claude-plugin" / "plugin.json").write_text('{"name": "rf-other", "version": "1.0.0"}\n')
-    (other / "skills" / "rf-other").mkdir(parents=True)
-    (other / "skills" / "rf-other" / "SKILL.md").write_text(render({**VALID, "name": "rf-other"}), encoding="utf-8")
-    lines = vs.validate(repo)
-    assert lines == [line for line in lines if line.startswith("plugins/rf-other/skills/rf-other/SKILL.md: version-mismatch")]
-    assert len(lines) == 1, lines
-
+def test_skill_version_is_refused_and_named(tmp_path):
+    """Plugins carry the release version; a skill's metadata.version is refused (release-train)."""
+    text = render({**VALID, "name": "rf-browser", "metadata": {"author": "manykarim", "version": '"1.0.0"'}})
+    lines = vs.validate(make_repo(tmp_path, {"rf-browser": text}))
+    assert lines == ["plugins/rf-agentskills/skills/rf-browser/SKILL.md: metadata-version: metadata.version is not "
+                     "allowed: every plugin carries the release version in .claude-plugin/plugin.json"]
 
 def test_cli_reports_path_and_rule_and_exits_1(tmp_path):
     repo = make_repo(tmp_path, {"rf-foo": render({**VALID, "name": "rf-bar"})})
@@ -137,31 +132,6 @@ def test_cli_reports_path_and_rule_and_exits_1(tmp_path):
 def test_real_tree_all_channels_valid(use_yaml):
     lines = vs.validate(ROOT, use_yaml=use_yaml)
     assert not lines, "\n".join(lines)
-
-
-@requires_posix_bash
-def test_bump_version_keeps_skill_metadata_in_step(tmp_path):
-    repo = tmp_path / "repo"
-    shutil.copytree(ROOT / "plugins" / "rf-web" / "skills", repo / "plugins" / "rf-web" / "skills")
-    (repo / "scripts").mkdir()
-    shutil.copy2(ROOT / "scripts" / "bump-version.sh", repo / "scripts" / "bump-version.sh")
-    rel = "plugins/rf-web/.claude-plugin/plugin.json"
-    (repo / rel).parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(ROOT / rel, repo / rel)
-    old = json.loads((ROOT / rel).read_text())["version"]
-    res = subprocess.run([BASH, str(repo / "scripts" / "bump-version.sh"), "rf-web", "patch"],
-                         capture_output=True, text=True, env={"REPO_ROOT": str(repo), "PATH": "/usr/bin:/bin"})
-    assert res.returncode == 0, res.stdout + res.stderr
-    new = json.loads((repo / rel).read_text())["version"]
-    assert new != old and f"rf-web--v{new}" in res.stdout
-    assert vs.validate(repo) == []
-
-
-@requires_posix_bash
-def test_bump_version_needs_a_plugin(tmp_path):
-    res = subprocess.run([BASH, str(ROOT / "scripts" / "bump-version.sh"), "patch"], capture_output=True,
-                         text=True, env={"REPO_ROOT": str(tmp_path), "PATH": "/usr/bin:/bin"})
-    assert res.returncode != 0 and "Usage" in res.stderr
 
 
 def _frontmatter_field(md: Path, field: str) -> str:

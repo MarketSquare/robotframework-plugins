@@ -3,7 +3,7 @@
 "House content rules"; design D7).
 
 Runs on every file a plugin ships: ``plugins/<name>/`` without its top-level
-``tests/`` and ``evals/``, the generated ``bundles/`` copies and ``templates/``.
+``tests/`` and ``evals/``, and ``templates/``.
 Each finding prints as ``<file>:<line>: <rule>: <message>``; the exit code is 1
 when there is one.
 
@@ -37,7 +37,7 @@ except ImportError:  # Python 3.10: TOML MCP configuration is reported as unread
     tomllib = None
 
 #: Folders under the repository root whose files are shipped content.
-CONTENT_ROOTS = ("plugins", "bundles", "templates")
+CONTENT_ROOTS = ("plugins", "templates")
 #: A plugin's own test and eval folders are not shipped (hatch_build.plugin_ignore).
 NOT_SHIPPED = ("tests", "evals")
 SKIP_PARTS = {"__pycache__", "node_modules", ".pytest_cache"}
@@ -88,7 +88,7 @@ def shipped_files(root: Path) -> Iterator[Path]:
             rel = path.relative_to(top).parts
             if SKIP_PARTS & set(rel):
                 continue
-            # plugins/<name>/tests, bundles/<name>/evals, templates/<name>/tests ...
+            # plugins/<name>/tests, templates/<name>/tests ...
             if len(rel) > 2 and rel[1] in NOT_SHIPPED:
                 continue
             yield path

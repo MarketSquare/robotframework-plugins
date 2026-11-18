@@ -22,9 +22,7 @@ Usage:
       --sarif cisco=out/cisco.sarif --summary out/summary.md
 
 ``@BASE`` names the folder the scanner ran in when its SARIF paths are
-relative to it. ``--baseline`` can repeat. ``--map OLD=NEW`` rewrites the
-``file`` of baseline entries under ``OLD`` to ``NEW``: a bundle's copies are
-judged by the baselines of the plugins they come from (design D15).
+relative to it. ``--baseline`` can repeat.
 ``--draft FILE`` writes baseline entries for every finding not in the
 baseline yet, to review by hand (task 5.3).
 """
@@ -141,20 +139,11 @@ def read_sarif(scanner: str, path: Path, base: str = "") -> list[Finding]:
     return out
 
 
-def load_baseline(path: Path, maps: list[tuple[str, str]] = ()) -> list[dict]:
+def load_baseline(path: Path) -> list[dict]:
     if not path.is_file():
         return []
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    entries = []
-    for entry in data.get("entries") or []:
-        entry = dict(entry)
-        file = str(entry.get("file") or "")
-        for old, new in maps:
-            if file.startswith(old):
-                entry["file"] = new + file[len(old):]
-                break
-        entries.append(entry)
-    return entries
+    return [dict(entry) for entry in data.get("entries") or []]
 
 
 def _entry_problem(entry: dict, today: dt.date) -> str | None:
@@ -255,17 +244,9 @@ def _sarif_arg(value: str) -> tuple[str, Path, str]:
     return scanner, Path(file), base
 
 
-def _map_arg(value: str) -> tuple[str, str]:
-    old, sep, new = value.partition("=")
-    if not sep or not old:
-        raise argparse.ArgumentTypeError(f"expected OLD=NEW, got {value!r}")
-    return old, new
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--baseline", type=Path, action="append", required=True)
-    parser.add_argument("--map", type=_map_arg, action="append", default=[], metavar="OLD=NEW")
     parser.add_argument("--sarif", type=_sarif_arg, action="append", default=[], metavar="SCANNER=FILE[@BASE]")
     parser.add_argument("--summary", type=Path, help="write the Markdown summary here (default: stdout)")
     parser.add_argument("--draft", type=Path, help="write draft baseline entries for the new findings")
@@ -278,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     findings = [f for scanner, path, base in args.sarif for f in read_sarif(scanner, path, base)]
-    baseline = [e for path in args.baseline for e in load_baseline(path, args.map)]
+    baseline = [e for path in args.baseline for e in load_baseline(path)]
     first = args.baseline[0]
     plugin = args.plugin
     if not plugin and first.is_file():
