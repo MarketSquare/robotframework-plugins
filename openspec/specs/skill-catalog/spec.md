@@ -64,11 +64,11 @@ Removing a skill, a subagent or an MCP tool from a plugin SHALL bump that plugin
 
 ### Requirement: The bundle ships no MCP server
 
-The content bundle SHALL NOT ship an MCP server or an MCP server configuration in any channel: the Claude Code plugin has no `.mcp.json` and no `servers/` directory, and the installer writes no MCP server entry for any agent. Skills SHALL run their helper scripts or the project's robotcode CLI directly. Shipped content SHALL NOT instruct the agent to call `rf_libdoc_search`, `rf_libdoc_explain`, `rf_results_analyze` or `rf_check_library`.
+No plugin SHALL ship an MCP server or an MCP server configuration in any channel: no plugin has a `.mcp.json` or a `servers/` directory, and the installer writes no MCP server entry for any agent. Skills SHALL run their helper scripts or the project's robotcode CLI directly. Shipped content SHALL NOT instruct the agent to call `rf_libdoc_search`, `rf_libdoc_explain`, `rf_results_analyze` or `rf_check_library`.
 
 #### Scenario: Plugin has no MCP config
-- **WHEN** the plugin tree `plugins/rf-agentskills/` is listed
-- **THEN** it contains no `.mcp.json` and no `servers/` directory
+- **WHEN** every plugin tree under `plugins/` is listed
+- **THEN** none contains a `.mcp.json` or a `servers/` directory
 
 #### Scenario: Subagents name skills, not tools
 - **WHEN** the subagent files are searched for the retired tool names

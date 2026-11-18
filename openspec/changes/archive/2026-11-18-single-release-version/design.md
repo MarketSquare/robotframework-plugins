@@ -105,7 +105,8 @@ The generator writes no version into dependencies, and the catalogue check refus
 
 **Checked on 2026-11-18 (task 2.5):**
 - Claude Code 2.1.322, from a git checkout of the branch added as a marketplace: `claude plugin install rf-web@robotframework-plugins` reported "+ 1 dependency: rf-core". Both plugins were enabled at `5.0.0`, and `claude plugin validate` passed for the marketplace and the plugins without warnings.
-- VS Code Copilot: not checked yet. It needs the interactive editor with a Copilot login. Task 2.4 confirms the install on Claude Code and VS Code. If VS Code needs a version, the fallback is an exact `"version": "=<release version>"` written by the generator. That still needs no tags, because a relative-path plugin falls back to the marketplace's copy.
+- VS Code Copilot 1.142, from the marketplace `MarketSquare/robotframework-plugins#stable` (release 5.0.0): installing `rf-web` from the Extensions view installed `rf-web` only. `~/.vscode/agent-plugins/installed.json` listed one plugin, and the agent saw only `rf-browser` and `rf-selenium`. VS Code doesn't install plugin dependencies in any form, so the D4 fallback (an exact version) wouldn't help. The name-only form stays, and the README tells VS Code users to install `rf-core` themselves, as for Copilot CLI and Codex.
+- VS Code, project scope: a committed `.claude/settings.json` that named the marketplace and enabled `rf-web` neither added the marketplace nor offered the plugin. The README now says that each user adds the marketplace in their own settings. Task 2.4 confirms the install on Claude Code and VS Code. If VS Code needs a version, the fallback is an exact `"version": "=<release version>"` written by the generator. That still needs no tags, because a relative-path plugin falls back to the marketplace's copy.
 
 ### D5: Drop `metadata.version` from skills
 

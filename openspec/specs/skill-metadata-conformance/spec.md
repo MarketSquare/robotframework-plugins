@@ -39,7 +39,12 @@ Every `SKILL.md` in every channel SHALL satisfy these rules. `name` is 1–64 ch
 
 ### Requirement: Skills declare runtime compatibility, license and metadata
 
-Every skill SHALL declare `license: Apache-2.0`, a `compatibility` field that states the runtimes and packages it needs (Python floor, Robot Framework floor, library package and any external runtime such as Node.js, the Appium server, robotcode or uv), and `metadata` with at least `author` and `version`. `metadata.version` MUST equal the version in its plugin's `.claude-plugin/plugin.json`.
+Every skill SHALL declare:
+- `license: Apache-2.0`;
+- a `compatibility` field that states the runtimes and packages it needs: the Python floor, the Robot Framework floor, the library package, and any external runtime such as Node.js, the Appium server, robotcode or uv;
+- `metadata` with at least `author`.
+
+A skill SHALL NOT declare `metadata.version`: the plugin's version is the release version, and a skill doesn't carry a copy of it. The validator SHALL fail on a skill that declares one and name the skill.
 
 #### Scenario: Script-based skill states its Python dependencies
 - **WHEN** the frontmatter of a skill that ships a Python script (for example `rf-language` or `rf-python-library`) is read
@@ -54,8 +59,12 @@ Every skill SHALL declare `license: Apache-2.0`, a `compatibility` field that st
 - **THEN** `compatibility` names `robotcode[all]>=2.8` in the project environment
 
 #### Scenario: Version stays in step with the bundle
-- **WHEN** `scripts/bump-version.sh rf-core minor` runs
-- **THEN** the plugin's `plugin.json` and every one of its skills' `metadata.version` carry the new value, and the validator fails if any skill disagrees with its plugin
+- **WHEN** `scripts/bump-version.sh minor` runs
+- **THEN** no `SKILL.md` file changes
+
+#### Scenario: Skill version refused
+- **WHEN** a PR adds `metadata.version: "1.0.0"` to `plugins/rf-web/skills/rf-browser/SKILL.md`
+- **THEN** the skill validator fails and names `rf-browser`
 
 ### Requirement: Skill validation runs in CI for all channels
 

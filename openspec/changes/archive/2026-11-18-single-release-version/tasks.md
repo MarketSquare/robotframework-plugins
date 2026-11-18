@@ -28,13 +28,13 @@
 
   Verify: a scratch-tree test covers `5.0.0` with `minor` (gives `5.1.0`), `--rc minor` (gives `5.1.0rc1` and `5.1.0-rc.1`) and `patch` from `5.1.0rc1` (gives `5.1.0`), and shows that no `SKILL.md` changed.
 - [x] 2.4 Remove `metadata.version` from every `SKILL.md`, including `templates/plugin/`. In `scripts/validate-skills.py`, drop the version-mismatch rule and add a rule that fails on `metadata.version`. Verify: `python scripts/validate-skills.py --channel all` passes, and a fixture skill with `metadata.version` fails naming the skill.
-- [ ] 2.5 Change the `rf-core` dependencies of rf-web, rf-api, rf-mobile, rf-desktop and `templates/plugin/` to `["rf-core"]` (D4), and let the catalogue check refuse a dependency version range.
+- [x] 2.5 Change the `rf-core` dependencies of rf-web, rf-api, rf-mobile, rf-desktop and `templates/plugin/` to `["rf-core"]` (D4), and let the catalogue check refuse a dependency version range.
   - Then install `rf-web` from a git checkout of the branch, served as a marketplace, in Claude Code and in VS Code Copilot.
   - If VS Code needs a version, switch to the generator-written exact version (D4 fallback).
 
   Verify: `claude plugin validate .` passes without a version-mismatch warning, and `claude plugin install rf-web@robotframework-plugins` also installs `rf-core`. Record each agent's result in design.md D4.
 
-  Status: the code change and the Claude Code check are done (design D4). The VS Code Copilot check is still open.
+  Status: done (design D4). Claude Code installs `rf-core` with `rf-web`. VS Code 1.142 installs no dependencies, so the README tells VS Code users to install `rf-core` too; the fallback doesn't apply.
 
 ## 3. Release workflow (D2, D3)
 
@@ -107,7 +107,7 @@
 
   Done 2026-11-18: every check passes. The tests pass: 920 shared tests, 559 plugin tests and 634 eval-harness tests. Deselected: the eval cases that need Browser's Node dependencies (`rfbrowser init`), SeleniumLibrary or robocop, which this local venv lacks and CI installs.
 - [x] 7.2 Open the PR with an "AI assistance" section, wait for every check to be green, and merge. Verify: the PR is merged with no failed check, and its description lists the user-facing breaking changes.
-- [ ] 7.3 Release `5.0.0` after asking the maintainer: push the single tag `v5.0.0` on the merge commit, and the maintainer approves `pypi`. Verify:
+- [x] 7.3 Release `5.0.0` after asking the maintainer: push the single tag `v5.0.0` on the merge commit, and the maintainer approves `pypi`. Verify:
   - one GitHub release `v5.0.0` holds five plugin archives and the wheel and sdist;
   - `uvx --refresh robotframework-plugins@5.0.0 version` prints `5.0.0`, and a plain `uvx --refresh robotframework-plugins version` resolves to `5.0.0`, not the yanked `2026.11.0`;
   - `stable` points at the tag;
@@ -117,5 +117,5 @@
   - The `pypi` and `testpypi` environments allowed only `robotframework-plugins-v*` tags. They now allow `v*`.
   - `build-packages.sh --clean` deleted the plugin archives. The workflow now builds the packages first and attaches only archives. For 5.0.0, the 19 plugin and skill archives were built from the tag and uploaded to the release by hand.
 
-  Still to do: approve the `pypi` deployment, then check PyPI and `stable`.
+  The `pypi` deployment was approved after re-running the job. PyPI has `5.0.0`, a plain `uvx robotframework-plugins` resolves to it, and `stable` points at `dfdd180`.
 - [x] 7.4 Delete the `latest` branch on GitHub after this change merges. Verify: `git ls-remote --heads origin latest` prints nothing.

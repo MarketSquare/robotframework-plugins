@@ -55,8 +55,16 @@ A snapshot written by `fetch()` SHALL record in its metadata the catalogue forma
 
 ### Requirement: A missing stable ref names the alternatives
 
-`fetch()` SHALL keep `stable` as its default ref. When `stable` is not found in the repository, the `FetchError` SHALL say that `stable` is created by the first plugin release and name `latest` or a tag as the refs to use until then. The installer README and the repository README SHALL say the same where they recommend `stable`.
+`fetch()` SHALL keep `stable` as its default ref. When `stable` is not found in the repository, the `FetchError` SHALL say that `stable` is missing and name a release tag (`v<version>`), or `main` for unreleased changes, as the refs to use instead; there is no `latest` branch any more. The installer README and the repository README SHALL say that every release moves `stable`.
 
 #### Scenario: Default ref before the first release
 - **WHEN** the repository has no `stable` ref and a tool calls `fetch()`
-- **THEN** it raises `FetchError` whose message names `stable`, the first plugin release, and `latest`
+- **THEN** it raises `FetchError` whose message names `stable`, a release tag and `main`, and not `latest`
+
+### Requirement: Catalogue entries keep their keys without bundles
+
+`bundle.catalog()` and `Snapshot.catalog()` entries SHALL keep the `bundle` and `bundled` keys, with the values `false` and `[]`, so that `bundle.CATALOG_FORMAT` stays `1` and tools that read the keys keep working. The keys SHALL be dropped only together with a change of `CATALOG_FORMAT`.
+
+#### Scenario: Keys present and constant
+- **WHEN** `bundle.catalog()` is called on a release without bundles
+- **THEN** every entry has `bundle` equal to `false` and `bundled` equal to `[]`, and `bundle.CATALOG_FORMAT` is `1`
