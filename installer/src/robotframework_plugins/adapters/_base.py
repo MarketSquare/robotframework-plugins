@@ -220,8 +220,11 @@ MARKETPLACE_REPO = "MarketSquare/robotframework-plugins"
 #: The marketplace this one replaces; its settings entries are migrated on reinstall.
 OLD_MARKETPLACE_NAME = "robotframework-agentskills"
 OLD_MARKETPLACE_REPO = "manykarim/robotframework-agentskills"
+#: The plugin the old marketplace served, and the bundle of the same name this
+#: marketplace listed until 5.0.0. An enabled entry of either becomes the plugins
+#: that carry its content, so an upgrade removes nothing.
 PLUGIN_NAME = "rf-agentskills"
-PLUGIN_ID = f"{PLUGIN_NAME}@{MARKETPLACE_NAME}"
+BUNDLE_REPLACEMENT = ("rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop")
 
 
 def plugin_id(plugin: str) -> str:
@@ -294,8 +297,9 @@ def old_marketplace_note(settings_path: Path) -> str | None:
 
 
 def enabled_marketplace_plugins(settings_path: Path) -> list[str]:
-    """Plugins ``settings_path`` already enables from this marketplace; the old
-    ``rf-agentskills@robotframework-agentskills`` entry counts as the bundle."""
+    """Plugins ``settings_path`` already enables from this marketplace. An
+    ``rf-agentskills`` entry, from the old marketplace or the bundle removed in
+    5.0.0, counts as the plugins in ``BUNDLE_REPLACEMENT``."""
     import json
 
     try:
@@ -309,9 +313,22 @@ def enabled_marketplace_plugins(settings_path: Path) -> list[str]:
     for key, on in enabled.items():
         name, _, market = str(key).partition("@")
         if on and (market == MARKETPLACE_NAME or (market == OLD_MARKETPLACE_NAME and name == PLUGIN_NAME)):
-            if name not in names:
-                names.append(name)
+            for n in BUNDLE_REPLACEMENT if name == PLUGIN_NAME else (name,):
+                if n not in names:
+                    names.append(n)
     return names
+
+
+def _enables_bundle(settings_path: Path) -> bool:
+    """``settings_path`` holds ``rf-agentskills@robotframework-plugins``, the bundle removed in 5.0.0."""
+    import json
+
+    try:
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    enabled = data.get("enabledPlugins") if isinstance(data, dict) else None
+    return isinstance(enabled, dict) and plugin_id(PLUGIN_NAME) in enabled
 
 
 def upgrade_plugins(settings_path: Path, opts: InstallOptions) -> tuple[str, ...]:
@@ -324,7 +341,7 @@ def upgrade_plugins(settings_path: Path, opts: InstallOptions) -> tuple[str, ...
 
 
 def marketplace_settings_merges(
-    settings_path: Path, ref: str | None, plugins: Iterable[str] = (PLUGIN_NAME,)
+    settings_path: Path, ref: str | None, plugins: Iterable[str] = BUNDLE_REPLACEMENT
 ) -> list[ConfigMergeOp]:
     """Merge ``extraKnownMarketplaces`` + ``enabledPlugins`` into a settings JSON.
 
@@ -334,8 +351,9 @@ def marketplace_settings_merges(
 
     When the file still holds the old ``robotframework-agentskills`` entries,
     they are removed first, and the old entry's ``ref`` pin is kept unless
-    ``ref`` is given. The removal adds no keys, so uninstall has nothing of
-    it to undo.
+    ``ref`` is given. An ``rf-agentskills@robotframework-plugins`` entry (the
+    bundle removed in 5.0.0) is removed too. The removals add no keys, so
+    uninstall has nothing of them to undo.
     """
     from .. import transforms as _x
 
@@ -358,6 +376,20 @@ def marketplace_settings_merges(
             revert=lambda: None,
             kind="json_nested",
             key_path=("extraKnownMarketplaces",),
+        ))
+    if _enables_bundle(settings_path):
+
+        def drop_bundle() -> list[str]:
+            _x.remove_json_keys_at_path(settings_path, ["enabledPlugins"], [plugin_id(PLUGIN_NAME)])
+            return []
+
+        migrations.append(ConfigMergeOp(
+            path=settings_path,
+            description=f"replace the removed {plugin_id(PLUGIN_NAME)} in {settings_path}",
+            apply=drop_bundle,
+            revert=lambda: None,
+            kind="json_nested",
+            key_path=("enabledPlugins",),
         ))
 
     def op(key: str, values: dict[str, Any], what: str) -> ConfigMergeOp:

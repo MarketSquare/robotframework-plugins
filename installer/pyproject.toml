@@ -13,7 +13,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "robotframework-plugins"
-version = "2026.11.0"
+version = "5.0.0"
 description = "Cross-agent installer for Robot Framework agent plugins (Claude Code, Copilot, Codex, Cursor, Goose, OpenCode, Claude Desktop)"
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -72,6 +72,7 @@ robotframework-plugins = "robotframework_plugins.cli:main"
 Homepage = "https://github.com/MarketSquare/robotframework-plugins"
 Repository = "https://github.com/MarketSquare/robotframework-plugins"
 Issues = "https://github.com/MarketSquare/robotframework-plugins/issues"
+Changelog = "https://github.com/MarketSquare/robotframework-plugins/blob/main/CHANGELOG.md"
 
 [tool.hatch.build]
 # The build hook in hatch_build.py bundles every active and deprecated

@@ -49,10 +49,12 @@ def test_library_matching_data() -> None:
                 "dependencies", "bundle", "bundled"} <= set(entry), entry["name"]
 
 
-def test_bundles_are_marked() -> None:
-    agentskills = next(p for p in bundle.catalog() if p["name"] == "rf-agentskills")
-    assert agentskills["bundle"] is True
-    assert set(agentskills["bundled"]) == set(ACTIVE_CONTENT)
+def test_bundle_keys_stay_constant() -> None:
+    """The bundle was removed in 5.0.0; its keys stay while CATALOG_FORMAT is 1."""
+    assert bundle.CATALOG_FORMAT == 1
+    assert "rf-agentskills" not in {p["name"] for p in bundle.catalog()}
+    for entry in bundle.catalog():
+        assert entry["bundle"] is False and entry["bundled"] == [], entry["name"]
 
 
 def test_caller_changes_dont_leak() -> None:
@@ -74,12 +76,12 @@ def test_skills_dirs_are_real_and_named_like_the_catalogue() -> None:
     assert set(dirs) == set(expected)
 
 
-def test_bundles_and_deprecated_plugins_left_out(two_plugin_bundle: Path) -> None:
+def test_deprecated_plugins_left_out(two_plugin_bundle: Path) -> None:
     dirs = bundle.skills_dirs()
     assert "rf-example" in dirs
-    assert "rf-old" not in dirs and "rf-agentskills" not in dirs
+    assert "rf-old" not in dirs
     assert next(iter(dirs)) == "rf-core"
-    assert {p["name"] for p in bundle.catalog()} >= {"rf-old", "rf-agentskills"}
+    assert "rf-old" in {p["name"] for p in bundle.catalog()}
 
 
 def test_file_and_constant_agree() -> None:

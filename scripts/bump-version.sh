@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-# Usage: ./scripts/bump-version.sh <plugin> <major|minor|patch>
-# Bumps one plugin's version (see RELEASING.md) everywhere it is recorded:
-#   plugins/<plugin>/.claude-plugin/plugin.json (the one source of truth) and
-#   metadata.version in every plugins/<plugin>/skills/*/SKILL.md (checked by
-#   validate-skills.py). Then regenerate the marketplace and catalogue with
-#   scripts/build-catalog.py. Marketplace entries carry no version.
+# Usage: ./scripts/bump-version.sh [--rc] <major|minor|patch>
+# Bumps the one release version (spec release-train; RELEASING.md) that every
+# plugin and the installer share:
+#   * installer/pyproject.toml, the only place it is written by hand, and the
+#     installer's entry in uv.lock;
+#   * the generated copies, by running scripts/build-catalog.py (every
+#     plugin.json, the installer's __version__, the README and docs/catalog.md);
+#   * CHANGELOG.md: "## Unreleased" becomes "## <version> — <date>", under a new,
+#     empty "## Unreleased".
+# --rc starts a release candidate (5.0.0 with --rc minor gives 5.1.0rc1) or
+# advances one (5.1.0rc1 gives 5.1.0rc2). Without --rc, a candidate is finished
+# (5.1.0rc1 gives 5.1.0, whichever part is named).
 #
 # REPO_ROOT can be overridden (used by tests to run against a scratch tree).
 set -euo pipefail
@@ -15,63 +21,66 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 PY="$(command -v python3 || command -v python)"
 if command -v cygpath >/dev/null 2>&1; then PY_ROOT="$(cygpath -m "$REPO_ROOT")"; else PY_ROOT="$REPO_ROOT"; fi
 
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <plugin> <major|minor|patch>" >&2
-    exit 1
-fi
-PLUGIN="$1"
-BUMP_TYPE="$2"
-case "$BUMP_TYPE" in
-    major|minor|patch) ;;
-    *) echo "Usage: $0 <plugin> <major|minor|patch>" >&2; exit 1 ;;
-esac
-if [ ! -f "$REPO_ROOT/plugins/$PLUGIN/.claude-plugin/plugin.json" ]; then
-    echo "ERROR: plugins/$PLUGIN/.claude-plugin/plugin.json not found" >&2
-    exit 1
-fi
+usage() { echo "Usage: $0 [--rc] <major|minor|patch>" >&2; exit 1; }
+RC=""
+if [ "${1:-}" = "--rc" ]; then RC=1; shift; fi
+[ $# -eq 1 ] || usage
+case "$1" in major|minor|patch) ;; *) usage ;; esac
 
-"$PY" - "$PY_ROOT" "$PLUGIN" "$BUMP_TYPE" <<'PY'
-import json
+NEW=$("$PY" - "$PY_ROOT" "$1" "$RC" <<'PY'
+import datetime
 import re
 import sys
 from pathlib import Path
 
-root, plugin, bump = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
-manifest = root / "plugins" / plugin / ".claude-plugin" / "plugin.json"
-data = json.loads(manifest.read_text(encoding="utf-8"))
-current = data.get("version")
-if not current:
-    sys.exit(f"ERROR: {manifest.relative_to(root)} has no version")
-major, minor, patch = (int(p) for p in current.split("."))
-if bump == "major":
-    major, minor, patch = major + 1, 0, 0
-elif bump == "minor":
-    minor, patch = minor + 1, 0
+root, part, rc = Path(sys.argv[1]), sys.argv[2], bool(sys.argv[3])
+pyproject = root / "installer" / "pyproject.toml"
+text = pyproject.read_text(encoding="utf-8")
+m = re.search(r'^version = "(\d+)\.(\d+)\.(\d+)(?:rc(\d+))?"$', text, re.M)
+if not m:
+    sys.exit(f"ERROR: {pyproject.relative_to(root)} has no MAJOR.MINOR.PATCH[rcN] version")
+major, minor, patch = (int(m.group(i)) for i in (1, 2, 3))
+cand = int(m.group(4)) if m.group(4) else None
+current = m.group(0).split('"')[1]
+if cand is not None:
+    new = f"{major}.{minor}.{patch}rc{cand + 1}" if rc else f"{major}.{minor}.{patch}"
 else:
-    patch += 1
-new = f"{major}.{minor}.{patch}"
-data["version"] = new
-manifest.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-print(f"  {manifest.relative_to(root).as_posix()}")
+    if part == "major":
+        major, minor, patch = major + 1, 0, 0
+    elif part == "minor":
+        minor, patch = minor + 1, 0
+    else:
+        patch += 1
+    new = f"{major}.{minor}.{patch}" + ("rc1" if rc else "")
+pyproject.write_text(text[:m.start()] + f'version = "{new}"' + text[m.end():], encoding="utf-8")
+print(f"  installer/pyproject.toml: {current} -> {new}", file=sys.stderr)
 
-# metadata.version in each SKILL.md frontmatter (the indented `version:`
-# line of the metadata map, inside the leading --- block only).
-skill_globs = [f"plugins/{plugin}/skills/*/SKILL.md"]
-pattern = re.compile(r"^(metadata:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+version:[ \t]*)[^\n]*$", re.M)
-for glob in skill_globs:
-    for skill_md in sorted(root.glob(glob)):
-        text = skill_md.read_text(encoding="utf-8")
-        end = text.find("\n---", 3) if text.startswith("---\n") else -1
-        new_fm, n = pattern.subn(lambda m: f'{m.group(1)}"{new}"', text[:end + 1], count=1) if end > 0 else ("", 0)
-        if n:
-            skill_md.write_text(new_fm + text[end + 1:], encoding="utf-8")
-            print(f"  {skill_md.relative_to(root).as_posix()}")
-        else:
-            print(f"  WARNING: no metadata.version in {skill_md.relative_to(root).as_posix()}", file=sys.stderr)
-print(f"Bumped {plugin}: {current} -> {new}")
-print("")
-print("Next steps:")
-print("  python3 scripts/build-catalog.py && python3 scripts/validate-skills.py --channel all")
-print(f"  git add -A && git commit -m 'release: {plugin} {new}'")
-print(f"  git tag {plugin}--v{new} && git push origin main {plugin}--v{new}")
+lock = root / "uv.lock"
+if lock.is_file():
+    ltext = lock.read_text(encoding="utf-8")
+    ltext, n = re.subn(r'(\[\[package\]\]\nname = "robotframework-plugins"\nversion = ")[^"]*(")',
+                       lambda mm: mm.group(1) + new + mm.group(2), ltext, count=1)
+    if n:
+        lock.write_text(ltext, encoding="utf-8")
+        print("  uv.lock", file=sys.stderr)
+
+changelog = root / "CHANGELOG.md"
+if changelog.is_file():
+    ctext = changelog.read_text(encoding="utf-8")
+    today = datetime.date.today().isoformat()
+    ctext, n = re.subn(r"^## Unreleased[ \t]*$", f"## Unreleased\n\n## {new} — {today}", ctext, count=1, flags=re.M)
+    if n:
+        changelog.write_text(ctext, encoding="utf-8")
+        print(f"  CHANGELOG.md: ## {new} — {today}", file=sys.stderr)
+    else:
+        print("  WARNING: CHANGELOG.md has no '## Unreleased' heading", file=sys.stderr)
+print(new)
 PY
+)
+"$PY" "$REPO_ROOT/scripts/build-catalog.py" --root "$PY_ROOT" >&2
+
+echo "Release version: $NEW"
+echo ""
+echo "Next steps:"
+echo "  Review the CHANGELOG.md section for $NEW, then open the release PR."
+echo "  After it is merged: git tag v$NEW <merge commit> && git push origin v$NEW"

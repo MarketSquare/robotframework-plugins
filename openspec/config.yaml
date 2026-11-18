@@ -5,8 +5,8 @@ context: |
   MarketSquare/robotframework-plugins ships Robot Framework plugins for coding
   agents (Claude Code, Copilot, Codex, Cursor, OpenCode) and the tools around them:
   - plugins/<name>/: one folder per marketplace plugin (skills, subagents, hooks,
-    catalog.yaml); the only copy of its content. bundles/rf-agentskills/ is a
-    generated copy of the plugins listed in plugins/rf-agentskills/catalog.yaml.
+    catalog.yaml); the only copy of its content. Every plugin and the installer
+    share one release version, set in installer/pyproject.toml (RELEASING.md).
   - installer/: the robotframework-plugins package on PyPI (installs the plugins
     into agents without a marketplace).
   - src/rf_skill_eval/ and eval/: the internal eval harness that grades skills in

@@ -45,9 +45,9 @@ def install_prefix(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def two_plugin_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """The real bundled plugins (rf-core, the technology plugins and the
-    rf-agentskills bundle, all verified) plus a one-skill community plugin,
-    rf-example, and a deprecated one, rf-old."""
+    """The real bundled plugins (rf-core and the technology plugins, all
+    verified) plus a one-skill community plugin, rf-example, and a deprecated
+    one, rf-old."""
     import json
     import shutil
 

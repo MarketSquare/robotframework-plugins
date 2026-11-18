@@ -5,7 +5,6 @@ Facts and commands for working in this repository. The rules for AI-assisted con
 ## Layout
 
 - `plugins/<name>/`: one folder per plugin and the only copy of its content (skills, agents, hooks, hook scripts, `catalog.yaml`). Its `tests/` and `evals/` are not installed.
-- `bundles/rf-agentskills/`: generated copy of the plugins listed in `plugins/rf-agentskills/catalog.yaml`.
 - `installer/`: the `robotframework-plugins` package on PyPI.
 - `src/rf_skill_eval/`: the eval harness (internal, never published); `eval/` holds its fixture projects and hidden graders.
 - `security/`: scanner configuration and the reviewed baselines per plugin.
@@ -42,13 +41,13 @@ Never edit these by hand. Change the source, run the command, and name the comma
 
 | Files | Command |
 |---|---|
-| `.claude-plugin/marketplace.json`, `docs/catalog.md`, `bundles/rf-agentskills/`, the plugin list in `.github/ISSUE_TEMPLATE/plugin-feedback.yml` | `python scripts/build-catalog.py` |
+| `.claude-plugin/marketplace.json`, `docs/catalog.md`, the catalogue block in `README.md`, the plugin list in `.github/ISSUE_TEMPLATE/plugin-feedback.yml`, the `version` in every `plugin.json` and the installer's `__version__` | `python scripts/build-catalog.py` |
 | `plugins/*/variants/` (Codex and OpenCode subagents, OpenCode hook plugin) | `python scripts/build-agent-variants.py` |
-| Plugin versions in `plugin.json` and skill `metadata.version` | `scripts/bump-version.sh <plugin> <major\|minor\|patch>`, then `python scripts/build-catalog.py` |
+| The release version (`installer/pyproject.toml`, then every copy above, and the `CHANGELOG.md` heading) | `scripts/bump-version.sh <major\|minor\|patch>`, only when releasing ([RELEASING.md](RELEASING.md)) |
 | `plugins/*/evals/baselines/` | A maintainer commits them from the `skill-evaluation.yml` candidate artifact |
 | `uv.lock` | `uv lock` |
 
-To change a skill that the bundle copies, edit it under `plugins/<name>/` and run `python scripts/build-catalog.py`; never edit `bundles/`.
+A PR never bumps a version: add the change under `## Unreleased` in `CHANGELOG.md` instead.
 
 ## Never commit
 

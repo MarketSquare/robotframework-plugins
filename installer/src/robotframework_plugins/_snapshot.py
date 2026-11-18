@@ -170,7 +170,7 @@ def _resolve(ref: str, timeout: float, src: _Source) -> str:
             body = resp.read(200).decode("ascii", "replace").strip()
     except urllib.error.HTTPError as exc:
         if exc.code in (404, 422):
-            hint = ("; it is created by the first plugin release, until then use 'latest' or a tag"
+            hint = ("; every release moves 'stable', so use 'latest' or a release tag such as 'v5.0.0' instead"
                     if ref == "stable" else "")
             raise FetchError(f"ref {ref!r} not found in {REPOSITORY}{src.where}{hint}") from exc
         raise FetchError(f"resolving ref {ref!r}{src.where} failed: HTTP {exc.code}") from exc

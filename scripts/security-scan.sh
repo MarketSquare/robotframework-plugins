@@ -6,9 +6,6 @@
 #
 # Scans only what the plugin ships: its tracked files without the top-level
 # tests/ and evals/ (as the installer build does), copied to <outdir>/tree.
-# A bundle (catalog.yaml with a bundle: list) ships its generated copy in
-# bundles/<name>/; its findings are judged by its member plugins' baselines,
-# mapped onto the copy (design D15), plus its own baseline if it has one.
 # Cisco runs on skills/, on agents/ (lenient) and on the whole tree (lenient).
 # Writes one SARIF file per scanner run, <outdir>/summary.md, and with --draft
 # <outdir>/draft.yaml (baseline entries for the new findings, to review).
@@ -43,13 +40,7 @@ root=$(realpath "${SCAN_ROOT:-$(git rev-parse --show-toplevel)}")
 bin=${SCANNERS:-$here/.scanners/bin}
 case "$plugin" in */*|.*) echo "security-scan: bad plugin name $plugin" >&2; exit 2 ;; esac
 [ -d "$root/plugins/$plugin" ] || { echo "security-scan: no plugins/$plugin" >&2; exit 2; }
-members=$(python3 -c 'import sys, yaml; print(" ".join((yaml.safe_load(open(sys.argv[1])) or {}).get("bundle") or []))' \
-  "$root/plugins/$plugin/catalog.yaml")
 src="plugins/$plugin"
-for member in $members; do
-  case "$member" in */*|.*|"") echo "security-scan: bad bundle member '$member'" >&2; exit 2 ;; esac
-done
-[ -n "$members" ] && src="bundles/$plugin"
 
 mkdir -p "$out"
 out=$(realpath "$out")
@@ -120,9 +111,6 @@ run gitleaks "" "$bin/gitleaks" dir "$src" --no-banner --redact --exit-code 0 \
 cd "$root"
 
 args=(--baseline "$root/security/baselines/$plugin.yaml" --plugin "$plugin" --summary "$out/summary.md" "${sarif[@]}")
-for member in $members; do
-  args+=(--baseline "$root/security/baselines/$member.yaml" --map "plugins/$member/=$src/")
-done
 [ -n "$draft" ] && args+=(--draft "$out/draft.yaml")
 [ -n "$fail_on_warn" ] && args+=(--fail-on-warn)
 python3 "$here/scripts/compare-findings.py" "${args[@]}"

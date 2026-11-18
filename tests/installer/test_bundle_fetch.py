@@ -38,7 +38,6 @@ def _tree() -> dict[str, bytes]:
     _plugin(files, "rf-web")
     _plugin(files, "rf-core")
     _plugin(files, "rf-old", status="deprecated")
-    _plugin(files, "rf-agentskills", skill=False, manifest_extra="bundle: [rf-core, rf-web]\n")
     return files
 
 
@@ -171,13 +170,13 @@ def test_snapshot_of_main(github: FakeGitHub, cache: Path) -> None:
 def test_same_interface_as_the_bundle(github: FakeGitHub, cache: Path) -> None:
     snap = bundle.fetch("main", cache_dir=cache)
     entries = {p["name"]: p for p in snap.catalog()}
-    assert set(entries) == {"rf-agentskills", "rf-core", "rf-old", "rf-web"}
+    assert set(entries) == {"rf-core", "rf-old", "rf-web"}
     assert set(entries["rf-web"]) == set(bundle.catalog()[0])
     assert entries["rf-web"]["robotframework"] == ">=7.0"
-    assert entries["rf-agentskills"]["bundle"] is True
+    assert entries["rf-web"]["bundle"] is False and entries["rf-web"]["bundled"] == []
     assert json.loads((snap.path / "catalog.json").read_text())["format"] == bundle.CATALOG_FORMAT
     snap.catalog().clear()
-    assert len(snap.catalog()) == 4
+    assert len(snap.catalog()) == 3
 
 
 def test_second_fetch_reuses_the_cache(github: FakeGitHub, cache: Path) -> None:
@@ -209,13 +208,14 @@ def test_network_down(cache: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 def test_unknown_ref(github: FakeGitHub, cache: Path) -> None:
     with pytest.raises(bundle.FetchError, match="ref 'nope' not found") as err:
         bundle.fetch("nope", cache_dir=cache)
-    assert "first plugin release" not in str(err.value)
+    assert "release tag" not in str(err.value)
 
 
 def test_missing_stable_names_the_alternatives(github: FakeGitHub, cache: Path) -> None:
     with pytest.raises(bundle.FetchError, match="ref 'stable' not found") as err:
         bundle.fetch(cache_dir=cache)
-    assert "first plugin release" in str(err.value) and "'latest'" in str(err.value)
+    assert "'latest'" in str(err.value) and "release tag such as 'v5.0.0'" in str(err.value)
+    assert "first plugin release" not in str(err.value)
 
 
 def test_timeout(github: FakeGitHub, cache: Path) -> None:

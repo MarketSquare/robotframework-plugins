@@ -5,7 +5,6 @@ license: Apache-2.0
 compatibility: Requires robotframework>=7 in the project environment.
 metadata:
   author: your-github-handle
-  version: "0.1.0"
 ---
 
 # Template skill

@@ -1,6 +1,6 @@
 {
   "name": "rf-api",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "description": "RequestsLibrary and RESTinstance skills for Robot Framework API tests.",
   "author": {
     "name": "manykarim",
@@ -17,9 +17,6 @@
     "restinstance"
   ],
   "dependencies": [
-    {
-      "name": "rf-core",
-      "version": "^1.0"
-    }
+    "rf-core"
   ]
 }

@@ -64,7 +64,7 @@ For agents with a plugin marketplace, `--mode plugin` writes the marketplace set
 
 ```bash
 robotframework-plugins install --agent claude-code --mode plugin
-robotframework-plugins install --agent claude-code --mode plugin --ref rf-core--v1.0.0   # pin a release
+robotframework-plugins install --agent claude-code --mode plugin --ref v5.0.0   # pin a release
 ```
 
 ### Upgrading
@@ -87,7 +87,7 @@ robotframework-plugins catalog   [--json]   # the plugins this version bundles
 robotframework-plugins list                 # what's installed where
 robotframework-plugins targets              # which agents are found on this machine
 robotframework-plugins doctor               # what works and what needs your attention
-robotframework-plugins version              # this version and the bundled plugin versions
+robotframework-plugins version              # the release version and the bundled plugins
 ```
 
 ## Python API
@@ -97,8 +97,8 @@ Other tools can depend on `robotframework-plugins` and read the plugins it bundl
 | Name | What it gives you |
 |---|---|
 | `CATALOG_FORMAT` | The catalogue format, `1`. Check it at runtime. |
-| `catalog()` | The bundled plugins (active and deprecated): `name`, `version`, `status`, `tier`, `summary`, `libraries` (`name`, `package`, `versions`, and `skills`: the plugin's skills that cover the library; absent means all of them), `robotframework`, `dependencies`, `bundle`, `bundled`. A new list on each call. |
-| `skills_dirs()` | `{plugin: Path}` of each active plugin's `skills/` folder, `rf-core` first; bundles such as `rf-agentskills` are left out. The folders exist for the life of the process. |
+| `catalog()` | The bundled plugins (active and deprecated): `name`, `version`, `status`, `tier`, `summary`, `libraries` (`name`, `package`, `versions`, and `skills`: the plugin's skills that cover the library; absent means all of them), `robotframework`, `dependencies`, and `bundle` and `bundled` (always `false` and `[]` since 5.0.0, which removed the only bundle; kept while `CATALOG_FORMAT` is 1). A new list on each call. |
+| `skills_dirs()` | `{plugin: Path}` of each active plugin's `skills/` folder, `rf-core` first. The folders exist for the life of the process. |
 | `fetch(ref="stable", *, source=None, token=None)` | The same for a branch, tag or commit of this repository: a `Snapshot` with `ref`, `commit`, `catalog_format`, `catalog()` and `skills_dirs()`. `source` and `token` are for mirrors (see below). Raises `FetchError` on any failure. |
 
 ```python
@@ -125,7 +125,7 @@ except bundle.FetchError:
     pass
 ```
 
-**Compatibility.** The names above are public. Removing or renaming one, or removing or changing the meaning of a listed catalogue field, bumps `CATALOG_FORMAT` and is named in the [changelog](CHANGELOG.md). New fields and new plugins don't. The skill folder layout (`<skills dir>/<skill>/SKILL.md`, with `references/` and other files next to it) follows the [Agent Skills format](https://agentskills.io) and is part of the contract. The calendar version moves every month, so pin a range such as `robotframework-plugins>=2026.11,<2027` and rely on `CATALOG_FORMAT`. Everything else in the package, including `robotframework_plugins._assets`, is private and can change in any release.
+**Compatibility.** The names above are public. Removing or renaming one, or removing or changing the meaning of a listed catalogue field, bumps `CATALOG_FORMAT` and is named in the [changelog](https://github.com/MarketSquare/robotframework-plugins/blob/main/CHANGELOG.md). New fields and new plugins don't. The skill folder layout (`<skills dir>/<skill>/SKILL.md`, with `references/` and other files next to it) follows the [Agent Skills format](https://agentskills.io) and is part of the contract. The calendar version moves every month, so pin a range such as `robotframework-plugins>=2026.11,<2027` and rely on `CATALOG_FORMAT`. Everything else in the package, including `robotframework_plugins._assets`, is private and can change in any release.
 
 **`fetch()` and the network.** `fetch()` is the only part of the API that uses the network, and only when you call it: importing the module, `catalog()` and `skills_dirs()` read the installed package. It resolves the ref to a commit on GitHub, downloads that commit's archive once, checks it (only plain files and folders, no paths outside the snapshot, a valid `catalog.yaml` and `plugin.json` for every plugin), and keeps it in `~/.cache/robotframework-plugins/snapshots/<commit>/` (`%LOCALAPPDATA%` on Windows; `cache_dir=` changes it). A commit SHA that is already cached needs no network. Nothing in a snapshot is run.
 
@@ -150,9 +150,10 @@ bundle.fetch("stable", source="https://ghe.example.com/api/v3")
 
 Choose the ref deliberately:
 
-- `stable` holds released plugins. It is created by the first plugin release; until then, `fetch()` raises `FetchError: ref 'stable' not found …`, and the message names the alternatives: `latest` or a tag.
-- `latest` moves with `stable` on every plugin release. Before the first one it already exists and points to a commit of `main`.
-- `main` holds everything merged: reviewed and checked by CI, but not released. Plugin versions there can be ahead of any release, the full evaluations run later, and a change can still be reverted. Skills ship scripts that agents run, so serve `main` only where that is acceptable, and report `Snapshot.commit` so you know what you served.
+- `stable` holds the latest release; every release moves it. If it is ever missing, `fetch()` raises `FetchError: ref 'stable' not found …`, and the message names the alternatives: `latest` or a release tag such as `v5.0.0`.
+- A release tag such as `v5.0.0` never moves: every plugin at that release.
+- `latest` follows `main` once its CI passes, and every release moves it to the release too.
+- `main` holds everything merged: reviewed and checked by CI, but not released. The version there can be ahead of any release, the full evaluations run later, and a change can still be reverted. Skills ship scripts that agents run, so serve `main` only where that is acceptable, and report `Snapshot.commit` so you know what you served.
 
 ## No telemetry
 
@@ -160,4 +161,4 @@ The installer sends nothing anywhere. It only touches the network for the market
 
 ## More
 
-The plugins, their tiers and the per-agent marketplace steps are described in the [repository README](https://github.com/MarketSquare/robotframework-plugins#readme). Releases and the version table: [RELEASING.md](https://github.com/MarketSquare/robotframework-plugins/blob/main/RELEASING.md).
+The plugins, their tiers and the per-agent marketplace steps are described in the [repository README](https://github.com/MarketSquare/robotframework-plugins#readme). Every release, with what changed: [CHANGELOG.md](https://github.com/MarketSquare/robotframework-plugins/blob/main/CHANGELOG.md). How releases are made: [RELEASING.md](https://github.com/MarketSquare/robotframework-plugins/blob/main/RELEASING.md).

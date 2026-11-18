@@ -21,7 +21,7 @@ Edit the files under `plugins/<name>/`; that folder is the only copy of its cont
 
 ```bash
 python scripts/build-agent-variants.py   # after changing a subagent or hooks/hooks.json
-python scripts/build-catalog.py          # after changing a catalog.yaml, a version, or any plugin the bundle copies
+python scripts/build-catalog.py          # after changing a catalog.yaml or a plugin.json
 ```
 
 A file that more than one plugin needs lives in one of them; the others get a generated copy. Plugins can't contain symlinks, because Codex drops them on install.
@@ -65,31 +65,9 @@ Text for people (READMEs, these documents, skill references) follows the Robot F
 
 ## Versions
 
-There are three kinds of version, and as a plugin author you only ever bump one of them.
+Every plugin and the installer share one version, and they are released together (for example 5.0.0: `rf-core`, `rf-web`, … and `robotframework-plugins`). **You never bump a version in a PR.** Add a line under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), in the group of the plugin you changed, and start it with "**Breaking:**" when users must act on it.
 
-| What | Example | Where it lives | Who bumps it |
-|---|---|---|---|
-| A plugin | `rf-core` 1.0.0, the `rf-agentskills` bundle 4.0.0 | its `plugin.json` | the plugin's maintainers |
-| The installer | `robotframework-plugins` 2026.11.0 | `installer/pyproject.toml` | the release manager |
-| The eval harness | `rf-skill-eval` 0.1.0 | root `pyproject.toml` | nobody outside CI; it is never published |
-
-A plugin has SemVer: bump `major` for a removed or renamed skill, `minor` for new content, `patch` for fixes. Each plugin counts on its own, which is why `rf-core` can be at 1.0.0 while the bundle is at 4.0.0: the bundle carries on the numbering of the single plugin it replaced.
-
-The installer uses calendar versions, because each release is a snapshot of the whole catalogue taken in that month. The version table in the README shows which plugin versions an installer release bundles:
-
-| robotframework-plugins 2026.11.0 bundles | Version |
-|---|---|
-| `rf-core` | 1.0.0 |
-| `rf-web` | 1.0.0 |
-
-To bump your plugin, run one command and regenerate:
-
-```bash
-scripts/bump-version.sh <plugin> <major|minor|patch>
-python scripts/build-catalog.py
-```
-
-It writes `plugin.json` and the `metadata.version` of every skill in the plugin. Releases are described in [RELEASING.md](RELEASING.md).
+When releasing, a maintainer runs `scripts/bump-version.sh <major|minor|patch>`. It sets the version in `installer/pyproject.toml`, the only place it is written by hand, and the catalogue generator copies it into every `plugin.json`. Skills carry no version of their own. The eval harness, `rf-skill-eval`, keeps a separate internal version in the root `pyproject.toml` and is never published. [RELEASING.md](RELEASING.md) says which part to bump.
 
 ## Development
 
@@ -110,7 +88,6 @@ plugins/<name>/                  # One folder per plugin; the only copy of its c
 ├── variants/                    # Generated: Codex TOML subagents, OpenCode agents and JS plugin
 ├── tests/                       # The plugin's own tests (not installed)
 └── evals/                       # Eval tasks, trigger sets and baselines (not installed)
-bundles/rf-agentskills/          # Generated from the plugins in plugins/rf-agentskills/catalog.yaml
 schemas/catalog.schema.json      # Schema of catalog.yaml
 security/                        # Scanner baselines and configuration
 templates/plugin/                # Starter plugin

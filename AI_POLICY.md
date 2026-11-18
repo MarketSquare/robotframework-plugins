@@ -57,7 +57,7 @@ The output of this repository is itself agent content, so a few rules go further
 
 - **Plugin content is security-relevant.** Skills, hooks, subagents and scripts are read and run by other people's agents. Every change to them goes through the security gate ([SECURITY.md](SECURITY.md)); treat a new hook, tool permission or network call as something a reviewer must look at, and say so in the PR.
 - **Keywords must exist.** Every keyword a skill teaches has to resolve against the library it names, in the library version the plugin supports. `scripts/check-skill-keywords.py` checks this in CI.
-- **Generated files aren't edited by hand.** `bundles/`, `docs/catalog.md`, `.claude-plugin/marketplace.json`, `plugins/*/variants/` and the eval baselines are generated. Edit the source and name the command that regenerated them in the PR; [AGENTS.md](AGENTS.md#generated-files) lists the commands.
+- **Generated files aren't edited by hand.** `docs/catalog.md`, `.claude-plugin/marketplace.json`, the `version` in each `plugin.json`, `plugins/*/variants/` and the eval baselines are generated. Edit the source and name the command that regenerated them in the PR; [AGENTS.md](AGENTS.md#generated-files) lists the commands.
 - **Paid eval runs are for maintainers.** Live eval runs and re-baselines cost money and are dispatched by maintainers. Ask for one in the PR instead.
 - **Eval tasks read like real work.** Eval tasks and fixtures read like real user requests and real projects. They don't hint at what the grader checks.
 

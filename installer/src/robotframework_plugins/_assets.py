@@ -78,36 +78,10 @@ def bundled_catalog() -> list[dict[str, Any]]:
     return list(json.loads(text).get("plugins", []))
 
 
-def is_bundle(entry: dict[str, Any]) -> bool:
-    """A catalogue entry with no content of its own (``rf-agentskills`` since 4.0.0)."""
-    return bool(entry.get("bundle"))
-
-
-def expand_bundles(names: list[str], catalog: list[dict[str, Any]]) -> list[str]:
-    """``names`` with every bundle replaced by the plugins it bundles.
-
-    File mode copies content per plugin: installing the bundle means
-    installing the plugins it ships a copy of. Order is kept; duplicates are dropped."""
-    by_name = {p["name"]: p for p in catalog}
-    out: list[str] = []
-
-    def add(name: str, seen: frozenset[str]) -> None:
-        entry = by_name.get(name, {})
-        if is_bundle(entry) and name not in seen:
-            for dep in entry.get("bundled", []):
-                add(dep, seen | {name})
-        elif name not in out:
-            out.append(name)
-
-    for name in names:
-        add(name, frozenset())
-    return out
-
-
 def content_plugins() -> tuple[str, ...]:
-    """Every active plugin with content in the bundled catalogue (what a plan
-    covers when the caller names none); ``(DEFAULT_PLUGIN,)`` without a catalogue."""
-    names = [p["name"] for p in bundled_catalog() if p.get("status") == "active" and not is_bundle(p)]
+    """Every active plugin in the bundled catalogue (what a plan covers when
+    the caller names none); ``(DEFAULT_PLUGIN,)`` without a catalogue."""
+    names = [p["name"] for p in bundled_catalog() if p.get("status") == "active"]
     if DEFAULT_PLUGIN in names:  # rf-core first: the others depend on it
         names.remove(DEFAULT_PLUGIN)
         names.insert(0, DEFAULT_PLUGIN)

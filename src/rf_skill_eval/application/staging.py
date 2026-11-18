@@ -3,11 +3,11 @@
 The content ships in several plugins (``plugins/rf-core``, ``rf-web``, …;
 split-rf-agentskills). The runner stages one tree: the skills, subagents,
 hooks and hook scripts of the chosen plugins, merged. By default that is
-every plugin with content, which is what installing the ``rf-agentskills``
-bundle gives and what the stored baselines were measured with.
+every plugin with content, which is what installing all the plugins gives
+and what the stored baselines were measured with.
 
 The tree is built from ``plugins/`` each time, so it never lags behind an
-edit (unlike the generated ``bundles/`` copies, which only CI checks).
+edit.
 """
 
 from __future__ import annotations

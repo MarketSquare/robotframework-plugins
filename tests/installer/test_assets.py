@@ -50,7 +50,7 @@ def test_bundle_has_catalog_and_plugin_dir() -> None:
     names = {p["name"]: p for p in _assets.bundled_catalog()}
     assert names["rf-core"]["tier"] == "verified"
     assert names["rf-core"]["version"]
-    assert names["rf-agentskills"]["bundle"] is True
+    assert "rf-agentskills" not in names
     assert _assets.content_plugins() == ("rf-core", "rf-api", "rf-desktop", "rf-mobile", "rf-web")
 
 
@@ -69,7 +69,7 @@ def test_wheel_contains_bundled_plugins(tmp_path: Path) -> None:
     (wheel,) = tmp_path.glob("robotframework_plugins-*.whl")
     names = zipfile.ZipFile(wheel).namelist()
     assert "robotframework_plugins/_assets/catalog.json" in names
-    assert "robotframework_plugins/_assets/plugins/rf-agentskills/.claude-plugin/plugin.json" in names
+    assert not any(n.startswith("robotframework_plugins/_assets/plugins/rf-agentskills/") for n in names)
     assert any(n.startswith("robotframework_plugins/_assets/plugins/rf-web/skills/rf-browser/") for n in names)
 
 

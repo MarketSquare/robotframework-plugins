@@ -22,7 +22,6 @@ counter-examples: they are excluded from dry runs and from the legacy-syntax che
 
 from __future__ import annotations
 
-import json
 import functools
 import importlib.util
 import os
@@ -303,8 +302,8 @@ def test_frontmatter_and_layout() -> None:
     assert len(compat) <= 500
     for word in ("Python", "robotframework>=7", "version-gated", "robotcode[all]>=2.8"):
         assert word in compat, word
-    plugin_version = json.loads(_text(ROOT / "plugins" / "rf-core" / ".claude-plugin" / "plugin.json"))["version"]
-    assert fm["metadata"]["author"] and fm["metadata"]["version"] == plugin_version
+    # Skills carry no version; the plugin carries the release version (release-train).
+    assert fm["metadata"]["author"] and "version" not in fm["metadata"]
     assert SCRIPT.is_file() and (SKILL / "references").is_dir() and EXAMPLES.is_dir()
     links = [p for p in SKILL.rglob("*") if p.is_symlink()]
     assert not links, links

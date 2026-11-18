@@ -3,7 +3,7 @@
 
 A ``verified`` plugin has its evidence ("Verified without evals is refused"):
 a trigger set and a narrow eval task for every skill, and committed narrow and
-trigger baselines. A bundle is verified when every plugin it bundles is.
+trigger baselines.
 
 The check decides from the repository tree alone: it doesn't count
 maintainers, look at teams or depend on the date ("No governance check fails
@@ -44,8 +44,6 @@ def _task_skills(root: Path, name: str) -> set[str]:
 
 def missing_evidence(root: Path, name: str, cat: dict) -> list[str]:
     """What a verified plugin lacks, as short evidence ids with detail."""
-    if cat.get("bundle"):
-        return []
     missing = []
     evals = root / "plugins" / name / "evals"
     own = skills(root, name)
@@ -69,9 +67,6 @@ def tier_problems(root: Path) -> list[str]:
         if cat.get("tier") != "verified":
             continue
         missing = missing_evidence(root, name, cat)
-        for member in cat.get("bundle") or []:
-            if cats.get(member, {}).get("tier") != "verified":
-                missing.append(f"bundled-plugins: bundles {member}, which is not verified")
         fails += [f"{name} (verified): {item}" for item in missing]
     return fails
 
