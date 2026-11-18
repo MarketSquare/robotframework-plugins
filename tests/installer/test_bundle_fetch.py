@@ -214,7 +214,8 @@ def test_unknown_ref(github: FakeGitHub, cache: Path) -> None:
 def test_missing_stable_names_the_alternatives(github: FakeGitHub, cache: Path) -> None:
     with pytest.raises(bundle.FetchError, match="ref 'stable' not found") as err:
         bundle.fetch(cache_dir=cache)
-    assert "'latest'" in str(err.value) and "release tag such as 'v5.0.0'" in str(err.value)
+    assert "release tag such as 'v5.0.0'" in str(err.value) and "'main'" in str(err.value)
+    assert "'latest'" not in str(err.value)
     assert "first plugin release" not in str(err.value)
 
 

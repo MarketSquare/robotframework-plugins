@@ -2,11 +2,11 @@
 
 ### Requirement: A missing stable ref names the alternatives
 
-`fetch()` SHALL keep `stable` as its default ref. When `stable` is not found in the repository, the `FetchError` SHALL say that `stable` is missing and name `latest` or a release tag (`v<version>`) as the refs to use instead. The installer README and the repository README SHALL say that every release moves `stable`.
+`fetch()` SHALL keep `stable` as its default ref. When `stable` is not found in the repository, the `FetchError` SHALL say that `stable` is missing and name a release tag (`v<version>`), or `main` for unreleased changes, as the refs to use instead; it SHALL NOT recommend `latest`, which is only an older alias of `stable`. The installer README and the repository README SHALL say that every release moves `stable`.
 
 #### Scenario: Default ref before the first release
 - **WHEN** the repository has no `stable` ref and a tool calls `fetch()`
-- **THEN** it raises `FetchError` whose message names `stable`, `latest` and a release tag
+- **THEN** it raises `FetchError` whose message names `stable`, a release tag and `main`, and not `latest`
 
 ## ADDED Requirements
 

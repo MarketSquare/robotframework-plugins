@@ -95,6 +95,8 @@ The jobs are:
 
 Skill names are unique across the catalogue, which the catalogue check already enforces, so the per-skill zips of all plugins can share one `dist/`.
 
+`latest` keeps moving with `stable` so existing pins don't break, but the docs and the `fetch()` hint no longer recommend it. It has been an alias of `stable` since repo-cleanup D6 removed `update-latest.yml`. Dropping it is left for a later major release: remove it from `update-branches`, delete the branch and say so in the changelog, after the traffic data shows whether anyone still fetches it.
+
 ### D4: Dependencies on `rf-core` by name only
 
 `plugin.json` `dependencies` become `["rf-core"]`. Claude Code documents this form: "With a bare string, your plugin depends on whatever version that plugin's marketplace provides." Every plugin comes from the same marketplace commit at the same version, so a range adds nothing, and without `rf-core--v*` tags it can't be resolved against tags anyway. Copilot CLI and Codex ignore dependencies, and the README already tells their users to install `rf-core` explicitly.

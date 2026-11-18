@@ -23,7 +23,8 @@ One version for everything: every plugin and the installer are now `5.0.0`, rele
 ### Installer
 
 - `robotframework-plugins version` and `catalog` show the one release version. `bundle.catalog()` entries keep the `bundle` and `bundled` keys, now always `false` and `[]`; `CATALOG_FORMAT` stays `1`.
-- When `stable` is missing, `bundle.fetch()` names `latest` and a release tag.
+- When `stable` is missing, `bundle.fetch()` names a release tag and `main`.
+- `latest` is now only an older alias of `stable`. Every release still moves it, but the docs recommend `stable`.
 
 ## History before one version
 
