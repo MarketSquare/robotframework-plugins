@@ -85,6 +85,10 @@ jobs:
         run: |
           bash scripts/check-drift.sh
           python scripts/build-catalog.py --check
+      # First: --clean empties dist/, so it must run before the plugin archives
+      # are written there (v5.0.0 lost them that way).
+      - name: Build the wheel and sdist
+        run: bash scripts/build-packages.sh --clean --check
       - name: Build the plugin archives
         env:
           VERSION: ${{ needs.check.outputs.version }}
@@ -102,8 +106,6 @@ jobs:
           # One Claude Desktop / claude.ai upload archive per skill; skill
           # names are unique across the catalogue.
           python scripts/build-skill-zips.py --plugin all --out dist
-      - name: Build the wheel and sdist
-        run: bash scripts/build-packages.sh --clean --check
       - name: Write the release notes
         env:
           VERSION: ${{ needs.check.outputs.version }}
@@ -113,7 +115,11 @@ jobs:
         with:
           body_path: notes.md
           prerelease: ${{ needs.check.outputs.candidate == 'yes' }}
-          files: dist/*
+          # Only the archives: the package build also leaves a .gitignore in dist/.
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.whl
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: installer-dist

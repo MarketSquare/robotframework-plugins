@@ -59,6 +59,15 @@ def test_candidates(wf: dict) -> None:
     assert release["with"]["prerelease"] == "${{ needs.check.outputs.candidate == 'yes' }}"
 
 
+def test_release_attaches_every_archive(wf: dict) -> None:
+    """The package build cleans dist/, so it runs before the plugin archives are
+    written there; only archives are attached (v5.0.0 lost its plugin archives)."""
+    steps = [s.get("name", "") for s in wf["jobs"]["release"]["steps"]]
+    assert steps.index("Build the wheel and sdist") < steps.index("Build the plugin archives")
+    release = next(s for s in wf["jobs"]["release"]["steps"] if s.get("name") == "Create the GitHub release")
+    assert release["with"]["files"].split() == ["dist/*.tar.gz", "dist/*.zip", "dist/*.whl"]
+
+
 def test_only_stable_moves(wf: dict) -> None:
     """The latest branch was dropped in 5.0.0: a release moves stable alone."""
     run = "\n".join(step.get("run", "") for step in wf["jobs"]["update-branches"]["steps"])

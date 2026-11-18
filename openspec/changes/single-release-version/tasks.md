@@ -106,10 +106,16 @@
 - [x] 7.1 Run every check in AGENTS.md: `build-catalog.py --check`, `check-governance.py`, `validate-skills.py --channel all`, `check-plugin-references.py`, `check-skill-keywords.py --require-all`, `check-robotcode-first.py`, `check-docs-voice.py`, `openspec validate --all --strict` and `uv run pytest`. Verify: all pass locally.
 
   Done 2026-11-18: every check passes. The tests pass: 920 shared tests, 559 plugin tests and 634 eval-harness tests. Deselected: the eval cases that need Browser's Node dependencies (`rfbrowser init`), SeleniumLibrary or robocop, which this local venv lacks and CI installs.
-- [ ] 7.2 Open the PR with an "AI assistance" section, wait for every check to be green, and merge. Verify: the PR is merged with no failed check, and its description lists the user-facing breaking changes.
+- [x] 7.2 Open the PR with an "AI assistance" section, wait for every check to be green, and merge. Verify: the PR is merged with no failed check, and its description lists the user-facing breaking changes.
 - [ ] 7.3 Release `5.0.0` after asking the maintainer: push the single tag `v5.0.0` on the merge commit, and the maintainer approves `pypi`. Verify:
   - one GitHub release `v5.0.0` holds five plugin archives and the wheel and sdist;
   - `uvx --refresh robotframework-plugins@5.0.0 version` prints `5.0.0`, and a plain `uvx --refresh robotframework-plugins version` resolves to `5.0.0`, not the yanked `2026.11.0`;
   - `stable` points at the tag;
   - in Claude Code, an updated `rf-core` reports `5.0.0`.
-- [ ] 7.4 Delete the `latest` branch on GitHub after this change merges. Verify: `git ls-remote --heads origin latest` prints nothing.
+
+  Status 2026-11-18: `v5.0.0` was pushed on `dfdd180`. The first run of the new workflow exposed two gaps:
+  - The `pypi` and `testpypi` environments allowed only `robotframework-plugins-v*` tags. They now allow `v*`.
+  - `build-packages.sh --clean` deleted the plugin archives. The workflow now builds the packages first and attaches only archives. For 5.0.0, the 19 plugin and skill archives were built from the tag and uploaded to the release by hand.
+
+  Still to do: approve the `pypi` deployment, then check PyPI and `stable`.
+- [x] 7.4 Delete the `latest` branch on GitHub after this change merges. Verify: `git ls-remote --heads origin latest` prints nothing.
