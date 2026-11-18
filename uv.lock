@@ -2612,7 +2612,7 @@ wheels = [
 
 [[package]]
 name = "robotframework-plugins"
-version = "2026.11.0.dev1"
+version = "2026.11.0"
 source = { editable = "installer" }
 dependencies = [
     { name = "pyyaml" },
