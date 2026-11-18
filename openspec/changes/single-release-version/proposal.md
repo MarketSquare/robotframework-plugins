@@ -24,8 +24,9 @@ Few users adopted the bundle. It doubles every skill change (`bundles/`, 145 fil
 - **BREAKING** Use one release tag, `v<version>`, for example `v5.0.0`.
   - It replaces `<plugin>--v<version>` and `robotframework-plugins-v<version>`.
   - The release workflow refuses any version not above `3.0.0`, so the old content tags `v1.1.0` to `v3.0.0` stay inert.
-  - One tag push runs one release that builds every plugin's archives, the wheel and the sdist, creates one GitHub release, publishes to PyPI after approval, and moves `stable` and `latest`.
+  - One tag push runs one release that builds every plugin's archives, the wheel and the sdist, creates one GitHub release, publishes to PyPI after approval, and moves `stable`.
   - Existing tags stay where they are.
+- **BREAKING** Remove the `latest` branch. Since repo-cleanup removed `update-latest.yml` it held the same commit as `stable`. Releases move only `stable`, and `fetch()` names a release tag or `main` when `stable` is missing.
 - Plugin dependencies on `rf-core` name the plugin without a version range. Claude Code documents this form ("depends on whatever version that plugin's marketplace provides"), every plugin is released at one version from one commit, and no `rf-core--v*` tags exist to resolve a range against.
 - Drop `metadata.version` from `SKILL.md` frontmatter and the rule that it must match `plugin.json`. Otherwise every release would rewrite every skill.
 - One `CHANGELOG.md` at the repository root replaces the six plugin changelogs and `installer/CHANGELOG.md`.

@@ -44,7 +44,7 @@ Versions stay above `3.0.0`: the tags `v1.1.0` to `v3.0.0` are the old `rf-agent
    - runs CI;
    - builds every plugin's archives, the per-skill upload archives, the wheel and the sdist;
    - creates one GitHub release from the changelog section.
-7. Approve the `pypi` environment's deployment in the workflow run. The publish job uploads with **trusted publishing**: PyPI accepts the upload from this repository's workflow without a token, and nobody handles a PyPI token. After the upload, the workflow moves `stable` and `latest` to the tag.
+7. Approve the `pypi` environment's deployment in the workflow run. The publish job uploads with **trusted publishing**: PyPI accepts the upload from this repository's workflow without a token, and nobody handles a PyPI token. After the upload, the workflow moves `stable` to the tag.
 8. Check the published package:
    ```bash
    uvx --refresh robotframework-plugins@<version> version
@@ -54,7 +54,7 @@ A pushed tag is the ref users pin a marketplace to: never move or delete one.
 
 ## Release candidates
 
-`scripts/bump-version.sh --rc <major|minor|patch>` starts a candidate, for example `5.1.0rc1`. Run it again to get `rc2`, and without `--rc` to finish the release (`5.1.0`). Plugins carry the SemVer form, `5.1.0-rc.1`. The tag is `v5.1.0rc1`. A candidate publishes to TestPyPI and is marked as a pre-release on GitHub, and `stable` and `latest` stay where they are.
+`scripts/bump-version.sh --rc <major|minor|patch>` starts a candidate, for example `5.1.0rc1`. Run it again to get `rc2`, and without `--rc` to finish the release (`5.1.0`). Plugins carry the SemVer form, `5.1.0-rc.1`. The tag is `v5.1.0rc1`. A candidate publishes to TestPyPI and is marked as a pre-release on GitHub, and `stable` stays where it is.
 
 ## Release notes
 

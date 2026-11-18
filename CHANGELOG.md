@@ -13,6 +13,7 @@ One version for everything: every plugin and the installer are now `5.0.0`, rele
 - **The `rf-agentskills` bundle is removed.** Install `rf-core` and the technology plugins you need instead: `rf-web` (Browser, SeleniumLibrary), `rf-api` (RequestsLibrary, RESTinstance), `rf-mobile` (AppiumLibrary) and `rf-desktop` (PlatynUI). Their skills carry their own prefix, for example `rf-web:rf-browser` instead of `rf-agentskills:rf-browser`, so update project instructions that name a prefixed skill. Claude Code uninstalls `rf-agentskills` on its next marketplace update. `robotframework-plugins install` replaces an `rf-agentskills` entry in `.claude/settings.json` with the five plugins.
 - **One version for every plugin and the installer.** The plugins move from `1.0.0` and the installer from `2026.11.0` to `5.0.0`. The number continues the content releases (`rf-agentskills` 1.x to 3.0.0, the 4.0.0 split), and the major bump marks the bundle's removal.
 - **One release tag, `v<version>`.** Pin a marketplace with `#v5.0.0` or `--ref v5.0.0`, or use `stable`. The `<plugin>--v1.0.0` and `robotframework-plugins-v2026.11.0` tags still install what they name, but receive no updates.
+- **The `latest` branch is removed.** It held the same commit as `stable`. Pin `stable` (the latest release), a release tag, or `main` for unreleased changes.
 - **Installer users of `2026.11.0`: reinstall.** The calendar versions `2026.11.0` and `2026.11.0.dev1` are yanked on PyPI, and `5.0.0` sorts lower than them, so `uv tool upgrade` and `pip install -U` keep the old one. Run `uv tool install --force robotframework-plugins` or `pip install --force-reinstall robotframework-plugins==5.0.0`.
 
 ### All plugins
@@ -24,7 +25,6 @@ One version for everything: every plugin and the installer are now `5.0.0`, rele
 
 - `robotframework-plugins version` and `catalog` show the one release version. `bundle.catalog()` entries keep the `bundle` and `bundled` keys, now always `false` and `[]`; `CATALOG_FORMAT` stays `1`.
 - When `stable` is missing, `bundle.fetch()` names a release tag and `main`.
-- `latest` is now only an older alias of `stable`. Every release still moves it, but the docs recommend `stable`.
 
 ## History before one version
 

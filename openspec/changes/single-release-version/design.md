@@ -91,11 +91,11 @@ The jobs are:
   - writes the notes from `CHANGELOG.md`;
   - creates one GitHub release, a pre-release for a candidate;
 - `publish`: PyPI, or TestPyPI for a candidate, in the protected environment;
-- `update-branches`: skipped for candidates, and run only after `publish` succeeds, so that `stable` never points at a release that isn't on PyPI.
+- `update-branches`: moves `stable`; skipped for candidates, and run only after `publish` succeeds, so that `stable` never points at a release that isn't on PyPI.
 
 Skill names are unique across the catalogue, which the catalogue check already enforces, so the per-skill zips of all plugins can share one `dist/`.
 
-`latest` keeps moving with `stable` so existing pins don't break, but the docs and the `fetch()` hint no longer recommend it. It has been an alias of `stable` since repo-cleanup D6 removed `update-latest.yml`. Dropping it is left for a later major release: remove it from `update-branches`, delete the branch and say so in the changelog, after the traffic data shows whether anyone still fetches it.
+`update-branches` moves only `stable`. The `latest` branch is deleted after this change merges: since repo-cleanup D6 removed `update-latest.yml` it has held the same commit as `stable`, and few users have installed from this repository yet, so dropping it now costs least. Users pin `stable`, a release tag, or `main`.
 
 ### D4: Dependencies on `rf-core` by name only
 

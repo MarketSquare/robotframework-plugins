@@ -59,6 +59,13 @@ def test_candidates(wf: dict) -> None:
     assert release["with"]["prerelease"] == "${{ needs.check.outputs.candidate == 'yes' }}"
 
 
+def test_only_stable_moves(wf: dict) -> None:
+    """The latest branch was dropped in 5.0.0: a release moves stable alone."""
+    run = "\n".join(step.get("run", "") for step in wf["jobs"]["update-branches"]["steps"])
+    assert "git push origin stable --force" in run
+    assert "latest" not in run
+
+
 def test_nothing_from_the_old_scheme() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     body = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))

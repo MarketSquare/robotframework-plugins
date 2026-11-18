@@ -78,7 +78,7 @@
 ## 5. Installer and forwarder
 
 - [x] 5.1 In `adapters/_base.py`, map `rf-agentskills@robotframework-agentskills` and `rf-agentskills@robotframework-plugins` to rf-core, rf-web, rf-api, rf-mobile and rf-desktop when no `--plugins` is given, keeping the `--ref` pin. Verify: the "Old marketplace entry migrated" and "Bundle entry replaced" scenarios pass as tests in `tests/installer/test_plugin_mode.py`.
-- [x] 5.2 Change the missing-`stable` hint in `_snapshot.py` to name `latest` and a release tag `v<version>`, without "the first plugin release". Verify: the test in `tests/installer/test_bundle_fetch.py` checks the new message.
+- [x] 5.2 Change the missing-`stable` hint in `_snapshot.py` to name a release tag `v<version>` and `main`, without "the first plugin release". Verify: the test in `tests/installer/test_bundle_fetch.py` checks the new message.
 - [x] 5.3 Make `robotframework-plugins version` show the one release version once, followed by the plugin names. Keep `version` per entry in `catalog --json`. Verify: `tests/installer/test_cli.py` checks both outputs.
 - [x] 5.4 Set the forwarder's dependency in `legacy/rf-agentskills/pyproject.toml` to `robotframework-plugins>=5.0.0`, and update its description if it names a CalVer version. Verify: `uv build legacy/rf-agentskills` succeeds, and the built metadata's `Requires-Dist` says `robotframework-plugins>=5.0.0`. Publishing it stays a separate step that the maintainer approves.
 
@@ -110,5 +110,6 @@
 - [ ] 7.3 Release `5.0.0` after asking the maintainer: push the single tag `v5.0.0` on the merge commit, and the maintainer approves `pypi`. Verify:
   - one GitHub release `v5.0.0` holds five plugin archives and the wheel and sdist;
   - `uvx --refresh robotframework-plugins@5.0.0 version` prints `5.0.0`, and a plain `uvx --refresh robotframework-plugins version` resolves to `5.0.0`, not the yanked `2026.11.0`;
-  - `stable` and `latest` point at the tag;
+  - `stable` points at the tag;
   - in Claude Code, an updated `rf-core` reports `5.0.0`.
+- [ ] 7.4 Delete the `latest` branch on GitHub after this change merges. Verify: `git ls-remote --heads origin latest` prints nothing.

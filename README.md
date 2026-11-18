@@ -246,7 +246,6 @@ Agents read project skills from `.claude/skills/` (Claude Code, Copilot), `.agen
 |---|---|---|
 | `stable` | The latest release. Use this one. | On every release |
 | `v<version>`, for example `v5.0.0` | One release | Never |
-| `latest` | Older alias of `stable`, kept so existing pins keep working. Use `stable` instead. | On every release |
 | `main` | Every merged pull request: reviewed and checked by CI, but not released | On every merge |
 
 Without a ref, agents follow the repository's default branch, `main`. Add `#stable` (or `--ref stable`) unless you want unreleased changes.

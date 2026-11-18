@@ -152,7 +152,6 @@ Choose the ref deliberately:
 
 - `stable` holds the latest release; every release moves it. If it is ever missing, `fetch()` raises `FetchError: ref 'stable' not found …`, and the message names the alternatives: a release tag such as `v5.0.0`, or `main`.
 - A release tag such as `v5.0.0` never moves: every plugin at that release.
-- `latest` is an older alias of `stable`. Every release still moves it, so code that uses it keeps working, but use `stable`.
 - `main` holds everything merged: reviewed and checked by CI, but not released. The version there can be ahead of any release, the full evaluations run later, and a change can still be reverted. Skills ship scripts that agents run, so serve `main` only where that is acceptable, and report `Snapshot.commit` so you know what you served.
 
 ## No telemetry

@@ -42,13 +42,13 @@ A release SHALL be tagged `v<version>`, for example `v5.0.0`, on the commit that
 - builds the installer's wheel and sdist;
 - creates one GitHub release with all of them attached;
 - publishes the wheel and sdist through PyPI trusted publishing after a maintainer approves the protected `pypi` environment;
-- moves `stable` and `latest` to the tagged commit after the publish succeeds.
+- moves `stable` to the tagged commit after the publish succeeds.
 
 The tags from before this change (`v1.1.0` to `v3.0.0`, `rf-agentskills-v*`, `<plugin>--v*` and `robotframework-plugins-v*`) SHALL stay unchanged, and pushing one SHALL publish nothing.
 
 #### Scenario: Release from one tag
 - **WHEN** `v5.0.0` is pushed on a commit at version `5.0.0` and the `pypi` deployment is approved
-- **THEN** one GitHub release `v5.0.0` holds an archive for each active plugin and the wheel and sdist, PyPI has `robotframework-plugins` `5.0.0`, and `stable` and `latest` point at the tagged commit
+- **THEN** one GitHub release `v5.0.0` holds an archive for each active plugin and the wheel and sdist, PyPI has `robotframework-plugins` `5.0.0`, and `stable` points at the tagged commit
 
 #### Scenario: Tag and version disagree
 - **WHEN** `v5.0.1` is pushed on a commit whose `installer/pyproject.toml` says `5.0.0`
@@ -58,9 +58,17 @@ The tags from before this change (`v1.1.0` to `v3.0.0`, `rf-agentskills-v*`, `<p
 - **WHEN** a tag `v3.0.1`, `rf-core--v1.0.1` or `robotframework-plugins-v2026.11.1` is pushed
 - **THEN** no release is created and nothing is published
 
+### Requirement: Releases have one moving branch
+
+`stable` SHALL be the only branch a release moves, and the repository SHALL have no `latest` branch: it held the same commit as `stable` and was removed in 5.0.0. Users pin `stable` for the latest release, a release tag for a fixed one, and `main` for unreleased changes.
+
+#### Scenario: No latest after a release
+- **WHEN** release `v5.0.0` has run
+- **THEN** `stable` points at the tagged commit, the repository has no `latest` branch, and no workflow creates or moves one
+
 ### Requirement: Release candidates do not move the release branches
 
-A release candidate tag such as `v5.1.0rc1` SHALL go through the same workflow, but it SHALL publish to TestPyPI, mark the GitHub release as a pre-release, and leave `stable` and `latest` where they are.
+A release candidate tag such as `v5.1.0rc1` SHALL go through the same workflow, but it SHALL publish to TestPyPI, mark the GitHub release as a pre-release, and leave `stable` where it is.
 
 #### Scenario: Candidate release
 - **WHEN** `v5.1.0rc1` is pushed

@@ -7,8 +7,8 @@
 #                The run builds every plugin's archives and the installer's
 #                wheel and sdist, creates one GitHub release, publishes to PyPI
 #                (a candidate to TestPyPI) by trusted publishing once a
-#                maintainer approves, and then moves stable and latest (not for
-#                a candidate).
+#                maintainer approves, and then moves stable (not for a
+#                candidate).
 #
 # Older tags (v1.1.0 to v3.0.0, rf-agentskills-v*, <plugin>--v*,
 # robotframework-plugins-v*) are history: the first job refuses them, so they
@@ -142,7 +142,7 @@ jobs:
           repository-url: ${{ needs.check.outputs.candidate == 'yes' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}
 
   update-branches:
-    name: Move stable and latest
+    name: Move stable
     # After PyPI has the release, so stable never points at an unpublished one;
     # a candidate moves nothing.
     needs: [check, publish]
@@ -154,9 +154,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - name: Move stable and latest to this release
+      - name: Move stable to this release
         run: |
-          for branch in stable latest; do
-            git checkout -B "$branch" "$GITHUB_REF_NAME"
-            git push origin "$branch" --force
-          done
+          git checkout -B stable "$GITHUB_REF_NAME"
+          git push origin stable --force
