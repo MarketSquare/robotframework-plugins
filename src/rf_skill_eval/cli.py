@@ -98,6 +98,7 @@ from .domain.results import RunResult, aggregate_replicates
 from .domain.scorecard import Scorecard
 from .domain.task import (
     OPENROUTER_MODELS,
+    PLUGIN_SKILL,
     PROVIDERS,
     Provider,
     Task,
@@ -1425,6 +1426,7 @@ def preflight(
         fixture_skills=fixture_skills,
         description_changed=lambda path: _description_changed(root, base, path),
         plugin="*" if plugin == ALL_PLUGINS else plugin,
+        has_canaries=any(t.skill == PLUGIN_SKILL and t.tier == "narrow" for _p, t in index.values()),
     )
     for reason in result.reasons:
         console.print(f"- {reason}")
