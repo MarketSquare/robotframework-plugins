@@ -8,7 +8,9 @@
   narrow tier;
 * anything else under ``plugins/<plugin>/`` (hooks, agents, servers) except its
   ``tests/`` and ``evals/`` -> the bundle canaries (``plugin``), which always
-  run anyway.
+  run anyway; a plugin without canary tasks runs its full narrow tier instead;
+* the plugin's top-level Markdown files (``CHANGELOG.md``, ``README.md``) ->
+  nothing: agents never read them.
 
 ``<plugin>`` is the plugin being evaluated (``*``: any); skills of other plugins are dropped.
 
@@ -122,6 +124,8 @@ def _eval_content_hit(
         for skill in sorted(fixture_skills.get(parts[2], set())):
             result.skills.add(skill)
             result.reasons.append(f"{path}: fixture {parts[2]} used by {skill}")
+    elif _starts_with(parts, ("plugins", plugin)) and len(parts) == 3 and parts[-1].endswith(".md"):
+        result.reasons.append(f"{path}: plugin documentation -> no evals")
     elif _starts_with(parts, ("plugins", plugin)) and parts[2:3] not in (("tests",), ("evals",)):
         result.skills.add(PLUGIN_SKILL)
         result.reasons.append(f"{path}: plugin change -> canaries")
@@ -135,6 +139,7 @@ def map_changed_paths(
     fixture_skills: Mapping[str, set[str]],
     description_changed: Callable[[str], bool] = lambda _p: False,
     plugin: str = "*",
+    has_canaries: bool = True,
 ) -> PreflightResult:
     """Pure mapping from changed paths to eval selection (testable without git)."""
     result = PreflightResult()
@@ -159,4 +164,9 @@ def map_changed_paths(
             if dropped:
                 selected.intersection_update(allowed)
                 result.reasons.append(f"not shipped (deleted or renamed), ignored: {', '.join(dropped)}")
+    # A scoped run always adds the canaries; without any, a plugin change would
+    # select no task at all.
+    if PLUGIN_SKILL in result.skills and not has_canaries and not result.full_tier:
+        result.full_tier = True
+        result.reasons.append("plugin change without canary tasks -> full narrow tier")
     return result

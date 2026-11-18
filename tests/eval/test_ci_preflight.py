@@ -79,6 +79,27 @@ def test_nothing_relevant_means_no_evals() -> None:
     assert _map(["README.md"]).github_outputs()["run_evals"] == "false"
 
 
+def test_plugin_changelog_and_readme_select_no_evals() -> None:
+    result = _map(["plugins/rf-web/CHANGELOG.md", "plugins/rf-core/README.md"])
+    assert result.github_outputs()["run_evals"] == "false"
+
+
+def test_plugin_change_without_canaries_runs_the_full_narrow_tier() -> None:
+    result = map_changed_paths(
+        ["plugins/rf-web/.claude-plugin/plugin.json"],
+        dir_to_skill=_DIRS,
+        task_skill=_TASKS.get,
+        fixture_skills=_FIXTURES,
+        plugin="rf-web",
+        has_canaries=False,
+    )
+    assert result.full_tier is True
+    assert result.skills_arg() == ""
+    with_canaries = _map(["plugins/rf-web/.claude-plugin/plugin.json"])
+    assert with_canaries.full_tier is False
+    assert with_canaries.skills_arg() == "plugin"
+
+
 def test_frontmatter_description() -> None:
     text = '---\nname: x\ndescription: "Writes, fixes: tests"\nlicense: Apache-2.0\n---\nbody\n'
     assert frontmatter_description(text) == "Writes, fixes: tests"
@@ -377,3 +398,16 @@ def test_eval_jobs_take_the_turn_factor_from_the_matrix_leg() -> None:
     wf = _wf()
     for name in ("pr-eval", "full-eval"):
         assert wf["jobs"][name]["env"]["TURNS_FACTOR"] == "${{ matrix.turns_factor }}"
+
+
+def test_preflight_cli_runs_rf_web_in_full_for_a_plugin_change(tmp_path: Path) -> None:
+    # rf-web has no canary tasks: a manifest change must still select tasks.
+    paths = tmp_path / "paths.txt"
+    paths.write_text("plugins/rf-web/.claude-plugin/plugin.json\nplugins/rf-web/CHANGELOG.md\n")
+    out = tmp_path / "gh_output"
+    res = runner.invoke(cli.app, ["--plugin", "rf-web", "preflight", "--paths-file", str(paths),
+                                  "--github-output", str(out)])
+    assert res.exit_code == 0, res.stdout
+    outputs = dict(line.split("=", 1) for line in out.read_text().splitlines())
+    assert outputs["full_tier"] == "true"
+    assert outputs["skills"] == ""

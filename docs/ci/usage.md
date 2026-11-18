@@ -410,7 +410,7 @@ amendment).
 
 | Trigger | Jobs | Scope | Arms | N | Model | Cap |
 |---|---|---|---|---|---|---|
-| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `deepseek/deepseek-v4.1-flash` when `OPENROUTER_API_KEY` is set, else `claude-haiku-5-5` | OpenRouter: `PR_NARROW_CAP_USD_OPENROUTER`=2, `PR_TRIGGER_CAP_USD_OPENROUTER`=2; Claude: `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
+| `pull_request` | `preflight` → `pr-eval` | narrow tasks of changed skills + `plugin` canaries (all narrow tasks when the harness changed, or when a plugin without canaries changed outside its skills; a plugin's own `CHANGELOG.md` or `README.md` selects nothing); validation-split trigger evals when a SKILL.md `description` changed | treatment | 3 | `deepseek/deepseek-v4.1-flash` when `OPENROUTER_API_KEY` is set, else `claude-haiku-5-5` | OpenRouter: `PR_NARROW_CAP_USD_OPENROUTER`=2, `PR_TRIGGER_CAP_USD_OPENROUTER`=2; Claude: `PR_NARROW_CAP_USD`=10, `PR_TRIGGER_CAP_USD`=20 |
 | `schedule` (Sun 04:00 UTC) | `preflight` → `full-eval` | all tiers + all trigger sets | treatment, baseline | 3 | GLM 5.3 Flash when the OpenRouter key is set, else tier defaults | OpenRouter: `WEEKLY_CAP_USD_OPENROUTER`=3 per invocation; Claude: 12 + 12 + 8 + 8 = $40 |
 | `workflow_dispatch` | `preflight` → `full-eval` | inputs `provider`, `tiers`, `arms`, `runs`, `model`, `allow_opus`, `max_cost_usd`, `triggers` | input | input | `provider: claude` + `model`, or GLM 5.3 Flash | `max_cost_usd` per invocation |
 | all | `harness-tests` | ruff, mypy, `pytest tests/eval` (no API calls) | – | – | – | – |

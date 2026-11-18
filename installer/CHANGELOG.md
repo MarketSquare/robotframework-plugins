@@ -6,7 +6,7 @@ The installer has calendar versions (`YYYY.M.PATCH`), independent of the plugins
 
 First upload to PyPI, as a pre-release: install it with `uv tool install --prerelease allow robotframework-plugins` or pin `robotframework-plugins==2026.11.0.dev1`. It has everything listed under 2026.11.0 below, including the Python API (`robotframework_plugins.bundle`) and `libraries[].skills` in the catalogue. Not yet included: the rf-desktop eval and validation-hook changes still under review (#4). The wheel and sdist ship the Apache-2.0 `LICENSE`.
 
-## 2026.11.0 — 2026-11-09
+## 2026.11.0 — 2026-11-18
 
 ### Renamed
 - **The package is now `robotframework-plugins`**, with the command `robotframework-plugins` and the module `robotframework_plugins`, from `MarketSquare/robotframework-plugins`. It continues `rf-agentskills` 0.8.0; `rf-agentskills` 0.9.0 depends on it and forwards with a notice. Versions switch to calendar versions, starting with `2026.11.0`.
@@ -17,7 +17,7 @@ First upload to PyPI, as a pre-release: install it with `uv tool install --prere
 - **`catalog.json` carries `"format": 1`**, and each entry its `robotframework` range.
 - **`fetch()` works through a mirror and with a token** ([#22](https://github.com/MarketSquare/robotframework-plugins/issues/22)): `source=` or `ROBOTFRAMEWORK_PLUGINS_SOURCE` points it at GitHub Enterprise or an artifact manager's GitHub remote, and `token=` or `ROBOTFRAMEWORK_PLUGINS_TOKEN` (or `GITHUB_TOKEN` for github.com) raises the API rate limit. The token goes only to the source's host, never through a redirect or over plain HTTP. The README covers proxies and company CAs.
 - **Snapshots record their catalogue format** ([#23](https://github.com/MarketSquare/robotframework-plugins/issues/23)): `Snapshot.catalog_format`, and `catalog_format` and `built_by` in `snapshot.json`. A cached snapshot in another format, or from 2026.11.0.dev1, is built again.
-- **A missing `stable` names the alternatives** ([#21](https://github.com/MarketSquare/robotframework-plugins/issues/21)): until the first plugin release creates it, `fetch()`'s error says to use `latest` or a tag.
+- **A missing `stable` names the alternatives** ([#21](https://github.com/MarketSquare/robotframework-plugins/issues/21)): if the branch is missing, `fetch()`'s error says to use `latest` or a tag.
 - **Each library names the skills that cover it** (`libraries[].skills`, [#7](https://github.com/MarketSquare/robotframework-plugins/issues/7)), for example Browser → `rf-browser`, so a tool that detects one library in a project can pick its skill rather than every skill of the plugin.
 - **Several plugins.** The installer bundles every listed plugin (`rf-core`, `rf-web`, `rf-api`, `rf-mobile`, `rf-desktop` and the `rf-agentskills` bundle). By default it installs `rf-core` plus the plugins for the libraries the project declares in `pyproject.toml` or `requirements*.txt`, or every verified plugin when it declares none. `--plugins <csv>|all` chooses them; an unknown or removed plugin is an error, a deprecated one a warning.
 - **`robotframework-plugins catalog [--json]`** lists the bundled plugins with version, tier and status. `version` prints every bundled plugin's version.
