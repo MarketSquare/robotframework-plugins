@@ -4,7 +4,53 @@ Skills, subagents and hooks that help coding agents write, run and fix Robot Fra
 
 Install `rf-core` for the Robot Framework language, environment setup and Python keyword libraries, then add the plugin for each library you test with: web, API, mobile or desktop. The plugins sit next to the RobotCode project's own [`robotcode` plugin](https://github.com/robotcodedev/robotframework-agent-plugins), which teaches agents the robotcode CLI.
 
-**Requires the robotcode CLI** (`robotcode[all]>=2.8`) in the project's Python environment. See [Prerequisites](#prerequisites).
+## Quick start
+
+1. Add robotcode to the project's Python environment. The skills and hooks run it:
+
+   ```bash
+   uv add --dev "robotcode[all]>=2.8"      # or, in an active venv: pip install "robotcode[all]>=2.8"
+   ```
+
+2. Add the plugins to your agent. You always need `rf-core`. Add one plugin for each library you test with:
+
+   | Library | Plugin |
+   |---|---|
+   | Browser, SeleniumLibrary | `rf-web` |
+   | RequestsLibrary, RESTinstance | `rf-api` |
+   | AppiumLibrary | `rf-mobile` |
+   | PlatynUI | `rf-desktop` |
+
+   The examples install `rf-web`:
+
+   **Claude Code**
+   ```bash
+   claude plugin marketplace add MarketSquare/robotframework-plugins#stable
+   claude plugin install rf-web@robotframework-plugins       # brings rf-core
+   ```
+
+   **GitHub Copilot CLI**
+   ```bash
+   copilot plugin marketplace add MarketSquare/robotframework-plugins#stable
+   copilot plugin install rf-core@robotframework-plugins
+   copilot plugin install rf-web@robotframework-plugins
+   ```
+
+   **OpenAI Codex**
+   ```bash
+   codex plugin marketplace add MarketSquare/robotframework-plugins --ref stable
+   codex plugin add rf-core@robotframework-plugins
+   codex plugin add rf-web@robotframework-plugins
+   ```
+
+   **VS Code, Cursor, OpenCode, Goose, Claude Desktop**, or plain files for any agent:
+   ```bash
+   uvx robotframework-plugins install      # asks which agents; picks the plugins from your project's libraries
+   ```
+
+3. Start a new agent session in the project. The skills load when a task needs them.
+
+[Install](#install) has the details: scopes, pinning a release, and each agent's limits.
 
 ## Catalogue
 
@@ -193,6 +239,17 @@ cp -r plugins/rf-web/skills/rf-browser <your-project>/.claude/skills/
 ```
 
 Agents read project skills from `.claude/skills/` (Claude Code, Copilot), `.agents/skills/` (Codex), `.cursor/skills/` (Cursor) and similar folders. Each release also attaches a tarball of standalone skill folders, with plain script paths.
+
+### Branches and tags
+
+| Ref | Holds | Moves |
+|---|---|---|
+| `stable` | The latest release. Use this one. | On every release |
+| `v<version>`, for example `v5.0.0` | One release | Never |
+| `latest` | The same commit as `stable`, kept for marketplaces already pinned to it | On every release |
+| `main` | Every merged pull request: reviewed and checked by CI, but not released | On every merge |
+
+Without a ref, agents follow the repository's default branch, `main`. Add `#stable` (or `--ref stable`) unless you want unreleased changes.
 
 ## Trust tiers
 
