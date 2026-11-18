@@ -30,9 +30,9 @@
 ## 7. Checks and PR
 
 - [x] 7.1 Run `uv run pytest tests/installer` (with the slow tests), `ruff check installer`, `scripts/check-drift.sh` and `scripts/build-catalog.py --check`; verify all pass. Done: `tests` (819 passed), `tests/installer` with slow tests (274 passed), the new tests on Python 3.10, drift, catalogue and docs voice pass. `ruff check installer` reports 58 findings in files this change doesn't touch (CI doesn't lint the installer); the new and changed files are clean.
-- [ ] 7.2 Open a PR against `main` that closes #5 (ask before posting); verify the required checks pass. Opened as #6: all checks pass except `required-reviews` (needs a review or the admin bypass).
+- [x] 7.2 Open a PR against `main` that closes #5 (ask before posting); verify the required checks pass. Opened as #6 and merged on 2026-11-12 with the admin bypass for `required-reviews`; #5 is closed.
 
 ## 8. Release (maintainer)
 
-- [ ] 8.1 After the merge, the maintainer pushes the `robotframework-plugins-v2026.11.0` tag in November 2026 (or bumps to `2026.12.0` first, if later) and approves the `pypi` environment; verify `pip install robotframework-plugins==2026.11.0` in a fresh venv, then `python -c "from robotframework_plugins import bundle; print(bundle.CATALOG_FORMAT, list(bundle.skills_dirs()), bundle.fetch('main').commit)"`.
-- [ ] 8.2 Comment on #5 with the released version and the API names (ask before posting); verify the comment is on the issue.
+- [x] 8.1 After the merge, the maintainer releases the API and approves the `pypi` environment; verify the install in a fresh venv, then `python -c "from robotframework_plugins import bundle; print(bundle.CATALOG_FORMAT, list(bundle.skills_dirs()), bundle.fetch('main').commit)"`. Superseded by single-release-version: 2026.11.0 was yanked, and the API shipped in 5.0.0 (tag `v5.0.0`, 2026-11-18). Verified on 2026-11-18 in a fresh venv with `robotframework-plugins==5.0.0`: `CATALOG_FORMAT` 1, five skill folders with `rf-core` first, and `fetch('v5.0.0').commit` equal to `fetch('stable').commit` (`dfdd180`).
+- [ ] 8.2 Comment on #5 with the released version (5.0.0) and the API names (ask before posting); verify the comment is on the issue.
