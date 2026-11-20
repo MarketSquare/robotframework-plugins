@@ -1,0 +1,32 @@
+id: partial-mind-lookup-01
+skill: rf-mind
+tier: partial
+description: |
+  Same request as narrow-mind-lookup-01, with only rf-core staged (a partial install).
+  Passes when the answer suggests installing rf-mind, or when FINDINGS.md still holds every exact file:line; fails on a guessed or partial answer.
+prompt: |
+  Our Robot Framework repo has grown and I need exact locations before I
+  change anything. Write FINDINGS.md at the repo root that lists:
+
+  1. where the keyword "Log In As Default User" is defined, as file:line;
+  2. every test tagged "checkout", one per line, as test name and file:line.
+
+  Give paths relative to the repo root. Do not change any .robot or
+  .resource file.
+model: claude-haiku-5-5
+stage: [rf-core]
+max_turns: 12
+timeout_seconds: 300
+allowed_tools: [Read, Write, Edit, Bash, Glob, Grep, Skill]
+grader_checks:
+- type: custom_python
+  name: suggests_plugin_or_passes
+  func_ref: rf_skill_eval.scoring.custom.partial_install:suggests_plugin_or_passes
+  plugin: rf-mind
+  checks:
+  - {type: file_contains, name: keyword_definition_line, target: FINDINGS.md, regex: 'resources/common\.resource:16\b'}
+  - {type: file_contains, name: cart_test_line, target: FINDINGS.md, regex: 'tests/checkout_cart\.robot:13\b'}
+  - {type: file_contains, name: confirm_test_line, target: FINDINGS.md, regex: 'tests/checkout_confirm\.robot:13\b'}
+  - {type: file_contains, name: payment_test_line, target: FINDINGS.md, regex: 'tests/checkout_payment\.robot:13\b'}
+  gating: true
+fixture: sut-minimal
