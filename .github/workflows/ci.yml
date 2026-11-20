@@ -87,6 +87,7 @@ jobs:
           pip install robotframework-appiumlibrary || echo "AppiumLibrary unavailable — its example dry runs will skip"
           pip install robotframework-requests || echo "RequestsLibrary unavailable — its example dry runs will skip"
           pip install RESTinstance || echo "RESTinstance unavailable on this interpreter — its example dry runs will skip"
+          pip install robotframework-maestrolibrary || echo "MaestroLibrary unavailable — its example dry runs will skip"
         shell: bash
       - name: Install Robocop 9.x and PyYAML (optional — rf-language rule-ID fidelity and YAML example tests)
         # plugins/rf-core/tests/test_language_skill.py checks every Robocop rule ID the rf-language
@@ -253,7 +254,7 @@ jobs:
         # robotcode[all] brings Robocop for the Run Keyword If check.
         run: |
           pip install robotframework "robotcode[all]>=2.8" robotframework-browser robotframework-seleniumlibrary \
-            robotframework-appiumlibrary robotframework-requests RESTinstance \
+            robotframework-appiumlibrary robotframework-requests RESTinstance robotframework-maestrolibrary \
             "robotframework-PlatynUI==0.12.0.dev330"
       - name: Resolve every keyword call with robotcode analyze code
         # --require-all: a skill whose library failed to import fails the job

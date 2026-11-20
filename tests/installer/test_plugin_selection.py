@@ -101,7 +101,7 @@ def test_catalog_json(two_plugin_bundle: Path, capsys: pytest.CaptureFixture[str
     data = json.loads(capsys.readouterr().out)
     assert data["installer"]
     by_name = {p["name"]: p for p in data["plugins"]}
-    assert set(by_name) == {"rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop", "rf-example", "rf-old"}
+    assert set(by_name) == {"rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop", "rf-maestro", "rf-example", "rf-old"}
     assert all(p["bundle"] is False and p["bundled"] == [] for p in by_name.values())
     assert by_name["rf-web"]["dependencies"] == ["rf-core"]
     for p in by_name.values():
