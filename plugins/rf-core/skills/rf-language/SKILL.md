@@ -255,6 +255,26 @@ The full table with minimum versions and robocop rule IDs is `references/migrati
 
 If robotcode or Robocop is missing from the project environment, report steps 5–8 as skipped instead of passed, and point to rf-setup for `robotcode[all]`.
 
+### Prove a new test can fail
+
+Before you call a new or changed test done, break the behaviour it checks, not the expected value: change the input, the test data or the code under test so the result must differ. Run only that test with `uv run robotcode robot -bl "<longname>"` and confirm it fails for the reason you expect. Undo the change and confirm it passes again.
+
+```robotframework
+*** Test Cases ***
+Cart Total Includes Every Item
+    ${total}=    Calculate Total    2    4
+    Should Be Equal As Integers    ${total}    6
+
+*** Keywords ***
+Calculate Total
+    [Arguments]    @{prices}
+    ${total}=    Evaluate    sum(int(p) for p in $prices)
+    RETURN    ${total}
+# Proof that the test works: temporarily make Calculate Total drop the last item
+# (or pass 2 and 5), run the test, see it fail, then undo.
+# Not a proof: a second assertion that expects 7.
+```
+
 ## Gotchas
 
 - A templated test runs every row even after a failure (`[Template]` rows continue on failure): it fails if any row fails and is skipped only if all rows skip. Do not wrap rows in `TRY`; tag the test `robot:stop-on-failure` to stop at the first failure.
