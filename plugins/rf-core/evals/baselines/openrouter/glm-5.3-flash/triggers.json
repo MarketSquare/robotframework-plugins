@@ -5,6 +5,36 @@
   "provider": "openrouter",
   "schema_version": 1,
   "skills": {
+    "rf-bdd": {
+      "train": {
+        "accuracy": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "negative_loads": 2,
+        "negative_runs": 21,
+        "positive_loads": 21,
+        "positive_runs": 21,
+        "precision": 1.0,
+        "queries": 14,
+        "recall": 1.0,
+        "tn": 7,
+        "tp": 7
+      },
+      "validation": {
+        "accuracy": 0.875,
+        "fn": 0,
+        "fp": 1,
+        "negative_loads": 3,
+        "negative_runs": 12,
+        "positive_loads": 12,
+        "positive_runs": 12,
+        "precision": 0.8,
+        "queries": 8,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 4
+      }
+    },
     "rf-language": {
       "train": {
         "accuracy": 0.8,

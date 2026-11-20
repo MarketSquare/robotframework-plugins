@@ -61,10 +61,10 @@ def test_libraries_live_in_the_plugins() -> None:
         "robotframework-requests", "RESTinstance", "robotframework-PlatynUI"}
 
 def test_every_skill_has_one_home() -> None:
-    """plugin-split: the nine skills appear once each, in the plugins the table names."""
+    """plugin-split: the ten skills appear once each, in the plugins the table names."""
     homes = {md.parent.name: md.parent.parent.parent.name for md in REPO.glob("plugins/*/skills/*/SKILL.md")}
     split = {
-        "rf-language": "rf-core", "rf-setup": "rf-core", "rf-python-library": "rf-core",
+        "rf-language": "rf-core", "rf-bdd": "rf-core", "rf-setup": "rf-core", "rf-python-library": "rf-core",
         "rf-browser": "rf-web", "rf-selenium": "rf-web", "rf-requests": "rf-api", "rf-restinstance": "rf-api",
         "rf-appium": "rf-mobile", "rf-platynui": "rf-desktop"}
     # Other plugins (a community plugin, the template in CI) may add skills.

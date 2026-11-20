@@ -149,12 +149,15 @@ def test_adversarial_tasks_are_tier_adversarial() -> None:
         ("sut-selenium", "tests/example.robot"),
         ("sut-api", "tests"),
         ("sut-browser", "tests/example.robot"),
+        ("sut-bdd-library/base", "smoke"),
+        ("sut-bdd-library/steps", "tests"),
+        ("sut-bdd-library/review", "tests"),
     ],
 )
 def test_fixture_smoke_suite_passes(tmp_path: Path, fixture: str, target: str) -> None:
     from rf_skill_eval.scoring.deterministic import check_robot_pass
 
-    ws = tmp_path / fixture
+    ws = tmp_path / fixture.replace("/", "-")
     shutil.copytree(_FIXTURES / fixture, ws)
     now = datetime.now(UTC)
     run = Run(
@@ -522,3 +525,83 @@ def test_legacy_syntax_bad_solution_fails_on_depr_checks(tmp_path: Path) -> None
     assert by_type["file_not_contains"].status == "failed"
     if shutil.which("robocop") is not None:
         assert by_type["lint_clean"].status == "failed"
+
+
+# --- rf-bdd tasks (add-rf-bdd-skill, tasks 5.1-5.3) ---------------------------------
+
+BDD_NARROW = [
+    "narrow-bdd-greenfield-01",
+    "narrow-bdd-outline-01",
+    "narrow-bdd-extend-vocabulary-01",
+    "narrow-bdd-review-01",
+]
+BDD_ADVERSARIAL = ["adv-bdd-gherkin-row-01"]
+BDD_TASKS = BDD_NARROW + BDD_ADVERSARIAL
+
+
+@pytest.mark.parametrize("task_id", BDD_TASKS)
+def test_bdd_task_is_graded_for_rf_bdd(task_id: str) -> None:
+    task = _task(task_id)
+    assert task.skill == "rf-bdd"
+    assert task.tier == ("adversarial" if task_id.startswith("adv-") else "narrow")
+    assert task.fixture and task.fixture.split("/")[0] == "sut-bdd-library"
+    gating = task.gating_checks
+    assert gating
+    # No LLM judge and no transcript-only check gates a task (D10).
+    assert all(c.type not in ("tool_call_count", "tool_result_count", "tool_call_sequence") for c in gating)
+    refs = {str(c.params.get("func_ref", "")).rsplit(":", 1)[-1] for c in gating}
+    if task_id == "narrow-bdd-review-01":
+        assert refs == {"review_findings"}
+    else:
+        assert {"structure", "living_docs", "native_only"} <= refs
+        robot = [c for c in gating if c.type == "robot_pass"]
+        assert robot and robot[0].params.get("expected_tests")
+
+
+@pytest.mark.parametrize("task_id", BDD_TASKS)
+def test_bdd_gate_fails_on_unmodified_fixture(tmp_path: Path, task_id: str) -> None:
+    sc = _grade(tmp_path, task_id, None)
+    if task_id == "narrow-bdd-review-01":
+        # No transcript without a session: the review check can't decide.
+        assert sc.gate_result == "incomplete"
+        return
+    assert all(v.status in ("passed", "failed") for v in sc.gating_verdicts), [
+        (v.check_name, v.status, v.reason) for v in sc.gating_verdicts
+    ]
+    assert sc.gate_result == "fail"
+
+
+@pytest.mark.parametrize("task_id", BDD_TASKS)
+def test_bdd_reference_solution_passes(tmp_path: Path, task_id: str) -> None:
+    sc = _grade(tmp_path, task_id, _GOLDEN / task_id / "good")
+    problems = [(v.check_name, v.status, v.details) for v in sc.verdicts if not v.passed]
+    assert sc.gate_result == "pass", problems
+    # The reference solutions also pass the reported (non-gating) checks.
+    assert not [p for p in problems if p[0] != "loaded_rf_bdd_skill"], problems
+
+
+@pytest.mark.parametrize("task_id", BDD_TASKS)
+def test_bdd_naive_solution_fails(tmp_path: Path, task_id: str) -> None:
+    sc = _grade(tmp_path, task_id, _GOLDEN / task_id / "bad")
+    assert sc.gate_result == "fail", [(v.check_name, v.status, v.details) for v in sc.verdicts]
+
+
+def test_bdd_gherkin_row_kept_as_1_days_fails_only_on_the_sentence(tmp_path: Path) -> None:
+    sc = _grade(tmp_path, "adv-bdd-gherkin-row-01", _GOLDEN / "adv-bdd-gherkin-row-01" / "bad")
+    by_name = {v.check_name: v for v in sc.gating_verdicts}
+    assert by_name["no_step_reads_1_days"].status == "failed"
+    assert "1 days" in by_name["no_step_reads_1_days"].details
+    assert [n for n, v in by_name.items() if not v.passed] == ["no_step_reads_1_days"]
+
+
+def test_bdd_review_that_edits_fails_although_the_findings_are_right(tmp_path: Path) -> None:
+    sc = _grade(tmp_path, "narrow-bdd-review-01", _GOLDEN / "narrow-bdd-review-01" / "bad")
+    review = next(v for v in sc.verdicts if v.check_name == "review_reports_seeded_issues_without_edits")
+    assert review.status == "failed" and "modified tests/loans.robot" in review.details
+
+
+def test_bdd_naive_vocabulary_fails_on_reuse(tmp_path: Path) -> None:
+    sc = _grade(tmp_path, "narrow-bdd-extend-vocabulary-01",
+                _GOLDEN / "narrow-bdd-extend-vocabulary-01" / "bad")
+    failed = {v.check_name for v in sc.gating_verdicts if not v.passed}
+    assert failed == {"reuses_borrow_sentence", "reuses_refusal_sentence"}, failed

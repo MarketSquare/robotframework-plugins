@@ -51,6 +51,8 @@ Prefer one test case per row: the report then shows which data row failed. Use m
 
 Scenarios that stakeholders read. Each step starts with `Given`, `When`, `Then`, `And` or `But`; Robot Framework drops the prefix before it looks the keyword up. Step keywords are therefore defined without a prefix, usually with embedded arguments (see the embedded-arguments reference for step definitions).
 
+Writing or reviewing a BDD specification (features, rules, step vocabularies, scenario state, pasted Gherkin) is covered by the `rf-bdd` skill.
+
 ```robotframework
 *** Settings ***
 Resource          ../resources/calc.resource

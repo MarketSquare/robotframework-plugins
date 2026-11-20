@@ -1,0 +1,65 @@
+id: narrow-bdd-greenfield-01
+skill: rf-bdd
+tier: narrow
+description: |
+  Greenfield BDD specification for the borrowing rules of the library lending
+  service (ported from the bdd-agentskill case author-greenfield). Gated by a
+  green run of at least 5 tests, test bodies made only of Given/When/Then/And/But
+  steps (or template rows), suite documentation plus Metadata Feature or a
+  feature: tag, and no .feature file or Gherkin parser.
+prompt: |
+  Our library lending service (sut/LibraryService.py) has no acceptance tests
+  yet. Please write Robot Framework tests in BDD style (Given/When/Then) for
+  borrowing books. The rules: a member gets an available copy for 21 days; no
+  available copy means no loan; standard members may have 3 books at a time,
+  premium members 10; blocked members and members with unpaid fines cannot
+  borrow.
+model: claude-haiku-5-5
+max_turns: 30
+timeout_seconds: 600
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: robot_pass
+    name: specification_passes
+    target: tests
+    expected_tests: 5
+    gating: true
+  - type: custom_python
+    name: native_robot_only
+    func_ref: rf_skill_eval.scoring.custom.bdd:native_only
+    gating: true
+  - type: file_not_contains
+    name: no_gherkin_parser_configured
+    path: robot.toml
+    regex: '(?i)GherkinParser|parsers|--parser'
+    gating: true
+  - type: custom_python
+    name: test_bodies_are_steps
+    func_ref: rf_skill_eval.scoring.custom.bdd:structure
+    path: tests
+    gating: true
+  - type: custom_python
+    name: suites_document_the_feature
+    func_ref: rf_skill_eval.scoring.custom.bdd:living_docs
+    path: tests
+    gating: true
+  - type: custom_python
+    name: step_sentences_read_for_every_value
+    func_ref: rf_skill_eval.scoring.custom.bdd:step_names_absent
+    path: tests
+    regex: '(?<![\d.])1 (copies|books|days)\b'
+    gating: false
+  - type: tool_call_count
+    name: loaded_rf_bdd_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-bdd|/skills/rf-bdd/SKILL\.md)'
+    min: 1
+fixture: sut-bdd-library/base
+primary_metric: robot_pass

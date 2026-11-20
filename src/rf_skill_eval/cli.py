@@ -1418,7 +1418,8 @@ def preflight(
     fixture_skills: dict[str, set[str]] = {}
     for _p, t in index.values():
         if t.fixture:
-            fixture_skills.setdefault(t.fixture, set()).add(t.skill)
+            # A variant directory (``sut-bdd-library/review``) belongs to its top-level fixture.
+            fixture_skills.setdefault(t.fixture.split("/", 1)[0], set()).add(t.skill)
     result = map_changed_paths(
         paths,
         dir_to_skill={d: n for n, d in shipped_skills(root, plugin).items()},

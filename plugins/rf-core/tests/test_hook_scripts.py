@@ -223,7 +223,7 @@ def test_injection_budget_and_routing(prompt: str) -> None:
     assert hso["hookEventName"] == "UserPromptSubmit"
     ctx = hso["additionalContext"]
     assert len(ctx) <= INJECTION_BUDGET, len(ctx)
-    for name in ("rf-language", "rf-python-library", "robotcode doc keyword", "robotcode results"):
+    for name in ("rf-language", "rf-bdd", "rf-python-library", "robotcode doc keyword", "robotcode results"):
         assert name in ctx, name
     assert ctx.rstrip().endswith("Write RF 7 syntax: RETURN, VAR, IF, Test Tags.")
     # No skill / subagent lists any more: the text routes by task.
@@ -283,6 +283,20 @@ def test_injected_context_names_python_library_skill(prompt: str) -> None:
     assert "Python libraries/listeners -> rf-python-library" in ctx
 
 
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "use rf-bdd to turn these acceptance criteria into tests",
+        "Rewrite tests/checkout.robot as Given/When/Then scenarios",
+    ],
+)
+def test_injected_context_routes_bdd_specs(prompt: str) -> None:
+    """add-rf-bdd-skill: the rf-bdd id triggers, and BDD specs route to rf-bdd."""
+    out, _err, rc = _run(INJECT_SCRIPT, {"prompt": prompt})
+    assert rc == 0
+    assert "Given/When/Then specs, Gherkin -> rf-bdd" in _expect_injection(out)["additionalContext"]
+
+
 def test_inject_fires_on_language_skill_id() -> None:
     out, _err, rc = _run(INJECT_SCRIPT, {"prompt": "Load rf-language for this suite"})
     assert rc == 0
@@ -339,6 +353,9 @@ def test_injected_context_states_skill_boundaries() -> None:
         "What does RF stand for in your domain?",
         "run the unit tests and fix the RF amplifier model",
         "refactor this React component",
+        # Gherkin on its own is Cucumber, SpecFlow or pytest-bdd, not Robot Framework.
+        "write Cucumber step definitions in Java for: Given a cart, When I check out",
+        "Scenario: Given a logged-in user When they open the cart Then it is empty",
         # Markdown bold / emphasis is not an RF section header.
         "*** Important *** read this first",
     ],

@@ -31,7 +31,7 @@ if (!prompt) process.exit(0);
 //   - File extensions: .robot, .resource
 //   - Library names: SeleniumLibrary, Browser Library, AppiumLibrary,
 //     RequestsLibrary, RESTinstance, PlatynUI
-//   - skill ids: rf-setup, rf-language, rf-python-library (rf-core);
+//   - skill ids: rf-setup, rf-language, rf-bdd, rf-python-library (rf-core);
 //     rf-browser, rf-selenium (rf-web); rf-requests, rf-restinstance (rf-api);
 //     rf-appium (rf-mobile); rf-platynui (rf-desktop)
 //   - rf-core subagent ids: rf-test-architect, rf-debug-expert,
@@ -44,8 +44,9 @@ if (!prompt) process.exit(0);
 //   - RF section headers pasted into the prompt: *** Settings ***, *** Variables ***,
 //     *** Test Cases ***, *** Tasks ***, *** Keywords ***, *** Comments ***
 //     (singular legacy spellings included)
-// Things NOT matched: bare "test" (too noisy), bare "RF" (ambiguous).
-const RF_REGEX = /robot[ -]?framework|\.robot\b|\.resource\b|\b(selenium|browser|appium|requests)library\b|\brestinstance\b|\b(selenium|browser|appium|requests) library\b|\bplatynui\b|\blibdoc\b|\b(robotidy|robocop|rfbrowser|robotcode)\b|\brobot-debug\b|\brobot\.toml\b|@keyword\b|\brobot\.api\.deco\b|\bROBOT_(LIBRARY|LISTENER)_[A-Z_]+|contains no keywords|\brobot( framework)? listeners?\b|\blistener api\b|\brf-(setup|language|python-library|browser|selenium|appium|requests|restinstance|platynui)\b|\brf-(test-architect|debug-expert|migration-guide)\b|\*\*\*\s*(settings?|variables?|test cases?|tasks?|keywords?|comments?)\s*\*\*\*/i;
+// Things NOT matched: bare "test" (too noisy), bare "RF" (ambiguous), and
+// Gherkin words on their own ("Given", "Scenario", "Cucumber").
+const RF_REGEX = /robot[ -]?framework|\.robot\b|\.resource\b|\b(selenium|browser|appium|requests)library\b|\brestinstance\b|\b(selenium|browser|appium|requests) library\b|\bplatynui\b|\blibdoc\b|\b(robotidy|robocop|rfbrowser|robotcode)\b|\brobot-debug\b|\brobot\.toml\b|@keyword\b|\brobot\.api\.deco\b|\bROBOT_(LIBRARY|LISTENER)_[A-Z_]+|contains no keywords|\brobot( framework)? listeners?\b|\blistener api\b|\brf-(setup|language|bdd|python-library|browser|selenium|appium|requests|restinstance|platynui)\b|\brf-(test-architect|debug-expert|migration-guide)\b|\*\*\*\s*(settings?|variables?|test cases?|tasks?|keywords?|comments?)\s*\*\*\*/i;
 
 if (!RF_REGEX.test(prompt)) process.exit(0);
 
@@ -55,8 +56,9 @@ if (!RF_REGEX.test(prompt)) process.exit(0);
 // technology plugins (tests check it): a library skill may not be installed,
 // so library work routes generically and to installing its plugin.
 const CONTEXT = [
-  "Robot Framework context detected. Load the matching skill before writing RF: ",
+  "RF context. Load the skill first: ",
   "tests, suites, keywords, resources, variables -> rf-language; ",
+  "Given/When/Then specs, Gherkin -> rf-bdd; ",
   "Python libraries/listeners -> rf-python-library; installs -> rf-setup; ",
   "a library -> its own skill; if missing, suggest its plugin (rf-web, rf-api, rf-mobile, rf-desktop). ",
   "Keywords: `robotcode doc keyword`, not memory; results: `robotcode results`, not output.xml. ",

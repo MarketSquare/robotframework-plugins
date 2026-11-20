@@ -1,0 +1,49 @@
+id: narrow-bdd-review-01
+skill: rf-bdd
+tier: narrow
+description: |
+  Review a procedural loan suite for BDD quality without editing it (ported
+  from review-procedural; fixture variant with tests/loans.robot and
+  tests/loan_steps.resource, 7 seeded issues: L1 library calls in a test
+  body, L2 procedural UI step, W1 conjunction step, W2/C5 vague outcome, W3
+  placeholder data, L6 repeated When/Then phases, W12/W6/W7 meaningless names
+  and no feature documentation). Gated by: no file added, removed or changed,
+  and at least 5 of the 7 seeded issues named by check ID in findings lines
+  of the form "ID — file:line — ..." in the final answer.
+prompt: |
+  Our product owner says the loan tests in tests/loans.robot are impossible to
+  read. Can you review them (and the steps in tests/loan_steps.resource) for
+  BDD quality and tell me what to change? Just the review for now, don't
+  change any files.
+model: claude-haiku-5-5
+max_turns: 20
+timeout_seconds: 480
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: custom_python
+    name: review_reports_seeded_issues_without_edits
+    func_ref: rf_skill_eval.scoring.custom.bdd:review_findings
+    fixture: sut-bdd-library/review
+    seeded: [L1, L2, W1, "W2|C5", W3, L6, "W12|W6|W7"]
+    min_found: 5
+    gating: true
+  - type: robot_pass
+    name: loan_tests_still_pass
+    target: tests
+    expected_tests: 2
+    expected_tests_exact: true
+    gating: false
+  - type: tool_call_count
+    name: loaded_rf_bdd_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-bdd|/skills/rf-bdd/SKILL\.md)'
+    min: 1
+fixture: sut-bdd-library/review
+primary_metric: custom_python

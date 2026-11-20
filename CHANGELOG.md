@@ -4,6 +4,12 @@ Every plugin (`rf-core`, `rf-web`, `rf-api`, `rf-mobile`, `rf-desktop`) and the 
 
 ## Unreleased
 
+### rf-core
+
+- **New skill `rf-bdd`** for behaviour-driven specifications in native `.robot` files: features and rules as suites, documentation and tags, one step vocabulary, scenario state, outlines as templates, pasted Gherkin or acceptance criteria translated by meaning, and reviews with check IDs. It follows the project's conventions and ships a Robocop configuration for sentence-style steps (`assets/robocop-bdd.toml`) and two runnable example projects. No `.feature` files and no Gherkin parser.
+- `rf-language` names `rf-bdd` for BDD specifications. Its casing gotcha now says to follow the project's Robocop configuration instead of requiring Title Case BDD steps.
+- The context hook routes Given/When/Then and Gherkin work to `rf-bdd`, and `rf-test-architect` routes BDD specifications to it.
+
 ## 5.0.0 — 2026-11-18
 
 One version for everything: every plugin and the installer are now `5.0.0`, released together with one tag, `v5.0.0`.
