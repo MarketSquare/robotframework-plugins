@@ -1,0 +1,23 @@
+# Robocop settings for sentence-style BDD steps (rf-bdd's default for new projects).
+# Paste into robot.toml or pyproject.toml (robocop.toml: drop the "tool.robocop." prefix).
+# See references/robocop.md for what each line does and how to merge it.
+[tool.robocop.lint]
+configure = [
+    # Step definitions read as sentences: "The ATM dispenses ${amount} EUR".
+    "wrong-case-in-keyword-name.convention=first_word_capitalized",
+    # Possessive steps such as "${holder}'s balance is ${amount} EUR".
+    "wrong-case-in-keyword-name.pattern='s",
+    # Calls read as Gherkin: "Then the ATM dispenses 20 EUR".
+    "wrong-case-in-keyword-call.convention=first_word_capitalized",
+]
+# Step resources keep scenario state in declared test-scope variables on purpose.
+per-file-ignores = { "*_steps.resource" = ["VAR06"] }
+
+# Only matters if the project runs `robocop format`: keeps BDD tables readable.
+[tool.robocop.format]
+# Align outline examples under the column labels of the *** Test Cases *** header.
+extend-select = ["AlignTemplatedTestCases"]
+configure = [
+    # Don't collapse hand-aligned data tables and doc strings after BDD steps.
+    'NormalizeSeparators.skip_keyword_call_pattern=^(Given|When|Then|And|But)\s',
+]

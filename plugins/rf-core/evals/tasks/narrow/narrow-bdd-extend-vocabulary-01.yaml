@@ -1,0 +1,83 @@
+id: narrow-bdd-extend-vocabulary-01
+skill: rf-bdd
+tier: narrow
+description: |
+  Add loan-limit and blocked-member tests to an existing borrowing feature
+  (ported from author-extend-vocabulary; fixture variant with
+  tests/borrowing.robot and resources/borrowing_steps.resource). Gated by a
+  green run of at least 5 tests (2 existing + 3 new), step-only bodies, living
+  documentation, native .robot only, the existing borrow and refusal
+  sentences reused at least three times each, and those step keywords still
+  defined as they were.
+prompt: |
+  Please add tests to our borrowing feature (tests/borrowing.robot) for the
+  loan limit (standard members 3 books, premium members 10) and for blocked
+  members, who cannot borrow at all. Keep the style of the existing tests.
+model: claude-haiku-5-5
+max_turns: 30
+timeout_seconds: 600
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: robot_pass
+    name: borrowing_feature_passes
+    target: tests
+    expected_tests: 5
+    gating: true
+  - type: custom_python
+    name: native_robot_only
+    func_ref: rf_skill_eval.scoring.custom.bdd:native_only
+    gating: true
+  - type: file_not_contains
+    name: no_gherkin_parser_configured
+    path: robot.toml
+    regex: '(?i)GherkinParser|parsers|--parser'
+    gating: true
+  - type: custom_python
+    name: test_bodies_are_steps
+    func_ref: rf_skill_eval.scoring.custom.bdd:structure
+    path: tests
+    gating: true
+  - type: custom_python
+    name: suites_document_the_feature
+    func_ref: rf_skill_eval.scoring.custom.bdd:living_docs
+    path: tests
+    gating: true
+  - type: file_contains
+    name: reuses_borrow_sentence
+    path: tests/borrowing.robot
+    regex: '(^\s+When \w+ borrows "[^"]+"\s*$[\s\S]*){3}'
+    gating: true
+  - type: file_contains
+    name: reuses_refusal_sentence
+    path: tests/borrowing.robot
+    regex: '(^\s+(Then|And) the loan is refused with "[^"]+"\s*$[\s\S]*){3}'
+    gating: true
+  - type: file_contains
+    name: borrow_step_still_defined
+    path: resources/borrowing_steps.resource
+    regex: '^\$\{member\} borrows "\$\{title\}"\s*$'
+    gating: true
+  - type: file_contains
+    name: refusal_step_still_defined
+    path: resources/borrowing_steps.resource
+    regex: '^The loan is refused with "\$\{reason\}"\s*$'
+    gating: true
+  - type: file_contains
+    name: existing_tests_kept
+    path: tests/borrowing.robot
+    regex: '^Member borrows an available book\s*$[\s\S]*^Book without an available copy cannot be borrowed\s*$'
+    gating: false
+  - type: tool_call_count
+    name: loaded_rf_bdd_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-bdd|/skills/rf-bdd/SKILL\.md)'
+    min: 1
+fixture: sut-bdd-library/steps
+primary_metric: robot_pass

@@ -121,6 +121,7 @@ ROBOCOP_RULES = {
     "ERR17": "unsupported-setting-in-init-file",
     "NAME07": "not-capitalized-test-case-title",
     "NAME08": "section-variable-not-uppercase",
+    "NAME02": "wrong-case-in-keyword-name",
     "NAME18": "wrong-case-in-keyword-call",
     "ORD02": "keyword-section-out-of-order",
     "VAR05": "no-suite-variable",
@@ -533,7 +534,7 @@ def test_agent_workflow_order_and_blind_spots() -> None:
     assert "skipped" in tail and "rf-setup" in tail and "robotcode[all]" in tail
     assert "--no-cache" in lint, "robocop leaves .robocop_cache/ in the project without --no-cache"
     assert lint.count(" -s ") >= 4 and "DEPR" in lint and "ORD02" in lint and "NAME" in lint
-    assert not re.search(r"-s\s+\S*,\S*", lint), "comma-separated robocop selection is rejected by robocop 9"
+    assert not re.search(r"-s\s+\S*,\S*", lint), "a comma-separated robocop selection selects nothing"
     assert "robotcode analyze code" in wf and "robotcode robot -bl" in wf and "robotcode results show --failed" in wf
     assert 'robotcode doc keyword' in joined[1]
     for retired in ("rf-libdoc", "rf-results", "rf-robotcode"):

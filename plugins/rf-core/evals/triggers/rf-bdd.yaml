@@ -1,0 +1,46 @@
+# Trigger query set for rf-bdd (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+#
+# rf-language loading alongside rf-bdd on a BDD query is expected (rf-bdd relies
+# on it for syntax) and is not a failure of either set (add-rf-bdd-skill D9).
+# Kept out on purpose (ambiguous between rf-bdd and rf-language, so it is
+# neither a positive nor a negative in either set):
+#   "Make tests/search.robot data-driven with one keyword and twelve rows"
+#   "Write the step keywords behind these Given/When/Then lines" (rf-language lang-t14)
+skill: rf-bdd
+model: claude-haiku-5-5
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train): BDD specifications, pasted Gherkin, acceptance criteria, step vocabulary
+  - {id: bdd-t01, split: train, should_trigger: true, query: "Write BDD-style Robot Framework tests for our password reset flow"}
+  - {id: bdd-t02, split: train, should_trigger: true, note: "indirect: pasted Gherkin", query: "Turn this into our robot tests: Scenario: Refund within 30 days / Given Alice bought a kettle 10 days ago / When she asks for a refund / Then the refund is approved"}
+  - {id: bdd-t03, split: train, should_trigger: true, query: "Turn the acceptance criteria in this user story into executable Robot Framework specifications"}
+  - {id: bdd-t04, split: train, should_trigger: true, note: "edit existing file", query: "tests/checkout.robot mixes Click Button calls with Given/When/Then lines, make it read like a specification"}
+  - {id: bdd-t05, split: train, should_trigger: true, query: "How do I write a scenario outline in Robot Framework with named examples for 1, 5 and 10 items?"}
+  - {id: bdd-t06, split: train, should_trigger: true, note: "indirect: intent only", query: "Our product owners can't read the robot tests; make the steps sound like business language"}
+  - {id: bdd-t07, split: train, should_trigger: true, query: "Three robot suites say 'the user is logged in', 'the user has signed in' and 'a logged-in user'; unify the step vocabulary"}
+  # should trigger (validation)
+  - {id: bdd-t08, split: validation, should_trigger: true, query: "Review tests/orders/ for Given/When/Then readability and consistency, don't change anything yet"}
+  - {id: bdd-t09, split: validation, should_trigger: true, query: "Write a loyalty points feature with a Background and two rules in Robot Framework, Gherkin style but in .robot files"}
+  - {id: bdd-t10, split: validation, should_trigger: true, note: "indirect: migration question", query: "Where does the Background of our Cucumber feature go when we move it to Robot Framework?"}
+  - {id: bdd-t11, split: validation, should_trigger: true, query: "Convert these acceptance criteria into Given When Then robot tests: premium members borrow up to 10 books, standard members 3"}
+  # should NOT trigger (train): sibling skills and non-RF BDD look-alikes
+  - {id: bdd-n01, split: train, should_trigger: false, note: "sibling rf-language", query: "Replace Run Keyword If and Set Test Variable in resources/cart.resource with IF and VAR"}
+  - {id: bdd-n02, split: train, should_trigger: false, note: "sibling rf-language", query: "Add a Suite Setup in tests/api/__init__.robot that opens the API session for every suite"}
+  - {id: bdd-n03, split: train, should_trigger: false, note: "sibling rf-python-library", query: "Write a Python keyword library that talks to our MQTT broker"}
+  - {id: bdd-n04, split: train, should_trigger: false, note: "sibling robotcode-plugin", query: "Summarize which tests failed in results/output.xml"}
+  - {id: bdd-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write Cucumber step definitions in Java for these Gherkin steps"}
+  - {id: bdd-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write pytest-bdd step functions for our checkout.feature"}
+  - {id: bdd-n07, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install Robot Framework and Robocop in our uv project"}
+  # should NOT trigger (validation)
+  - {id: bdd-n08, split: validation, should_trigger: false, note: "sibling rf-language", query: "How do I give a user keyword argument a default value in Robot Framework?"}
+  - {id: bdd-n09, split: validation, should_trigger: false, note: "sibling robotcode-plugin", query: "List all robot tests tagged smoke in this project"}
+  - {id: bdd-n10, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write SpecFlow bindings in C# for the login feature"}
+  - {id: bdd-n11, split: validation, should_trigger: false, note: "sibling rf-python-library", query: "My Python library keyword should accept an enum argument, how do I declare it?"}
+  # holdout: written with the first description, never used to choose or accept one
+  - {id: bdd-h01, split: holdout3, should_trigger: true, note: "edit existing file", query: "Our robot tests read like scripts; rewrite tests/payments.robot as a behaviour specification the product owner can sign off"}
+  - {id: bdd-h02, split: holdout3, should_trigger: true, query: "One row of our outline reads 'on the due date' instead of a number of days; how should that look in the robot test?"}
+  - {id: bdd-h03, split: holdout3, should_trigger: false, note: "sibling rf-language", query: "Organize our robot resource files per domain and import them by name"}
+  - {id: bdd-h04, split: holdout3, should_trigger: false, note: "non-RF look-alike", query: "Write Behave step implementations in Python for this feature file"}

@@ -641,7 +641,7 @@ def test_trigger_stage_runs_a_partial_install(tmp_path: Path, monkeypatch: pytes
                                       "--split", "validation", "--runs", "1", "--output", str(out),
                                       "--baseline", str(tmp_path / "none.json")])
     assert res.exit_code == 0, res.output
-    assert staged_dirs == {frozenset({"rf-language", "rf-setup", "rf-python-library", "rf-browser", "rf-selenium"})}
+    assert staged_dirs == {frozenset({"rf-language", "rf-bdd", "rf-setup", "rf-python-library", "rf-browser", "rf-selenium"})}
     data = json.loads((out / "trigger-results.json").read_text())
     assert data["staged"] == ["rf-core", "rf-web"] and "rf-requests" not in data["staged_skills"]
     partial = json.loads((out / "partial-install.json").read_text())

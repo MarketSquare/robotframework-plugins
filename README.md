@@ -81,7 +81,7 @@ There are two ways to install, and both work at **user scope** (every project on
 
 | Plugin | What it adds |
 |---|---|
-| `rf-core` | Robot Framework syntax (`rf-language`), environment setup (`rf-setup`), Python keyword libraries (`rf-python-library`); the `rf-test-architect`, `rf-debug-expert` and `rf-migration-guide` subagents; all hooks. Every other plugin needs it. |
+| `rf-core` | Robot Framework syntax (`rf-language`), BDD specifications (`rf-bdd`), environment setup (`rf-setup`), Python keyword libraries (`rf-python-library`); the `rf-test-architect`, `rf-debug-expert` and `rf-migration-guide` subagents; all hooks. Every other plugin needs it. |
 | `rf-web` | Browser Library (`rf-browser`) and SeleniumLibrary (`rf-selenium`) |
 | `rf-api` | RequestsLibrary (`rf-requests`) and RESTinstance (`rf-restinstance`) |
 | `rf-mobile` | AppiumLibrary (`rf-appium`) |
@@ -272,7 +272,7 @@ The installer, hooks and scripts send nothing anywhere. The installer only touch
 
 ## What you get
 
-### 9 Skills
+### 10 Skills
 
 | Skill | Type | Command | Description |
 |-------|------|---------|-------------|
@@ -283,6 +283,7 @@ The installer, hooks and scripts send nothing anywhere. The installer only touch
 | RESTinstance | library-reference | `/rf-api:rf-restinstance` | REST API tests with RESTinstance (`Library    REST`): JSON Schema / OpenAPI-driven assertions |
 | PlatynUI (preview) | library-reference | `/rf-desktop:rf-platynui` | Native desktop UI testing (Windows UIA, Linux AT-SPI2) via PlatynUI.BareMetal |
 | Robot Framework language | language-guide + script | `/rf-core:rf-language` | Write and review tests (keyword-driven, data-driven, BDD), suites, `__init__.robot`, tags, user keywords, `.resource` and variable files in modern, version-gated syntax; `rf_conventions.py` script detects the project's conventions (requires robotframework). Not for Python keyword libraries |
+| BDD specifications | language-guide | `/rf-core:rf-bdd` | Write and review behaviour-driven specifications in native `.robot` files: features and rules as suites, documentation and tags, one step vocabulary, scenario state, outlines as templates, pasted Gherkin or acceptance criteria translated by meaning, reviews with check IDs; follows the project's conventions. Works together with `rf-language` |
 | Python keyword libraries | library-guide + script | `/rf-core:rf-python-library` | Write and fix keyword libraries and listeners in Python: `@library`/`@keyword`, scope by state lifetime (TEST/SUITE/GLOBAL), type-hint conversion and custom converters, failures and logging, dynamic/hybrid APIs, listener API v3, libdoc; `check_library.py` script finds "contains no keywords", leaked imports, lost signatures and state kept in `TEST` scope before tests run (requires robotframework, Python 3.10+) |
 | Setup | setup-guide | `/rf-core:rf-setup` | Install Robot Framework and libraries with uv, venv + pip or Poetry; fix environment errors (`ModuleNotFoundError`, wrong interpreter); project layout, CI |
 

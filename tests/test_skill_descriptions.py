@@ -114,6 +114,7 @@ SUBJECT_TERMS: dict[str, tuple[str, ...]] = {
     "rf-setup": ("install", "pip", "uv", "venv", "environment"),
     "rf-language": (".robot", ".resource", "test case", "suite", "keyword"),
     "rf-python-library": ("Python",),
+    "rf-bdd": ("BDD", "Given/When/Then"),
 }
 
 # Trigger terms each skill's "## When to use" block must carry (they no longer
@@ -143,6 +144,16 @@ REQUIRED_TERMS: dict[str, tuple[str, ...]] = {
         "listener",
         "Literal",
     ),
+    "rf-bdd": (
+        "BDD style",
+        "Given/When/Then",
+        "executable specification",
+        "acceptance criteria",
+        "Gherkin",
+        "Cucumber",
+        "scenario outline",
+        "Background",
+    ),
 }
 
 # Boundary (spec "Sibling skills state their boundary"): texts the
@@ -156,8 +167,9 @@ SIBLINGS: dict[str, tuple[str, ...]] = {
     "rf-appium": ("rf-platynui", "rf-browser", "rf-selenium"),
     "rf-platynui": ("rf-appium", "rf-browser", "rf-selenium"),
     "rf-language": ("Python keyword libraries", "rf-python-library", "rf-browser", "rf-requests",
-                    "robotcode plugin"),
+                    "robotcode plugin", "rf-bdd"),
     "rf-python-library": ("rf-language", ".resource", "library skill"),
+    "rf-bdd": ("rf-language", "robotcode plugin"),
 }
 
 # Default wording when no library is named (user decision 2026-09-27), in the block.
@@ -180,6 +192,7 @@ CATALOGUE: dict[str, tuple[str, str]] = {
         "`rf-language`",
     ),
     "python-library": ("Write or fix a Python keyword library or listener", "`rf-python-library`"),
+    "bdd": ("Write or review BDD (Given/When/Then) specifications and their step keywords", "`rf-bdd`"),
 }
 
 REQUIRED_ROWS: dict[str, tuple[str, ...]] = {
@@ -190,8 +203,9 @@ REQUIRED_ROWS: dict[str, tuple[str, ...]] = {
     "rf-restinstance": ("requests", "setup", "language"),
     "rf-platynui": ("setup", "language"),
     "rf-setup": ("browser", "selenium", "appium", "requests", "restinstance", "platynui", "language"),
-    "rf-language": ("browser", "requests", "setup", "python-library"),
+    "rf-language": ("browser", "requests", "setup", "python-library", "bdd"),
     "rf-python-library": ("language", "setup"),
+    "rf-bdd": ("language", "setup", "python-library"),
 }
 
 THREE_COLUMN_HEADERS: dict[str, tuple[str, ...]] = {}
@@ -799,7 +813,8 @@ def test_when_to_use_block_names_siblings_and_terms() -> None:
 def test_language_block_defers_cli_work_to_robotcode_plugin() -> None:
     block = ("## When to use\n\n- Test Template, Given/When/Then, __init__.robot, [Arguments], embedded, "
              "Force Tags, Multiple keywords with name.\n\nNot this skill: Python keyword libraries use "
-             "rf-python-library; library keywords use rf-browser or rf-requests. CLI work: the robotcode plugin.\n")
+             "rf-python-library; library keywords use rf-browser or rf-requests; BDD specifications use rf-bdd. "
+             "CLI work: the robotcode plugin.\n")
     assert when_to_use_problems("rf-language", _skill_md(block)) == []
     assert any("robotcode plugin" in p for p in when_to_use_problems(
         "rf-language", _skill_md(block.replace("the robotcode plugin", "elsewhere"))))

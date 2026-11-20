@@ -23,7 +23,7 @@ Load this skill first, before opening the .robot and .resource files or answerin
 - selecting tests by tag on the robot command line;
 - `Multiple keywords with name '...'` and import scope between `__init__.robot` and child suites.
 
-Not this skill: Python keyword libraries or listeners use `rf-python-library`; library keywords use `rf-browser` (plugin `rf-web`), `rf-requests` (plugin `rf-api`) or another library skill. Running, discovering, keyword lookup, result reading and debugging with the robotcode CLI are covered by the `robotcode` skill of the robotcode plugin.
+Not this skill: Python keyword libraries or listeners use `rf-python-library`; library keywords use `rf-browser` (plugin `rf-web`), `rf-requests` (plugin `rf-api`) or another library skill. Writing or reviewing BDD specifications (features and rules, step vocabularies, pasted Gherkin) uses `rf-bdd` together with this skill. Running, discovering, keyword lookup, result reading and debugging with the robotcode CLI are covered by the `robotcode` skill of the robotcode plugin.
 
 ## Version gate
 
@@ -247,7 +247,7 @@ The full table with minimum versions and robocop rule IDs is `references/migrati
    - wrong embedded-argument binding, including BDD steps matching an unintended keyword;
    - union-with-`str` conversion surprises (`${v: int | str}` keeps `"10"` a string), and typed arguments on RF < 7.3.
    These need a real run of at least one affected test before you report success.
-5. Lint with `--target-version` set to the project's RF major version: `uv run robocop check --no-cache --target-version 7 -s "DEPR*" -s "ERR*" -s ORD02 -s "NAME*" -s VAR07 -s ARG03 tests resources` (repeat `-s`; a comma list is rejected), plus `-s KW06` for keyword name conflicts. Fix what it reports in the code you wrote.
+5. Lint with `--target-version` set to the project's RF major version: `uv run robocop check --no-cache --target-version 7 -s "DEPR*" -s "ERR*" -s ORD02 -s "NAME*" -s VAR07 -s ARG03 tests resources` (repeat `-s`; a comma list selects nothing), plus `-s KW06` for keyword name conflicts. Fix what it reports in the code you wrote.
 6. Check the changed files statically: `uv run robotcode analyze code <changed files>`, and fix every error.
 7. Run the affected tests for real by longname, `uv run robotcode robot -bl "<Suite.Sub.Test>"` (longnames from `robotcode discover tests`), or a whole directory, so that `__init__.robot` files apply. Don't pass a single `.robot` file.
 8. Read the results: `uv run robotcode results show --failed`, then `uv run robotcode results log -bl "<longname>"`.
@@ -277,7 +277,7 @@ If robotcode or Robocop is missing from the project environment, report steps 5â
 - An inline IF with no matching branch assigns `None`: `${v}=    IF    $n > 10    Set Variable    big` leaves `${v}` as `None`; add an `ELSE` branch.
 - `Catenate` and `Set Variable If` are not flagged by robocop but have modern forms: `VAR    ${s}    a    b    separator=-` and an inline `IF`/`ELSE`.
 - A new file without a section header is not a suite ("contains no tests"); every new `.robot` or `.resource` file starts with `*** Settings ***`, `*** Test Cases ***` or `*** Keywords ***`.
-- Robocop NAME18 flags keyword calls that are not Title Case, BDD steps included; write `Given The Calculator Is Cleared`, not `Given the calculator is cleared`.
+- Robocop NAME02 and NAME18 check the casing of keyword names and calls, BDD steps included. Follow the casing the project's Robocop configuration and existing keywords use; with Robocop's defaults that is Title Case (`Given The Calculator Is Cleared`). For BDD specifications, `rf-bdd` sets the casing.
 
 ## When to read the references
 
@@ -308,5 +308,6 @@ Examples in `assets/examples/` (run `robot --dryrun tests` from that folder):
 | API tests with RequestsLibrary | `rf-requests` (plugin `rf-api`) |
 | Install Robot Framework or a library, fix the environment | `rf-setup` |
 | Write or fix a Python keyword library or listener | `rf-python-library` |
+| Write or review BDD (Given/When/Then) specifications and their step keywords | `rf-bdd` |
 
 For running, discovering, keyword documentation, result analysis and debugging with the robotcode CLI, use the `robotcode` skill of the robotcode plugin (`robotcode@robotframework-agent-plugins`); the commands above work without it.

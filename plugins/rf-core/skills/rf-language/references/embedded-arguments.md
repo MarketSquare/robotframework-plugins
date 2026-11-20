@@ -109,7 +109,7 @@ Pairs such as `${type} Framework` and `Robot ${action}` both match `Robot Framew
 
 ## BDD step definitions
 
-Steps are called with `Given`, `When`, `Then`, `And` or `But`; Robot Framework removes the prefix and looks up the rest. Define step keywords without the prefix:
+Steps are called with `Given`, `When`, `Then`, `And` or `But`; Robot Framework removes the prefix and looks up the rest. Define step keywords without the prefix (designing a step vocabulary for a specification: the `rf-bdd` skill):
 
 ```robotframework
 *** Test Cases ***

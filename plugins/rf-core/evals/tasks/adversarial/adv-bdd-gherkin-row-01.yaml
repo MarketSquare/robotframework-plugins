@@ -1,0 +1,99 @@
+id: adv-bdd-gherkin-row-01
+skill: rf-bdd
+tier: adversarial
+description: |
+  Translate a pasted Gherkin ticket (Background, two Rules, a Scenario
+  Outline) into native Robot Framework suites (ported from
+  author-gherkin-request). The outline's "<days> days" sentence reads "1 days"
+  for its first Examples row; the temptation is to keep the ticket's wording
+  (or to add a .feature file and a Gherkin parser). Gated by exactly 4
+  passing tests (one scenario + three examples), no executed test or step
+  name reading "1 days" (so the 1-day row became its own test or got a
+  sentence that fits), step-only bodies, living documentation and no
+  .feature file or parser.
+prompt: |
+  Our product owner wrote the acceptance criteria for ticket LIB-214 in
+  Gherkin. We use Robot Framework (see robot.toml) and the library service is
+  in sut/LibraryService.py. Please turn these into our Robot Framework tests:
+
+  ```gherkin
+  Feature: Reservations
+    As a library member
+    I want to reserve a book that is on loan
+    So that I get it as soon as it is returned
+
+    Background:
+      Given the library owns one copy of "Dune"
+      And Mia has borrowed "Dune"
+
+    Rule: Reservations are served first come, first served
+
+      Scenario: The returned copy is held for the first member in the queue
+        Given Noah has reserved "Dune"
+        And Lea has reserved "Dune"
+        When Mia returns "Dune"
+        Then Noah can borrow "Dune"
+        But Lea cannot borrow "Dune"
+
+    Rule: Late returns are fined per day
+
+      Scenario Outline: Fine for a late return
+        When Mia returns "Dune" <days> days after the due date
+        Then Mia is charged a fine of <fine> EUR
+
+        Examples:
+          | days | fine  |
+          | 1    | 0.50  |
+          | 7    | 3.50  |
+          | 30   | 15.00 |
+  ```
+model: claude-sonnet-5-5
+max_turns: 30
+timeout_seconds: 600
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+grader_checks:
+  - type: robot_pass
+    name: every_scenario_and_example_passes
+    target: tests
+    expected_tests: 4
+    expected_tests_exact: true
+    gating: true
+  - type: custom_python
+    name: no_step_reads_1_days
+    func_ref: rf_skill_eval.scoring.custom.bdd:step_names_absent
+    path: tests
+    regex: '(?<![\d.])1 days\b'
+    gating: true
+  - type: custom_python
+    name: native_robot_only
+    func_ref: rf_skill_eval.scoring.custom.bdd:native_only
+    gating: true
+  - type: file_not_contains
+    name: no_gherkin_parser_configured
+    path: robot.toml
+    regex: '(?i)GherkinParser|parsers|--parser'
+    gating: true
+  - type: custom_python
+    name: test_bodies_are_steps
+    func_ref: rf_skill_eval.scoring.custom.bdd:structure
+    path: tests
+    gating: true
+  - type: custom_python
+    name: suites_document_the_feature
+    func_ref: rf_skill_eval.scoring.custom.bdd:living_docs
+    path: tests
+    gating: true
+  - type: tool_call_count
+    name: loaded_rf_bdd_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-bdd|/skills/rf-bdd/SKILL\.md)'
+    min: 1
+fixture: sut-bdd-library/base
+primary_metric: robot_pass

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -143,3 +144,21 @@ def test_readme_documents_discipline_and_is_linked() -> None:
     assert "Never edit validation queries" in readme
     assert "train" in readme and "validation" in readme
     assert "plugins/rf-core/evals/triggers/README.md" in (plugin_evals_dir(_REPO, "all") / "tasks" / "README.md").read_text()
+
+
+def test_bdd_set_has_the_required_near_misses() -> None:
+    # add-rf-bdd-skill spec "Trigger query set for rf-bdd"
+    data = yaml.safe_load((_TRIGGERS / "rf-bdd.yaml").read_text())
+    queries = data["queries"]
+    negatives = [q for q in queries if not q["should_trigger"]]
+    notes = {q.get("note", "") for q in negatives}
+    for sibling in ("sibling rf-language", "sibling rf-python-library", "sibling robotcode-plugin"):
+        assert sibling in notes, sibling
+    text = " | ".join(q["query"] for q in negatives)
+    for look_alike in ("Cucumber step definitions in Java", "pytest-bdd", "SpecFlow"):
+        assert look_alike in text, look_alike
+    for split in ("train", "validation"):
+        for polarity in (True, False):
+            assert any(q["split"] == split and q["should_trigger"] is polarity for q in queries)
+    skill_ids = re.compile(r"\b(rf-[a-z-]+|robotcode-plugin)\b|\brobotcode\b", re.IGNORECASE)
+    assert not [q["id"] for q in queries if skill_ids.search(q["query"])]

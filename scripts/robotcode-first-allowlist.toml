@@ -39,4 +39,14 @@ file = "scripts/desktop-live-check.py"
 pattern = "parser-model"
 reason = "Screens model-written suites for disallowed libraries and keywords before they run on a maintainer's desktop; a safety screen, not keyword resolution."
 
+[[allow]]
+file = "src/rf_skill_eval/scoring/custom/bdd.py"
+pattern = "parser-model"
+reason = "BDD structure checks on the parsed model: test bodies hold only Given/When/Then calls or template rows, and suites carry Documentation and feature Metadata; robotcode has no such check."
+
+[[allow]]
+file = "src/rf_skill_eval/scoring/custom/bdd.py"
+pattern = "execution-result"
+reason = "Collects the executed test and keyword names from the grader's own run to catch a wording that only appears after embedded arguments are filled in (\"1 days\"); robotcode results has no name search."
+
 # --- Replaced by robotcode-first-tooling (tasks 2-5); remove with the code ---

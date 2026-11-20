@@ -61,6 +61,7 @@ python-path belong to `rf-setup`.
 | Work | Skill |
 |------|-------|
 | Suites, test cases, `__init__.robot`, tags, templates, user keywords, resource and variable files | `rf-language` |
+| BDD specifications: Given/When/Then suites, step vocabularies, translating Gherkin or acceptance criteria | `rf-bdd` |
 | Project keyword libraries and listeners in Python (`libraries/*.py`), checked with its library checker | `rf-python-library` |
 | Installing RF and libraries, project layout mechanics, `robot.toml`, python-path | `rf-setup` |
 | Web tests with Browser / SeleniumLibrary | `rf-browser` / `rf-selenium` (plugin `rf-web`) |
