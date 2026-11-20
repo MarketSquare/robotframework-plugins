@@ -213,7 +213,7 @@ def test_upgrade_removes_managed_robotcode_overlap_skills_and_agent(fake_home: P
         assert not path.exists(), path
     for name in ("rf-libdoc", "rf-results", "rf-robotcode"):
         assert not (skills / name).exists(), name
-    assert len([d for d in skills.iterdir() if d.name.startswith("rf-")]) == 9
+    assert len([d for d in skills.iterdir() if d.name.startswith("rf-")]) == 10
     agents = sorted(p.stem for p in (fake_home / ".claude" / "agents").glob("rf-*.md"))
     assert agents == ["rf-debug-expert", "rf-migration-guide", "rf-test-architect"]
     assert "5 removed" in capsys.readouterr().out

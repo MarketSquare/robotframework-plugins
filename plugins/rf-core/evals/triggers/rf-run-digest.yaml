@@ -1,0 +1,28 @@
+# Trigger query set for rf-run-digest (format: eval/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-run-digest
+model: claude-haiku-5-5
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: rd-t01, split: train, should_trigger: true, query: "My robot run just finished with 80 failures, what went wrong?"}
+  - {id: rd-t02, split: train, should_trigger: true, query: "Summarize results/output.xml from the last Robot Framework run"}
+  - {id: rd-t03, split: train, should_trigger: true, note: "indirect", query: "log.html is huge, how do I see which robot tests failed and why?"}
+  - {id: rd-t04, split: train, should_trigger: true, note: "edit existing file", query: "Edit run_tests.sh so it prints the failed tests from output.xml after every robot call"}
+  - {id: rd-t05, split: train, should_trigger: true, note: "indirect", query: "The nightly robot job went red again, I just need the short story of what broke"}
+  # should trigger (validation)
+  - {id: rd-v01, split: validation, should_trigger: true, query: "Group the failures in this Robot output.xml by error message"}
+  - {id: rd-v02, split: validation, should_trigger: true, query: "Compare two Robot Framework runs and tell me which tests changed status"}
+  - {id: rd-v03, split: validation, should_trigger: true, query: "Show the failing keyword path for one test in my Robot output.xml"}
+  # should NOT trigger (train)
+  - {id: rd-n01, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install robotframework-requests into our uv project"}
+  - {id: rd-n02, split: train, should_trigger: false, note: "sibling rf-language", query: "Add a suite teardown in an __init__.robot file"}
+  - {id: rd-n03, split: train, should_trigger: false, note: "sibling rf-requests", query: "Write a Robot test that GETs /health with RequestsLibrary and checks the 200"}
+  - {id: rd-n04, split: train, should_trigger: false, note: "non-RF look-alike", query: "Summarize the failures in this pytest run output"}
+  - {id: rd-n05, split: train, should_trigger: false, note: "sibling rf-browser", query: "Click the login button and wait for the dashboard in a Browser library test"}
+  # should NOT trigger (validation)
+  - {id: rd-nv01, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Parse this JUnit XML report from pytest"}
+  - {id: rd-nv02, split: validation, should_trigger: false, note: "sibling rf-language", query: "Rename a keyword across my Robot suites and fix the callers"}
+  - {id: rd-nv03, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Why did my GitHub Actions build fail on the npm install step?"}

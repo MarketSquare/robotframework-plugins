@@ -192,6 +192,7 @@ REQUIRED_ROWS: dict[str, tuple[str, ...]] = {
     "rf-setup": ("browser", "selenium", "appium", "requests", "restinstance", "platynui", "language"),
     "rf-language": ("browser", "requests", "setup", "python-library"),
     "rf-python-library": ("language", "setup"),
+    "rf-run-digest": ("setup", "language"),
 }
 
 THREE_COLUMN_HEADERS: dict[str, tuple[str, ...]] = {}
