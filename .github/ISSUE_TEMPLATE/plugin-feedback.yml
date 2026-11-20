@@ -22,6 +22,7 @@ body:
         - rf-api
         - rf-core
         - rf-desktop
+        - rf-mind
         - rf-mobile
         - rf-web
         # plugins:end

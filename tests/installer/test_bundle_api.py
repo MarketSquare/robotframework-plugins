@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from robotframework_plugins import _assets, bundle
 
-ACTIVE_CONTENT = ("rf-core", "rf-api", "rf-desktop", "rf-mobile", "rf-web")
+ACTIVE_CONTENT = ("rf-core", "rf-api", "rf-desktop", "rf-mind", "rf-mobile", "rf-web")
 
 
 def test_public_names() -> None:

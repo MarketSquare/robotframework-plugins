@@ -102,7 +102,7 @@ def test_every_technology_plugin_has_a_partial_task() -> None:
     rep = coverage(_REPO, evals / "tasks", evals / "triggers", "all")
     assert rep.ok, rep.problems
     assert {p.parent.parent.parent.parent.name for p in _REPO.glob("plugins/*/evals/tasks/partial/*.yaml")} == {
-        "rf-web", "rf-api", "rf-mobile", "rf-desktop"}
+        "rf-web", "rf-api", "rf-mobile", "rf-desktop", "rf-mind"}
 
 
 def test_coverage_names_a_plugin_without_a_partial_task(tmp_path: Path) -> None:
