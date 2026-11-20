@@ -33,6 +33,7 @@ LIBRARIES: dict[str, str] = {
     "appium": "AppiumLibrary",
     "requests": "RequestsLibrary",
     "restinstance": "REST",
+    "maestro": "MaestroLibrary",
 }
 KEYS = list(LIBRARIES)
 SKILL_DIRS = {k: skill_dir(f"rf-{k}") for k in KEYS}

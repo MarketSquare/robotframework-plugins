@@ -62,6 +62,7 @@ Install `rf-core` for the Robot Framework language, environment setup and Python
 | `rf-core` | verified | active | Robot Framework syntax, environment setup, Python keyword libraries, test design and debugging subagents, and the validation hooks. | Robot Framework | [@manykarim](https://github.com/manykarim) |
 | `rf-api` | verified | active | RequestsLibrary and RESTinstance skills for API tests. | RequestsLibrary, RESTinstance | [@manykarim](https://github.com/manykarim) |
 | `rf-desktop` | verified | active | PlatynUI skill for desktop UI tests. | PlatynUI | [@manykarim](https://github.com/manykarim) |
+| `rf-maestro` | community | active | MaestroLibrary skill for Android and iOS tests driven by Maestro, with no Appium server. | MaestroLibrary | [@ai94iq](https://github.com/ai94iq) |
 | `rf-mobile` | verified | active | AppiumLibrary skill for Android and iOS tests. | AppiumLibrary | [@manykarim](https://github.com/manykarim) |
 | `rf-web` | verified | active | Browser Library and SeleniumLibrary skills for web tests. | Browser, SeleniumLibrary | [@manykarim](https://github.com/manykarim) |
 

@@ -1,0 +1,61 @@
+id: narrow-maestro-login-01
+skill: rf-maestro
+tier: narrow
+description: |
+  Write a MaestroLibrary login flow for the (spec-only) Demo Login Android app.
+  No device exists on the runner, so the gating check is static:
+  keywords_resolve against the MaestroLibrary installed in the fixture.
+prompt: |
+  We are starting mobile tests for our Android app with MaestroLibrary.
+  app/SCREENS.md describes the Demo Login app (app id and element ids).
+
+  Write tests/login.robot with MaestroLibrary that starts the app on the
+  emulator, logs in as demo/demo and verifies that the welcome text
+  "Welcome, demo" is shown, then closes the app. There is no emulator on
+  this machine, so you cannot run it; make sure every keyword you use really
+  exists in the installed MaestroLibrary.
+model: claude-haiku-5-5
+max_turns: 14
+timeout_seconds: 300
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - Skill
+expected_files:
+  - path: tests/login.robot
+    must_contain:
+      - "MaestroLibrary"
+      - "Open Application"
+grader_checks:
+  - type: keywords_resolve
+    name: maestro_keywords_resolve
+    target: tests/login.robot
+    required_libraries: [MaestroLibrary]
+    min_calls: 4
+  - type: file_contains
+    name: opens_demo_app
+    path: tests/login.robot
+    regex: 'Open Application\s+com\.example\.demologin'
+  - type: file_contains
+    name: targets_login_ids
+    path: tests/login.robot
+    regex: 'id=com\.example\.demologin:id/username'
+  - type: file_contains
+    name: checks_welcome
+    path: tests/login.robot
+    regex: '(com\.example\.demologin:id/welcome|Welcome, demo)'
+  - type: file_not_contains
+    name: no_appium_server
+    path: tests/login.robot
+    regex: '(4723|AppiumLibrary|automationName)'
+  - type: tool_call_count
+    name: loaded_rf_maestro_skill
+    tool_pattern: "(Skill|Read)"
+    input_pattern: '(rf-maestro|/skills/rf-maestro/SKILL\.md)'
+    min: 1
+fixture: sut-maestro
+primary_metric: keywords_resolve
