@@ -1,0 +1,42 @@
+# Trigger query set for rf-maestro (format: plugins/rf-core/evals/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-maestro
+model: claude-haiku-5-5
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: ma-t01, split: train, should_trigger: true, query: "Write a Robot Framework MaestroLibrary test that logs into our Android app on the emulator"}
+  - {id: ma-t02, split: train, should_trigger: true, query: "My suite has Library    MaestroLibrary; how do I swipe up until the Settings row is visible?"}
+  - {id: ma-t03, split: train, should_trigger: true, query: "Turn this Maestro flow YAML into a Robot Framework test that uses MaestroLibrary"}
+  - {id: ma-t04, split: train, should_trigger: true, note: "indirect: no library named", query: "Robot mobile test without an Appium server: grant the camera permission and open the scanner screen"}
+  - {id: ma-t05, split: train, should_trigger: true, query: "MaestroLibrary: use Expect Element to check the Pay button becomes enabled in my robot test"}
+  - {id: ma-t06, split: train, should_trigger: true, note: "indirect: pasted error", query: "Robot test with Maestro fails with 'Element not found: id=login' although the button is on screen"}
+  - {id: ma-t07, split: train, should_trigger: true, note: "typos, user phrasing", query: "maestro libary robot - how do i switch the ios simulator to dark mode before the test"}
+  - {id: ma-t08, split: train, should_trigger: true, query: "Record the screen while my MaestroLibrary test runs the checkout flow on Android"}
+  - {id: ma-t09, split: train, should_trigger: true, query: "Set the device location to Berlin in a Robot Framework test that drives the app through Maestro"}
+  # should trigger (validation)
+  - {id: ma-v01, split: validation, should_trigger: true, note: "edit existing file", query: "Add a pull-to-refresh step to tests/mobile/feed.robot (MaestroLibrary)"}
+  - {id: ma-v02, split: validation, should_trigger: true, query: "Tap the Allow button of the Android notification permission dialog from a MaestroLibrary test"}
+  - {id: ma-v03, split: validation, should_trigger: true, query: "Robot Framework MaestroLibrary test on the iOS simulator: type the PIN and check the home screen"}
+  - {id: ma-v04, split: validation, should_trigger: true, note: "indirect: Maestro Studio recording", query: "I recorded the login in Maestro Studio; make it a Robot test"}
+  - {id: ma-v05, split: validation, should_trigger: true, query: "Put the phone in airplane mode in my MaestroLibrary suite and check the offline banner"}
+  - {id: ma-v06, split: validation, should_trigger: true, query: "Which locator do I use in MaestroLibrary when the button has only a text and no id?"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: ma-n01, split: train, should_trigger: false, note: "sibling rf-appium", query: "Write a Robot Framework AppiumLibrary test with UiAutomator2 capabilities for our Android app"}
+  - {id: ma-n02, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install the Maestro CLI and Java 17 for our new Robot Framework project"}
+  - {id: ma-n03, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Robot Framework Browser test for our responsive website in Chromium"}
+  - {id: ma-n04, split: train, should_trigger: false, note: "sibling rf-platynui", query: "Automate the Windows Calculator desktop app with Robot Framework"}
+  - {id: ma-n05, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write a Maestro flow YAML that logs into our Flutter app"}
+  - {id: ma-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Write an Espresso test in Kotlin for the login activity"}
+  - {id: ma-n07, split: train, should_trigger: false, note: "sibling rf-requests", query: "Test the REST backend of our mobile app with RequestsLibrary"}
+  - {id: ma-n08, split: train, should_trigger: false, note: "non-RF look-alike", query: "How do I run maestro test flows/ on a cloud device farm from GitHub Actions?"}
+  - {id: ma-n09, split: train, should_trigger: false, note: "non-RF look-alike", query: "Appium Java TestNG: how do I set desiredCapabilities for iOS 17?"}
+  # should NOT trigger (validation)
+  - {id: ma-n10, split: validation, should_trigger: false, note: "sibling rf-appium", query: "Start the Appium server and open our .apk with AppiumLibrary on emulator-5554"}
+  - {id: ma-n11, split: validation, should_trigger: false, note: "sibling rf-setup", query: "Add robotframework-maestrolibrary to the uv lock file of our robot project"}
+  - {id: ma-n12, split: validation, should_trigger: false, note: "sibling rf-platynui", query: "Click the Save button in our Qt desktop application from Robot Framework"}
+  - {id: ma-n13, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Write an XCUITest UI test in Swift that taps the Sign In button"}
+  - {id: ma-n14, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Detox end-to-end test for our React Native app"}
+  - {id: ma-n15, split: validation, should_trigger: false, note: "sibling rf-browser", query: "Emulate an iPhone viewport in our Playwright-based Robot tests to check the mobile web menu"}
