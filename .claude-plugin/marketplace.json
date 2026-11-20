@@ -79,6 +79,29 @@
       ]
     },
     {
+      "name": "rf-mind",
+      "source": "./plugins/rf-mind",
+      "description": "robotframework-mind skill for exact lookups in a Robot Framework test repo: tickets, keywords, callers, tags and endpoints.",
+      "author": {
+        "name": "ai94iq"
+      },
+      "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+      "repository": "https://github.com/MarketSquare/robotframework-plugins",
+      "license": "Apache-2.0",
+      "keywords": [
+        "robotframework",
+        "testing",
+        "code-search",
+        "ticket",
+        "keyword"
+      ],
+      "category": "testing",
+      "tags": [
+        "robot-framework",
+        "community"
+      ]
+    },
+    {
       "name": "rf-mobile",
       "source": "./plugins/rf-mobile",
       "description": "AppiumLibrary skill for Android and iOS tests.",
