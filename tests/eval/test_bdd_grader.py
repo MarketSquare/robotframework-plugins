@@ -309,6 +309,7 @@ def test_review_findings_ignores_tool_output_and_agent_dirs(tmp_path: Path) -> N
     run, params = _review(tmp_path, _FINDINGS, **{
         "results/output.xml": "<robot/>", ".claude/skills/x/SKILL.md": "x",
         ".robotcode_cache/c.db": "x", "sut/__pycache__/LibraryService.cpython-312.pyc": "x",
+        "library_lending.egg-info/PKG-INFO": "x",
     })
     assert bdd.review_findings(run, params).status == "passed"
 

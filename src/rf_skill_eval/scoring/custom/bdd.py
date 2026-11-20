@@ -40,7 +40,8 @@ FIXTURES_DIR = _REPO / "eval" / "fixtures"
 
 #: Settings a BDD test may carry besides its steps.
 _ALLOWED_SETTINGS = ("Documentation", "Tags", "Setup", "Teardown", "Template", "Timeout")
-#: Directories never part of the project's own files (agent tooling, caches, run output).
+#: Directories never part of the project's own files (agent tooling, caches, run output,
+#: and the ``*.egg-info`` that ``uv run`` builds for the fixture project).
 _IGNORED_DIRS = {"results", "__pycache__", "node_modules", "grader-out"}
 _IGNORED_FILES = {"output.xml", "log.html", "report.html"}
 
@@ -66,7 +67,8 @@ def _name(params: dict[str, Any], default: str) -> str:
 
 
 def _hidden(rel: Path) -> bool:
-    return any(part.startswith(".") or part in _IGNORED_DIRS for part in rel.parts[:-1])
+    return any(part.startswith(".") or part in _IGNORED_DIRS or part.endswith(".egg-info")
+               for part in rel.parts[:-1])
 
 
 def _robot_files(ws: Path, params: dict[str, Any]) -> list[Path]:
