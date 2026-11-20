@@ -11,7 +11,6 @@ Set a state with a keyword, put it back in a teardown, and do not change it with
 | App permissions | `Set Application Permissions    camera=deny    all=allow` | values are per permission; `all` covers the rest |
 | Permissions at launch | `Open Application    <app id>    permissions=...` | without it, Maestro grants every runtime permission on launch |
 | Clean app data | `Clear Application State` | wipes what the app stored; the signed-out start |
-| iOS keychain | `Clear Keychain` | iOS simulator |
 | Location | `Set Location    <lat>    <lon>` | `altitude` is accepted and ignored |
 | Route | `Travel    <point>    <point>    speed=...` | moves the location along points |
 | Orientation | `Landscape`, `Portrait`, `Set Orientation    LANDSCAPE_LEFT` | names as the library lists them |

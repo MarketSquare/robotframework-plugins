@@ -36,7 +36,7 @@ Open Application only warns when adb is missing, and returns as soon as Maestro 
 | `Set Airplane Mode` | yes | no: simulators have none |
 | `Execute Adb Shell`, `Is Keyboard Shown` | yes | no |
 | `Start Screen Mirroring`, `Stop Screen Mirroring` | yes (scrcpy) | no: the Simulator window already shows the screen |
-| `Kill Application`, `Clear Keychain` | yes | yes (both measured on a simulator) |
+| `Kill Application` | yes | yes (measured on a simulator) |
 
 On iOS, `Hide Keyboard    key_name=Done` dismisses the keyboard. `Click Alert Button` has not been tested on iOS yet.
 
