@@ -264,6 +264,12 @@ Before you call a new or changed test done, break the behaviour it checks, not t
 Cart Total Includes Every Item
     ${total}=    Calculate Total    2    4
     Should Be Equal As Integers    ${total}    6
+
+*** Keywords ***
+Calculate Total
+    [Arguments]    @{prices}
+    ${total}=    Evaluate    sum(int(p) for p in $prices)
+    RETURN    ${total}
 # Proof that the test works: temporarily make Calculate Total drop the last item
 # (or pass 2 and 5), run the test, see it fail, then undo.
 # Not a proof: a second assertion that expects 7.
