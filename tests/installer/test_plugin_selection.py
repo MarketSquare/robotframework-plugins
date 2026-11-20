@@ -30,7 +30,7 @@ def test_plugins_flag_selects_plugins(two_plugin_bundle: Path, fake_home: Path, 
     prefix = tmp_path / "root"
     assert main(["install", "--agent", "claude-code", "--prefix", str(prefix), "--yes",
                  "--plugins", "rf-core,rf-web,rf-example"]) == 0
-    assert _skills(prefix) == {"rf-language", "rf-setup", "rf-python-library", "rf-browser", "rf-selenium",
+    assert _skills(prefix) == {"rf-language", "rf-setup", "rf-python-library", "rf-run-digest", "rf-browser", "rf-selenium",
                                "rf-example"}
 
 
@@ -42,7 +42,7 @@ def test_default_skips_the_bundle_and_installs_every_content_plugin(
     (path,) = list(tmp_path.rglob("installed.json"))
     files = [f for ins in json.loads(path.read_text())["installations"] for f in ins["files"]]
     assert {f["plugin"] for f in files} == {"rf-core", "rf-web", "rf-api", "rf-mobile", "rf-desktop"}
-    assert len(_skills(prefix)) == 9
+    assert len(_skills(prefix)) == 10
 
 
 def test_removed_bundle_is_an_unknown_plugin(two_plugin_bundle: Path, fake_home: Path, tmp_path: Path,

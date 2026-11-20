@@ -219,5 +219,5 @@ def test_partial_task_stages_only_its_plugins(tmp_path: Path, fake_claude: Path)
                               repo_root=_REPO)
     run = runner.execute(_task(tier="partial", stage=["rf-core"]), Profile.for_arm("treatment", out / "cfg"), out)
     config = run.artifacts_dir / "claude_config"
-    assert sorted(p.name for p in (config / "skills").iterdir()) == ["rf-language", "rf-python-library", "rf-setup"]
+    assert sorted(p.name for p in (config / "skills").iterdir()) == ["rf-language", "rf-python-library", "rf-run-digest", "rf-setup"]
     assert (config / "agents").is_dir()

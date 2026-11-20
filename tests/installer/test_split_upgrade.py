@@ -67,7 +67,7 @@ def test_file_mode_upgrade(agent: str, old_bundle: Path, fake_home: Path, tmp_pa
     project.mkdir()
     _old_install(project, agent, old_bundle, monkeypatch)
     skills_before = _skills(project)
-    assert len(skills_before) == 9
+    assert len(skills_before) == 10
 
     assert _install(project, agent) == 0
     root = project / ROOTS[agent]
@@ -104,7 +104,7 @@ def test_narrowing_is_explicit(old_bundle: Path, fake_home: Path, tmp_path: Path
     assert _install(project, "claude-code") == 0
     capsys.readouterr()
     assert _install(project, "claude-code", "--plugins", "rf-core,rf-web") == 0
-    assert _skills(project) == {"rf-language", "rf-setup", "rf-python-library", "rf-browser", "rf-selenium"}
+    assert _skills(project) == {"rf-language", "rf-setup", "rf-python-library", "rf-run-digest", "rf-browser", "rf-selenium"}
     assert set(_record(project)) == {"rf-core", "rf-web"}
     out = " ".join(capsys.readouterr().out.split())
     assert "skills rf-appium, rf-platynui, rf-requests, rf-restinstance" in out
