@@ -10,6 +10,7 @@ Defines what the rf-agentskills subagents (`rf-test-architect`, `rf-migration-gu
 
 Each subagent SHALL contain a routing table. The table maps the kinds of work the subagent delegates to the skill that owns them, or to the robotcode command that answers them, using the skill identifiers of the shipped catalog. Routes:
 - test-case and suite design, user keywords, resources, variables and legacy-syntax migration SHALL route to `rf-language`;
+- BDD specifications (Given/When/Then suites, step vocabularies, translating Gherkin or acceptance criteria) SHALL route to `rf-bdd`;
 - Python keyword libraries and listeners SHALL route to `rf-python-library`;
 - keyword name and argument lookup SHALL route to `robotcode doc keywords` / `robotcode doc keyword`;
 - reading results SHALL route to `robotcode results`;
@@ -22,6 +23,10 @@ When a routed library skill is not available, the subagent SHALL name the plugin
 #### Scenario: Test architect delegates design details
 - **WHEN** `rf-test-architect` has decided the project layout and must write test suites and shared keywords
 - **THEN** its instructions direct it to load `rf-language` for the suites and the resource files, and not to follow an inline syntax guide
+
+#### Scenario: Test architect delegates BDD specifications
+- **WHEN** `rf-test-architect` is asked to set up acceptance tests written as Given/When/Then specifications
+- **THEN** its routing table sends the suites and step keywords to `rf-bdd`
 
 #### Scenario: Debug expert routes a library-side failure
 - **WHEN** `rf-debug-expert` diagnoses "library contains no keywords" or state that resets between tests
