@@ -38,11 +38,15 @@ A technology plugin SHALL NOT be added to the catalogue without content and at l
 
 ### Requirement: Technology plugins depend on core
 
-Every technology plugin SHALL declare `rf-core` as a dependency in its `plugin.json`, with a version range of the core major version it is tested against. Installing a technology plugin SHALL therefore also install `rf-core` on agents that resolve plugin dependencies.
+Every technology plugin SHALL declare `rf-core` as a dependency in its `plugin.json` by name only, without a version range: every plugin is released at one version from one marketplace commit (spec `release-train`). Installing a technology plugin SHALL therefore also install `rf-core` on agents that resolve plugin dependencies. Copilot CLI, VS Code and Codex install no plugin dependencies, so the README SHALL tell their users to install `rf-core` themselves.
 
 #### Scenario: Installing web brings core
 - **WHEN** a Claude Code user runs `/plugin install rf-web@robotframework-plugins` with no plugin installed
 - **THEN** `rf-web` and `rf-core` are both installed, and the `rf-browser`, `rf-selenium`, `rf-language`, `rf-setup` and `rf-python-library` skills are listed
+
+#### Scenario: A version range is refused
+- **WHEN** a technology plugin's `plugin.json` declares `{"name": "rf-core", "version": "^1.0"}`
+- **THEN** the catalogue check fails and names the file and the range
 
 ### Requirement: Content names the plugin of a skill it does not ship
 
