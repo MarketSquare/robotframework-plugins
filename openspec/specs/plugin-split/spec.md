@@ -12,7 +12,7 @@ The catalogue SHALL contain these plugins, and every skill and subagent SHALL be
 
 | Plugin | Skills | Subagents | Hooks |
 |---|---|---|---|
-| `rf-core` | `rf-language`, `rf-setup`, `rf-python-library` | `rf-test-architect`, `rf-debug-expert`, `rf-migration-guide` | all |
+| `rf-core` | `rf-language`, `rf-bdd`, `rf-setup`, `rf-python-library` | `rf-test-architect`, `rf-debug-expert`, `rf-migration-guide` | all |
 | `rf-web` | `rf-browser`, `rf-selenium` | none | none |
 | `rf-api` | `rf-requests`, `rf-restinstance` | none | none |
 | `rf-mobile` | `rf-appium` | none | none |
@@ -22,7 +22,7 @@ A technology plugin SHALL NOT be added to the catalogue without content and at l
 
 #### Scenario: Every skill has one home
 - **WHEN** the skill directories of all plugins are listed
-- **THEN** the nine skills appear once each, in the plugins the table names
+- **THEN** the ten skills appear once each, in the plugins the table names
 
 #### Scenario: Empty plugin refused
 - **WHEN** a PR adds `plugins/rf-database/` with a `catalog.yaml` but no skill, subagent or hook
