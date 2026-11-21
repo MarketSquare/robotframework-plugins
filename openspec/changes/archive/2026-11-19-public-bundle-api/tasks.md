@@ -35,4 +35,4 @@
 ## 8. Release (maintainer)
 
 - [x] 8.1 After the merge, the maintainer releases the API and approves the `pypi` environment; verify the install in a fresh venv, then `python -c "from robotframework_plugins import bundle; print(bundle.CATALOG_FORMAT, list(bundle.skills_dirs()), bundle.fetch('main').commit)"`. Superseded by single-release-version: 2026.11.0 was yanked, and the API shipped in 5.0.0 (tag `v5.0.0`, 2026-11-18). Verified on 2026-11-18 in a fresh venv with `robotframework-plugins==5.0.0`: `CATALOG_FORMAT` 1, five skill folders with `rf-core` first, and `fetch('v5.0.0').commit` equal to `fetch('stable').commit` (`dfdd180`).
-- [ ] 8.2 Comment on #5 with the released version (5.0.0) and the API names (ask before posting); verify the comment is on the issue.
+- [x] 8.2 Comment on #5 with the released version (5.0.0) and the API names (ask before posting); verify the comment is on the issue. Posted on 2026-11-19: https://github.com/MarketSquare/robotframework-plugins/issues/5#issuecomment-7019954596
