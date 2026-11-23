@@ -4,11 +4,22 @@ Every plugin (`rf-core`, `rf-web`, `rf-api`, `rf-mobile`, `rf-desktop`) and the 
 
 ## Unreleased
 
+## 5.1.0 — 2026-11-23
+
 ### rf-core
 
 - **New skill `rf-bdd`** for behaviour-driven specifications in native `.robot` files: features and rules as suites, documentation and tags, one step vocabulary, scenario state, outlines as templates, pasted Gherkin or acceptance criteria translated by meaning, and reviews with check IDs. It follows the project's conventions and ships a Robocop configuration for sentence-style steps (`assets/robocop-bdd.toml`) and two runnable example projects. No `.feature` files and no Gherkin parser.
 - `rf-language` names `rf-bdd` for BDD specifications. Its casing gotcha now says to follow the project's Robocop configuration instead of requiring Title Case BDD steps.
 - The context hook routes Given/When/Then and Gherkin work to `rf-bdd`, and `rf-test-architect` routes BDD specifications to it.
+
+### rf-web, rf-api, rf-mobile, rf-desktop
+
+- No skill changes. Their READMEs say that VS Code, like Copilot CLI and Codex, doesn't install `rf-core` for you.
+
+### Installer
+
+- Bundles the 5.1.0 plugins, so `install` adds `rf-bdd` wherever it installs `rf-core`. No CLI or API changes.
+- The README's VS Code section uses the `stable` marketplace ref and says that VS Code installs no plugin dependencies.
 
 ## 5.0.0 — 2026-11-18
 

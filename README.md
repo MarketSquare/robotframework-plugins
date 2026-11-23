@@ -67,7 +67,7 @@ Install `rf-core` for the Robot Framework language, environment setup and Python
 
 Tiers and what they mean: [GOVERNANCE.md](GOVERNANCE.md). Full details per plugin: [docs/catalog.md](docs/catalog.md).
 
-Release **5.0.0**: the installer and every plugin below carry this version (`v5.0.0` tag; [RELEASING.md](RELEASING.md)).
+Release **5.1.0**: the installer and every plugin below carry this version (`v5.1.0` tag; [RELEASING.md](RELEASING.md)).
 <!-- catalog:end -->
 
 ## Install
@@ -119,7 +119,7 @@ The plugin does not set a default main agent. The three subagents are available 
 }
 ```
 
-Add `"ref"` to the source to pin the marketplace to a release, for example `"ref": "v5.0.0"`, or use `stable` for the latest release. Every plugin and the installer share one version, so a release tag pins all of them together. Older tags still install what they name, but receive no updates: `v1.1.0` to `v3.0.0` are `rf-agentskills` releases, and `<plugin>--v1.0.0` the first separate plugins.
+Add `"ref"` to the source to pin the marketplace to a release, for example `"ref": "v5.1.0"`, or use `stable` for the latest release. Every plugin and the installer share one version, so a release tag pins all of them together. Older tags still install what they name, but receive no updates: `v1.1.0` to `v3.0.0` are `rf-agentskills` releases, and `<plugin>--v1.0.0` the first separate plugins.
 
 #### Claude Code
 
@@ -160,7 +160,7 @@ Plugins and hooks are preview features. In your **user** settings, enable them a
 }
 ```
 
-Use `#v5.0.0` instead of `#stable` to pin one release. Then install `rf-core` and the technology plugins you need from that marketplace in the Extensions view.
+Use `#v5.1.0` instead of `#stable` to pin one release. Then install `rf-core` and the technology plugins you need from that marketplace in the Extensions view.
 - **Dependencies:** VS Code doesn't install plugin dependencies (checked with 1.142), so install `rf-core` yourself.
 - **Every profile:** agent plugins are installed for your user, in every VS Code profile.
 - **Project scope:** `chat.plugins.marketplaces` is a user-only setting. In a check with VS Code 1.142, a committed `.claude/settings.json` that names this marketplace and enables a plugin neither added the marketplace nor offered the plugin, so each user adds the marketplace in their own settings.
@@ -175,7 +175,7 @@ VS Code 1.142 has two agent harnesses, with different gaps:
 #### OpenAI Codex
 
 ```bash
-codex plugin marketplace add MarketSquare/robotframework-plugins        # pin: --ref v5.0.0
+codex plugin marketplace add MarketSquare/robotframework-plugins        # pin: --ref v5.1.0
 codex plugin add rf-core@robotframework-plugins                         # Codex doesn't install dependencies
 codex plugin add rf-web@robotframework-plugins
 # recommended companion: the robotcode plugin
@@ -216,7 +216,7 @@ robotframework-plugins install --agents all                 # every known agent
 robotframework-plugins install --agents claude-code,cursor  # explicit list
 robotframework-plugins install --agents detected --yes      # only detected, headless
 robotframework-plugins install --agent claude-code          # single (back-compat)
-robotframework-plugins install --agent claude-code --mode plugin --ref v5.0.0   # marketplace settings instead of files
+robotframework-plugins install --agent claude-code --mode plugin --ref v5.1.0   # marketplace settings instead of files
 ```
 
 Installs default to **project scope** (into the current directory, e.g. `./.claude/`); add `--scope user` for a global install under your home directory. Other commands: `uninstall`, `list`, `doctor`, `version`. Useful flags: `--scope project|user [--project DIR]`, `--mode files|plugin [--ref TAG]`, `--prefix DIR`, `--dry-run`, `--what skills,agents,hooks`, `--force`, `--no-input`.

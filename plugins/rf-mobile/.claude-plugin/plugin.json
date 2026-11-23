@@ -1,6 +1,6 @@
 {
   "name": "rf-mobile",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "AppiumLibrary skill for Robot Framework mobile tests on Android and iOS.",
   "author": {
     "name": "manykarim",
