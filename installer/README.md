@@ -64,7 +64,7 @@ For agents with a plugin marketplace, `--mode plugin` writes the marketplace set
 
 ```bash
 robotframework-plugins install --agent claude-code --mode plugin
-robotframework-plugins install --agent claude-code --mode plugin --ref v5.0.0   # pin a release
+robotframework-plugins install --agent claude-code --mode plugin --ref v5.1.0   # pin a release
 ```
 
 ### Upgrading

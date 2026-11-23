@@ -379,14 +379,16 @@ def test_plugin_version_out_of_step_fails_check(tmp_path: Path, capsys: pytest.C
 
 def test_release_bump_regenerates_every_copy(tmp_path: Path) -> None:
     root = _full_scratch(tmp_path)
-    _set_release(root, "5.1.0")
+    major, minor, _ = bc.installer_version(REPO).split(".")
+    new = f"{major}.{int(minor) + 1}.0"  # the next minor, so it differs from the repository's
+    _set_release(root, new)
     assert bc.main(["--check", "--root", str(root)]) == 1
     assert bc.main(["--root", str(root)]) == 0
-    assert '__version__ = "5.1.0"' in (root / bc.INIT_REL).read_text(encoding="utf-8")
-    assert "Release **5.1.0**" in (root / "README.md").read_text(encoding="utf-8")
+    assert f'__version__ = "{new}"' in (root / bc.INIT_REL).read_text(encoding="utf-8")
+    assert f"Release **{new}**" in (root / "README.md").read_text(encoding="utf-8")
     for pj in (root / "plugins").glob("*/.claude-plugin/plugin.json"):
         data = json.loads(pj.read_text(encoding="utf-8"))
-        assert data["version"] == "5.1.0" and list(data)[:2] == ["name", "version"], pj
+        assert data["version"] == new and list(data)[:2] == ["name", "version"], pj
 
 
 def test_candidate_is_semver_in_plugins(tmp_path: Path) -> None:

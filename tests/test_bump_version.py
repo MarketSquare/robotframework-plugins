@@ -76,6 +76,7 @@ def test_bump_sets_every_copy(tmp_path: Path, start: str, args: tuple[str, ...],
 @requires_posix_bash
 def test_old_plugin_form_is_refused(tmp_path: Path) -> None:
     repo = _scratch(tmp_path, "5.0.0")
+    before = _versions(repo)
     res = _run(repo, "rf-core", "minor")
     assert res.returncode != 0 and "Usage" in res.stderr
-    assert _versions(repo) == {"5.0.0"}
+    assert _versions(repo) == before
