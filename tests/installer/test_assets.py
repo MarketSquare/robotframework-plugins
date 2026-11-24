@@ -51,7 +51,7 @@ def test_bundle_has_catalog_and_plugin_dir() -> None:
     assert names["rf-core"]["tier"] == "verified"
     assert names["rf-core"]["version"]
     assert "rf-agentskills" not in names
-    assert _assets.content_plugins() == ("rf-core", "rf-api", "rf-desktop", "rf-mobile", "rf-web")
+    assert _assets.content_plugins() == ("rf-core", "rf-api", "rf-desktop", "rf-mind", "rf-mobile", "rf-web")
 
 
 def test_bundle_leaves_out_plugin_tests_and_evals() -> None:

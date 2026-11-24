@@ -1,0 +1,12 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+name: rf-mind
+summary: "robotframework-mind skill for exact lookups in a Robot Framework test repo: tickets, keywords, callers, tags and endpoints."
+tier: community
+status: active
+maintainers:
+  - github: ai94iq
+    name: Abdulwahab Isam
+libraries: []
+robotframework: ">=7"
+agents:
+  - claude-code

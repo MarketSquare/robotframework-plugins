@@ -1,0 +1,40 @@
+# Trigger query set for rf-mind (format: plugins/rf-core/evals/triggers/README.md).
+# Tune descriptions on the train split only; never edit validation queries
+# to make a description pass (rotate them only when the skill's intent changes).
+skill: rf-mind
+model: claude-haiku-5-5
+runs: 3
+threshold: 0.5
+queries:
+  # should trigger (train)
+  - {id: mi-t01, split: train, should_trigger: true, query: "Which Robot tests carry the Jira key PAY-1423 in their tags or docs?"}
+  - {id: mi-t02, split: train, should_trigger: true, query: "Where is the keyword Create Order With Items defined in our Robot Framework repo?"}
+  - {id: mi-t03, split: train, should_trigger: true, query: "List every caller of the keyword Login As Admin across our robot suites"}
+  - {id: mi-t04, split: train, should_trigger: true, query: "Find all Robot tests tagged role:* in this repo, with file and line"}
+  - {id: mi-t05, split: train, should_trigger: true, query: "Which robot keywords use the endpoint /api/items/query?"}
+  - {id: mi-t06, split: train, should_trigger: true, note: "indirect: rename impact", query: "Before I rename Open Cart Page, show me every suite fixture and test that calls it"}
+  - {id: mi-t07, split: train, should_trigger: true, note: "indirect: no tool named", query: "QA asked which of our automated tests cover ticket CS-2426; answer with file:line"}
+  - {id: mi-t08, split: train, should_trigger: true, note: "typos, user phrasing", query: "robot repo: whre is the keywrod Get Auth Token defined, theres like 3 resource files"}
+  - {id: mi-t09, split: train, should_trigger: true, query: "Give me a JSON list of every Robot test tagged smoke so my script can read it"}
+  # should trigger (validation)
+  - {id: mi-v01, split: validation, should_trigger: true, note: "edit existing file", query: "Change the timeout in the keyword Wait For Job Done in resources/jobs.resource; first find which tests call it"}
+  - {id: mi-v02, split: validation, should_trigger: true, query: "Which Robot Framework tests mention the ticket key ESA-88?"}
+  - {id: mi-v03, split: validation, should_trigger: true, query: "Is the keyword Delete Test User defined twice in our robot resources?"}
+  - {id: mi-v04, split: validation, should_trigger: true, note: "indirect: impact question", query: "Which robot tests would break if the /v2/orders path changes?"}
+  - {id: mi-v05, split: validation, should_trigger: true, query: "Show the Robot tests tagged regression in tests/api with their line numbers"}
+  # should NOT trigger (train): sibling skills + non-RF look-alikes
+  - {id: mi-n01, split: train, should_trigger: false, note: "sibling rf-language", query: "Write a new Robot Framework keyword that logs in and returns the session token"}
+  - {id: mi-n02, split: train, should_trigger: false, note: "sibling rf-setup", query: "Install robotframework and RequestsLibrary in a fresh uv project"}
+  - {id: mi-n03, split: train, should_trigger: false, note: "sibling rf-python-library", query: "Write a Python library for Robot Framework that reads CSV test data"}
+  - {id: mi-n04, split: train, should_trigger: false, note: "sibling rf-browser", query: "Write a Robot Framework Browser test for the login page"}
+  - {id: mi-n05, split: train, should_trigger: false, note: "sibling rf-requests", query: "Call the /api/items endpoint from a Robot test with RequestsLibrary and check the status"}
+  - {id: mi-n06, split: train, should_trigger: false, note: "non-RF look-alike", query: "Find every pytest test marked slow in this Python project"}
+  - {id: mi-n07, split: train, should_trigger: false, note: "non-RF look-alike", query: "Which Jest tests reference the function createOrder?"}
+  - {id: mi-n08, split: train, should_trigger: false, note: "non-RF look-alike", query: "Grep our Java code for all callers of OrderService.submit"}
+  - {id: mi-n09, split: train, should_trigger: false, note: "sibling rf-language", query: "Explain what the Robot Framework TRY/EXCEPT syntax does"}
+  # should NOT trigger (validation)
+  - {id: mi-n10, split: validation, should_trigger: false, note: "sibling rf-setup", query: "Run the robot suite with tag smoke and write the output to results/"}
+  - {id: mi-n11, split: validation, should_trigger: false, note: "sibling rf-language", query: "Refactor tests/cart.robot to move the repeated steps into a resource file"}
+  - {id: mi-n12, split: validation, should_trigger: false, note: "sibling rf-appium", query: "Write an AppiumLibrary test that logs into our Android app"}
+  - {id: mi-n13, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Find all Cypress specs that use the cy.login command"}
+  - {id: mi-n14, split: validation, should_trigger: false, note: "non-RF look-alike", query: "Which Jira tickets are open in the current sprint?"}
