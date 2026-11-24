@@ -1,0 +1,32 @@
+id: partial-maestro-login-01
+skill: rf-maestro
+tier: partial
+description: |
+  Same request as narrow-maestro-login-01, with only rf-core staged (a partial install).
+  Passes when the answer suggests installing rf-maestro, or when the produced suite still passes the gating check; fails on library code from memory that fails it.
+prompt: |
+  We are starting mobile tests for our Android app with MaestroLibrary.
+  app/SCREENS.md describes the Demo Login app (app id and element ids).
+
+  Write tests/login.robot with MaestroLibrary that starts the app on the
+  emulator, logs in as demo/demo and verifies that the welcome text
+  "Welcome, demo" is shown, then closes the app. There is no emulator on
+  this machine, so you cannot run it; make sure every keyword you use really
+  exists in the installed MaestroLibrary.
+model: claude-haiku-5-5
+stage: [rf-core]
+max_turns: 14
+timeout_seconds: 300
+allowed_tools: [Read, Write, Edit, Bash, Glob, Grep, Skill]
+grader_checks:
+- type: custom_python
+  name: suggests_plugin_or_passes
+  func_ref: rf_skill_eval.scoring.custom.partial_install:suggests_plugin_or_passes
+  plugin: rf-maestro
+  check:
+    type: keywords_resolve
+    target: tests/login.robot
+    required_libraries: [MaestroLibrary]
+    min_calls: 4
+  gating: true
+fixture: sut-maestro

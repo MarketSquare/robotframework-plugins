@@ -79,6 +79,28 @@
       ]
     },
     {
+      "name": "rf-maestro",
+      "source": "./plugins/rf-maestro",
+      "description": "MaestroLibrary skill for Android and iOS tests driven by Maestro, with no Appium server.",
+      "author": {
+        "name": "ai94iq"
+      },
+      "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+      "repository": "https://github.com/MarketSquare/robotframework-plugins",
+      "license": "Apache-2.0",
+      "keywords": [
+        "robotframework",
+        "testing",
+        "mobile-testing",
+        "maestro"
+      ],
+      "category": "testing",
+      "tags": [
+        "robot-framework",
+        "community"
+      ]
+    },
+    {
       "name": "rf-mobile",
       "source": "./plugins/rf-mobile",
       "description": "AppiumLibrary skill for Android and iOS tests.",

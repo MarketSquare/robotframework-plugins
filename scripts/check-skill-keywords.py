@@ -68,6 +68,7 @@ SKILL_LIBRARIES = {
     "requests": "RequestsLibrary",
     "restinstance": "REST",
     "platynui": "PlatynUI.BareMetal",
+    "maestro": "MaestroLibrary",
 }
 STANDARD_LIBRARIES = [
     "BuiltIn",
@@ -82,7 +83,7 @@ STANDARD_LIBRARIES = [
 # Prefixes that may qualify a keyword call (``Browser.Click``).
 LIBRARY_PREFIXES = {
     "browser", "seleniumlibrary", "appiumlibrary", "requestslibrary", "rest",
-    "platynui.baremetal", "baremetal", *(lib.lower() for lib in STANDARD_LIBRARIES),
+    "platynui.baremetal", "baremetal", "maestrolibrary", *(lib.lower() for lib in STANDARD_LIBRARIES),
 }
 
 CONTROL = {

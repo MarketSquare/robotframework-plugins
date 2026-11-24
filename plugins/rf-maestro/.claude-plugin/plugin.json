@@ -1,0 +1,20 @@
+{
+  "name": "rf-maestro",
+  "version": "5.0.0",
+  "description": "MaestroLibrary skill for Robot Framework mobile tests on Android and iOS, with no Appium server.",
+  "author": {
+    "name": "ai94iq"
+  },
+  "homepage": "https://github.com/MarketSquare/robotframework-plugins",
+  "repository": "https://github.com/MarketSquare/robotframework-plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "robotframework",
+    "testing",
+    "mobile-testing",
+    "maestro"
+  ],
+  "dependencies": [
+    "rf-core"
+  ]
+}

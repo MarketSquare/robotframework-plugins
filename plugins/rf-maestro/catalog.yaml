@@ -1,0 +1,16 @@
+# Programme manifest: see schemas/catalog.schema.json and CONTRIBUTING.md.
+name: rf-maestro
+summary: MaestroLibrary skill for Android and iOS tests driven by Maestro, with no Appium server.
+tier: community
+status: active
+maintainers:
+  - github: ai94iq
+    name: Abdulwahab Isam
+libraries:
+  - name: MaestroLibrary
+    package: robotframework-maestrolibrary
+    versions: ">=1.0,<2"
+    skills: [rf-maestro]
+robotframework: ">=7.5"
+agents:
+  - claude-code
