@@ -2,7 +2,7 @@
 name: rf-platynui
 description: "Use first, before answering, for RF desktop app tests with PlatynUI: windows, dialogs."
 license: Apache-2.0
-compatibility: Requires Python 3.12+, robotframework>=7, robotcode[all]>=2.8 in the project environment and the PlatynUI new_core pre-release (robotframework-PlatynUI 0.12.0.dev); Windows (UIA) or a Linux desktop with AT-SPI2. macOS is not supported.
+compatibility: Requires Python 3.12+, robotframework>=7, robotcode[all]>=2.8 in the project environment and the PlatynUI new_core pre-release (robotframework-PlatynUI 0.14.0.dev); Windows (UIA) or a Linux desktop with AT-SPI2. macOS is not supported.
 metadata:
   author: manykarim
 ---
@@ -33,7 +33,7 @@ Install into the project environment, with the tool the project already uses. Fu
 
 ```bash
 # ✅ new_core (PlatynUI.BareMetal, documented keywords) — pin OR opt into pre-releases:
-uv add robotframework-PlatynUI==0.12.0.dev330             # verified pin   # pip: pip install robotframework-PlatynUI==0.12.0.dev330
+uv add robotframework-PlatynUI==0.14.0.dev0               # verified pin   # pip: pip install robotframework-PlatynUI==0.14.0.dev0
 uv add --prerelease allow robotframework-PlatynUI         # latest pre-release   # pip: pip install --pre robotframework-PlatynUI
 
 # ❌ WRONG — installs old 0.9.2 (a different library, NO BareMetal):
@@ -107,7 +107,9 @@ Supports the full XPath-2.0 axis/function set: `//` (descendant), `..`/`parent::
 
 ### Lazy resolution with built-in wait
 
-There is **no explicit "wait for element" keyword.** When a descriptor is first used, PlatynUI polls the query (default **~30 s**, retrying ~0.1 s) until the element resolves or it raises `ElementNotFoundError`. Write the correct selector and let the runtime wait — don't add `Sleep`.
+Action and read keywords wait for their target: PlatynUI polls the selector (default **30 s**, retrying every 0.1 s) until the element resolves or it raises `ElementNotFoundError`. Write the correct selector and let the keyword wait — don't add `Sleep`. `Query` is the exception: it is a snapshot and does not wait.
+
+To wait without acting, use `Wait Until Exists`, `Wait Until Gone`, `Wait Until Attribute Value` or `Wait Until Query`. Change the timeout with `query_overrides={'timeout': 60}` on one call, `Set Query Settings    {'timeout': 60}    scope=TEST` for a scope, or `query_settings=` at import.
 
 ### Coordinate semantics (pointer keywords)
 
@@ -143,6 +145,7 @@ Pointer Multi Click    //item:ListItem[@Name="file.txt"]    clicks=${2}
 Pointer Move To        ${None}    x=${100}    y=${200}              # absolute screen
 Pointer Press          //control:Slider
 Pointer Release        ${None}
+Pointer Scroll         //control:List[@Name="Inbox"]    direction=DOWN    ticks=${3}
 ${pos}=                Get Pointer Position
 ```
 
@@ -160,12 +163,22 @@ Key syntax: `<Ctrl+A>`, `<Return>`, `<ESC>`, `<Shift+Tab>`, plain text, `${\n}`.
 
 ```robotframework
 Focus            //control:Button[@Name="New File"]
-${bounds}=       Get Attribute    //control:Window[@Name="Calc"]    Bounds
-Get Attribute    //control:Button[@Name="OK"]    Name    ==    OK     # built-in assertion
+${bounds}=       Get Attribute Value    //control:Window[@Name="Calc"]    Bounds
+Get Attribute Value    //control:Button[@Name="OK"]    Name    ==    OK     # built-in assertion
 Bring To Front   //control:Window[@Name="Calc"]
 Activate Window    //control:Window[@Name="Calc"]
 Maximize Window    //control:Window[@Name="Calc"]
 Move And Resize Window    //control:Window[@Name="Calc"]    ${0}    ${0}    ${800}    ${600}
+```
+
+### Waiting
+
+```robotframework
+${dialog}=    Wait Until Exists    //control:Window[@Name="Save As"]
+Wait Until Gone    //control:ProgressBar[@Name="Importing"]    query_overrides={'timeout': 60}
+Wait Until Attribute Value    //control:Button[@Name="Save"]    IsEnabled    ==    ${True}
+Wait Until Query    count(//item:ListItem)    >    ${0}
+Set Query Settings    {'timeout': 60}    scope=TEST          # slower stretch of a test
 ```
 
 ### Diagnostics
@@ -186,7 +199,7 @@ Highlight    //control:Button[@Name="OK"]    duration=${2}   # draw an overlay (
 5. **Handle localization with `or`** — `[@Name='Calculator' or @Name='Rechner']`.
 6. **Fuzzy match with functions** — `contains(@Name,'Save')`, `matches(@Name,'.*Save.*')`, `[contains(@*,'Close')]` (search across all attributes).
 7. **Step axes when structure beats identity** — `…/Label[@Name='5']/parent::Button`.
-8. **Let resolution wait** — don't `Sleep`; the descriptor retries for ~30 s.
+8. **Let resolution wait** — don't `Sleep`; action keywords retry for 30 s, and `Wait Until Exists` waits without acting.
 
 ## Common Patterns
 
@@ -201,7 +214,7 @@ Test Setup   Start Calculator
 *** Keywords ***
 Start Calculator
     Start Process    calc.exe
-    # Prefer letting the next Query wait over a fixed Sleep.
+    Wait Until Exists    app:Application[@Name="ApplicationFrameHost"]/control:Window[@Name="Calculator" or @Name="Rechner"]
 
 Enter Digit
     [Arguments]    ${d}
@@ -213,7 +226,7 @@ Enter Digit
 
 ```robotframework
 Keyboard Type    //control:Edit[@Name="Search"]    robot framework${\n}
-Get Attribute    //control:Edit[@Name="Search"]    Value    ==    robot framework
+Get Attribute Value    //control:Edit[@Name="Search"]    Value    ==    robot framework
 ```
 
 ### Verify targeting before automating
@@ -239,7 +252,7 @@ platynui-cli highlight "//control:Button[@Name='OK']"  # visually confirm on scr
 
 ## Troubleshooting
 
-- **An unpinned install without pre-release opt-in gives a library with no `BareMetal`** → you got `0.9.2`; reinstall with `uv add --prerelease allow robotframework-PlatynUI` or pin `==0.12.0.dev330`.
+- **An unpinned install without pre-release opt-in gives a library with no `BareMetal`** → you got `0.9.2`; reinstall with `uv add --prerelease allow robotframework-PlatynUI` or pin `==0.14.0.dev0`.
 - **Linux: queries return nothing / empty tree** → AT-SPI2 not running, or accessibility not enabled. See `references/platform-setup.md` (`platynui-cli list-providers` should show the `atspi` provider active).
 - **Wayland: clicks land wrong / screenshots fail** → use an X11 (or XWayland) session; Wayland is degraded for input injection and screen coordinates.
 - **`ElementNotFoundError`** → check the namespace prefix (`item:`/`app:`), prefer `@Id`, and verify the selector with `platynui-cli query`.

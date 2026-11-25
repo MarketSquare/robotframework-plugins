@@ -5,7 +5,7 @@ Commands are in uv form. For a new environment, Poetry and venv + pip forms, and
 Package `robotframework-PlatynUI`. The documented `PlatynUI.BareMetal` library exists only as a **pre-release** (Python ≥ 3.12). A plain install resolves the old 0.9.2, which is a different library.
 
 ```bash
-uv add robotframework-PlatynUI==0.12.0.dev330             # verified pin   # pip: pip install robotframework-PlatynUI==0.12.0.dev330
+uv add robotframework-PlatynUI==0.14.0.dev0               # verified pin   # pip: pip install robotframework-PlatynUI==0.14.0.dev0
 uv add --prerelease allow robotframework-PlatynUI         # latest pre-release   # pip: pip install --pre robotframework-PlatynUI
 ```
 

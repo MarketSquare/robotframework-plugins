@@ -5,7 +5,7 @@ description = "Desktop calculator tests with PlatynUI."
 requires-python = ">=3.12"
 dependencies = [
   "robotframework>=7.0",
-  "robotframework-PlatynUI==0.12.0.dev330",
+  "robotframework-PlatynUI==0.14.0.dev0",
 ]
 
 [build-system]

@@ -91,5 +91,5 @@ Cross-platform normalization (originals under `native:Role`):
 7. **Fuzzy → functions** — `contains(@Name,'…')`, `matches(@X,'regex')`, `[contains(@*,'…')]`.
 8. **Structure → axes** — `…/Label[@Name='5']/parent::Button`.
 9. **Positional `[1]` is a last resort** — brittle; prefer attribute predicates.
-10. **Don't `Sleep`** — descriptor resolution retries ~30 s; write the right selector and let it wait.
+10. **Don't `Sleep`** — action keywords retry for 30 s; write the right selector and let them wait, or use `Wait Until Exists` to wait without acting.
 11. **Develop selectors with the CLI/inspector** — `platynui-cli query "…"`, `platynui-cli highlight "…"`, or the inspector GUI (see `cli-and-inspector.md`).

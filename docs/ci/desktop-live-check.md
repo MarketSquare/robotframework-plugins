@@ -18,7 +18,7 @@ You need Windows 10 or 11 with the Calculator app, a logged-in and unlocked desk
 git clone https://github.com/MarketSquare/robotframework-plugins C:\workspace\robotframework-plugins
 cd /d C:\workspace\robotframework-plugins
 uv venv --python 3.12 .venv-desktop
-uv pip install --python .venv-desktop --prerelease allow robotframework==7.5.1 "robotcode[runner]>=2.8" robotframework-PlatynUI==0.12.0.dev330 platynui-cli==0.12.0.dev330
+uv pip install --python .venv-desktop --prerelease allow robotframework==7.5.1 "robotcode[runner]>=2.8" robotframework-PlatynUI==0.14.0.dev0 platynui-cli==0.14.0.dev0
 ```
 
 These are the PlatynUI versions the CI eval installs. The script runs each suite with `robotcode robot` and reads the result with `robotcode results`, so the venv needs robotcode too. Check that PlatynUI sees Calculator: start it, then run
