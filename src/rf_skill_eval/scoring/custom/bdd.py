@@ -322,9 +322,12 @@ def changed_files(fixture_dir: Path, workspace: Path) -> list[str]:
     """Files added, removed or modified in ``workspace`` relative to ``fixture_dir``.
 
     Hidden directories (``.claude``, ``.robotcode_cache``), ``results/``, caches
-    and Robot Framework output files are ignored.
+    and Robot Framework output files are ignored, and so is a ``uv.lock`` the fixture
+    doesn't have: ``uv run`` writes one when the agent runs the tests.
     """
     want, got = _project_files(fixture_dir), _project_files(workspace)
+    if "uv.lock" not in want:
+        got.pop("uv.lock", None)
     return sorted(
         [f"added {p}" for p in got.keys() - want.keys()]
         + [f"removed {p}" for p in want.keys() - got.keys()]

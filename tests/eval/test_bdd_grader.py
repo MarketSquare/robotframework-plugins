@@ -309,9 +309,17 @@ def test_review_findings_ignores_tool_output_and_agent_dirs(tmp_path: Path) -> N
     run, params = _review(tmp_path, _FINDINGS, **{
         "results/output.xml": "<robot/>", ".claude/skills/x/SKILL.md": "x",
         ".robotcode_cache/c.db": "x", "sut/__pycache__/LibraryService.cpython-312.pyc": "x",
-        "library_lending.egg-info/PKG-INFO": "x",
+        "library_lending.egg-info/PKG-INFO": "x", "uv.lock": "version = 1",
     })
     assert bdd.review_findings(run, params).status == "passed"
+
+
+def test_changed_files_counts_a_lock_file_the_fixture_has(tmp_path: Path) -> None:
+    fixture = _ws(tmp_path, {"uv.lock": "version = 1"}, variant="review")
+    ws = tmp_path / "agent"
+    shutil.copytree(fixture, ws)
+    (ws / "uv.lock").write_text("version = 2", encoding="utf-8")
+    assert bdd.changed_files(fixture, ws) == ["modified uv.lock"]
 
 
 def test_review_findings_uses_the_last_text_without_a_result_line(tmp_path: Path) -> None:
