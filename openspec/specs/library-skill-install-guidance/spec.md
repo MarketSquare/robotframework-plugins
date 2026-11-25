@@ -73,5 +73,5 @@ rf-platynui SHALL show its install in uv form with an explicit pre-release opt-i
 
 #### Scenario: uv-form pin and footgun warning
 - **WHEN** rf-platynui `SKILL.md` installation block is read
-- **THEN** it shows a `uv add` command with either the exact `0.12.0.dev…` pin or `--prerelease allow`
+- **THEN** it shows a `uv add` command with either the exact `0.14.0.dev…` pin or `--prerelease allow`
 - **AND** it warns that a plain install gets 0.9.2 without `PlatynUI.BareMetal`

@@ -68,7 +68,7 @@ jobs:
         # it's absent, so this install is fail-soft (no-op on the 3.10 matrix
         # leg or if the pre-release is unavailable). Pinned to the verified
         # pre-release; prebuilt wheel, no Rust.
-        run: pip install "robotframework-PlatynUI==0.12.0.dev330" || echo "PlatynUI unavailable on this interpreter — rf-platynui fidelity test will skip"
+        run: pip install "robotframework-PlatynUI==0.14.0.dev0" || echo "PlatynUI unavailable on this interpreter — rf-platynui fidelity test will skip"
         shell: bash
       - name: Install Browser Library (optional — rf-browser example and keyword checks)
         # Lets the rf-browser example dry runs and decision-table keyword checks
@@ -254,7 +254,7 @@ jobs:
         run: |
           pip install robotframework "robotcode[all]>=2.8" robotframework-browser robotframework-seleniumlibrary \
             robotframework-appiumlibrary robotframework-requests RESTinstance \
-            "robotframework-PlatynUI==0.12.0.dev330"
+            "robotframework-PlatynUI==0.14.0.dev0"
       - name: Resolve every keyword call with robotcode analyze code
         # --require-all: a skill whose library failed to import fails the job
         # instead of being skipped silently.

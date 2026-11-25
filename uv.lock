@@ -1657,14 +1657,14 @@ wheels = [
 
 [[package]]
 name = "platynui-native"
-version = "0.12.0.dev330"
+version = "0.14.0.dev0"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e8/1a/7b17b2745342e0a78af10eb78533c21d67d0f801be5d356901ce2c2a0e1e/platynui_native-0.12.0.dev330-cp312-abi3-macosx_11_0_arm64.whl", hash = "sha256:6245f02b518ecc39d6df1f351abab3a34afd1fbdb88d893bbd9523f9afedd811", size = 2687016, upload-time = "2026-05-05T11:29:24.899Z" },
-    { url = "https://files.pythonhosted.org/packages/07/f4/a70d23c86d49cf7f7092d9d2f70659f150d577e0d010a920987f9e362342/platynui_native-0.12.0.dev330-cp312-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:135760db2f407d6aa1c503e4a6e6b622c88d43b5109bef1b9d53b4bb049bda25", size = 5254719, upload-time = "2026-05-05T11:30:18.373Z" },
-    { url = "https://files.pythonhosted.org/packages/34/d0/d9195a4193335f1e253b92959d776fda3d9ed901e6cbb5c12f1a2d516b73/platynui_native-0.12.0.dev330-cp312-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:d5421cb5b617f970502773cb74f2c6cfe33eade516ab7f557c158403c3a00816", size = 5311827, upload-time = "2026-05-05T11:29:36.811Z" },
-    { url = "https://files.pythonhosted.org/packages/47/63/2991c13476575ed1d09f4f1f954a16e7736226f44648c8b8aa3592abf235/platynui_native-0.12.0.dev330-cp312-abi3-win_amd64.whl", hash = "sha256:7f0dc5f48492a302cbec246b99b93b86f3558921f2d5a73c6f33c1a85908dd9e", size = 2712039, upload-time = "2026-05-05T11:29:42.712Z" },
-    { url = "https://files.pythonhosted.org/packages/62/82/3e2cf81d2a247eceb0eab4e6d8db4715f665413af3ce62b66afde129fd71/platynui_native-0.12.0.dev330-cp312-abi3-win_arm64.whl", hash = "sha256:00f6da6c8b3e7d0681ca20120747eb0646d8aec7517a8960e04dc43cdeda440e", size = 2591104, upload-time = "2026-05-05T11:28:38.012Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/5b/f9bee22e035fff67219f60e7e7ff67d7b1f553f31da8c3c3b22fd47d611c/platynui_native-0.14.0.dev0-cp312-abi3-macosx_11_0_arm64.whl", hash = "sha256:de2a76a1b190a5d2a35fcecbf357d825000aec0efb4b1f22d1bad7d83ab6361b", size = 2226953, upload-time = "2026-11-25T12:14:55.291Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/f5/08f7d01b71c83d2dc45ef8e711c8e15a63f982cbbda1f67c630c5a2cb317/platynui_native-0.14.0.dev0-cp312-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:330c587bbedf40a62e1056de180db622ac2357dab28155c9181b46bcbb2a727c", size = 4325173, upload-time = "2026-11-25T12:14:57.162Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/2e/3bfa76a8e24237c0a731550410611c01a566218d0b2c250aec027abf5ac3/platynui_native-0.14.0.dev0-cp312-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:1bb03c592e022954ea8e18a05a473cfa933d7f9dc8ad3537bedbcbeed09bc6e8", size = 4517932, upload-time = "2026-11-25T12:14:58.636Z" },
+    { url = "https://files.pythonhosted.org/packages/db/23/ccb9f15f48769618092467288f9aba1eeb21a2e3ce3b58fd61801b803600/platynui_native-0.14.0.dev0-cp312-abi3-win_amd64.whl", hash = "sha256:ba1ccc0b1d8a02e305b766813753a27a83567ba901ad47c6e80a445c28a94e20", size = 3094770, upload-time = "2026-11-25T12:15:00.118Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/8c/d4e55c4aa96590a519d02a13b56321bdd10762bd55859ee01c9c3a45998d/platynui_native-0.14.0.dev0-cp312-abi3-win_arm64.whl", hash = "sha256:43e1809fe82419954ece61daf8b60c81f0cc8ef4acf965941735a6bdfa8f18a0", size = 2900414, upload-time = "2026-11-25T12:15:01.452Z" },
 ]
 
 [[package]]
@@ -2284,7 +2284,7 @@ dev = [
     { name = "robotcode", extras = ["all"], specifier = ">=2.8" },
     { name = "robotframework-appiumlibrary" },
     { name = "robotframework-browser" },
-    { name = "robotframework-platynui", specifier = "==0.12.0.dev330" },
+    { name = "robotframework-platynui", specifier = "==0.14.0.dev0" },
     { name = "robotframework-requests" },
     { name = "robotframework-robocop", specifier = ">=8" },
     { name = "robotframework-seleniumlibrary" },
@@ -2597,7 +2597,7 @@ wheels = [
 
 [[package]]
 name = "robotframework-platynui"
-version = "0.12.0.dev330"
+version = "0.14.0.dev0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "platynui-native" },
@@ -2607,7 +2607,7 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/67/b9094d094a03be440eb86196379cb6a24a4dc61efcd4ec78310718785c2f/robotframework_platynui-0.12.0.dev330-py3-none-any.whl", hash = "sha256:07ef586f2b228b20fc43f9a018b664262b76f0429e0fdc23b2e8944ad0066568", size = 108260, upload-time = "2026-05-05T11:28:40.046Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/bb/0ec245dd18be6dd663245889a71e6f955876bad1d3a2d8bf9032d51d1d13/robotframework_platynui-0.14.0.dev0-py3-none-any.whl", hash = "sha256:772f21a17c6b9194963a2a6bd0b9a0aee96506d0dfd0fe706dc008e84be3214f", size = 150049, upload-time = "2026-11-25T12:15:04.67Z" },
 ]
 
 [[package]]

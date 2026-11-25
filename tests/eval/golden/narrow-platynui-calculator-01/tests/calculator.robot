@@ -14,5 +14,5 @@ One Plus Two Is Three
     Pointer Click    ${CALCULATOR}//control:Button[@Id='plusButton']
     Pointer Click    ${CALCULATOR}//control:Button[@Id='num2Button']
     Pointer Click    ${CALCULATOR}//control:Button[@Id='equalButton']
-    ${shown}=    Get Attribute    ${RESULT}    Name
+    ${shown}=    Get Attribute Value    ${RESULT}    Name
     Should Contain    ${shown}    3

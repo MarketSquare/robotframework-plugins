@@ -4,7 +4,7 @@
 
 | What | Command | Build | Requirements |
 |------|---------|-------|--------------|
-| **RF library (new_core)** | `uv add robotframework-PlatynUI==0.12.0.dev330`  **or**  `uv add --prerelease allow robotframework-PlatynUI` (into the project env; see rf-setup (plugin rf-core)) | Prebuilt wheel (bundles `platynui-native` `_native.abi3.so`) | **Python 3.12+**. No Rust, no git. |
+| **RF library (new_core)** | `uv add robotframework-PlatynUI==0.14.0.dev0`  **or**  `uv add --prerelease allow robotframework-PlatynUI` (into the project env; see rf-setup (plugin rf-core)) | Prebuilt wheel (bundles `platynui-native` `_native.abi3.so`) | **Python 3.12+**. No Rust, no git. |
 | CLI | `uv tool install --prerelease allow platynui-cli` | Prebuilt wheel | Python 3.12+ |
 | Inspector | `uv tool install --prerelease allow platynui-inspector` | Prebuilt wheel | Python 3.12+, a display |
 | Mock-enabled native build | `uv run maturin develop -m packages/native/Cargo.toml --features mock-provider` | **Source build** | **Rust 1.95+** (2024 edition), Cargo, system libs |
@@ -13,8 +13,8 @@
 
 ```bash
 uv add robotframework-PlatynUI                          # → 0.9.2  (OLD: different lib, NO BareMetal)
-uv add --prerelease allow robotframework-PlatynUI       # → 0.12.0.dev*  (new_core)   # pip: pip install --pre robotframework-PlatynUI
-uv add robotframework-PlatynUI==0.12.0.dev330           # exact pin (no opt-in needed)   # pip: pip install robotframework-PlatynUI==0.12.0.dev330
+uv add --prerelease allow robotframework-PlatynUI       # → 0.14.0.dev*  (new_core)   # pip: pip install --pre robotframework-PlatynUI
+uv add robotframework-PlatynUI==0.14.0.dev0             # exact pin (no opt-in needed)   # pip: pip install robotframework-PlatynUI==0.14.0.dev0
 ```
 
 `new_core` is published **only as a pre-release**. An unpinned install without the pre-release opt-in silently resolves the old stable `0.9.2`, whose `PlatynUI` library is a different, near-undocumented surface with **no `BareMetal`**. Always opt into pre-releases (`--prerelease allow`; pip `--pre`) or pin.
@@ -57,9 +57,9 @@ The PlatynUI repo's own `scripts/` (`setup-atspi.sh`, `startxsession.sh`, `start
 
 | Symptom | Fix |
 |---------|-----|
-| Installed library has no `BareMetal` | You got `0.9.2` (unpinned install without pre-release opt-in). Reinstall with `uv add --prerelease allow robotframework-PlatynUI` or pin `==0.12.0.dev330`. |
+| Installed library has no `BareMetal` | You got `0.9.2` (unpinned install without pre-release opt-in). Reinstall with `uv add --prerelease allow robotframework-PlatynUI` or pin `==0.14.0.dev0`. |
 | Linux tree empty / no nodes | AT-SPI not running / a11y disabled. Install `at-spi2-core`, enable a11y, check `platynui-cli list-providers`. |
 | Wayland: clicks land wrong, screenshots fail | Use an X11/XWayland session. |
 | `ProviderError: ... feature 'mock-provider'` | `use_mock` needs a source build with `--features mock-provider`. |
-| `ElementNotFoundError` after ~30 s | Wrong namespace (`item:`/`app:`?), prefer `@Id`; verify with `platynui-cli query`. |
+| `ElementNotFoundError` after 30 s | Wrong namespace (`item:`/`app:`?), prefer `@Id`; verify with `platynui-cli query`. |
 | Inspector crashes under WSL2 | `WINIT_UNIX_BACKEND=x11 WAYLAND_DISPLAY= platynui-inspector`. |

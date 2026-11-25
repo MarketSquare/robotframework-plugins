@@ -45,7 +45,7 @@ PlatynUI skill for desktop UI tests.
 - **Status:** active
 - **Robot Framework:** `>=7.0`
 - **Libraries:**
-  - PlatynUI (`robotframework-PlatynUI` `>=0.12.0.dev0`): `rf-platynui`
+  - PlatynUI (`robotframework-PlatynUI` `>=0.14.0.dev0`): `rf-platynui`
 - **Tested with:** claude-code, copilot-cli, vscode-copilot, codex, cursor, opencode, goose, claude-desktop
 - **Maintainers:** [@manykarim](https://github.com/manykarim)
 - **Install (Claude Code):** `/plugin install rf-desktop@robotframework-plugins`

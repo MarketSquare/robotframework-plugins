@@ -4,6 +4,10 @@ Every plugin (`rf-core`, `rf-web`, `rf-api`, `rf-mobile`, `rf-desktop`) and the 
 
 ## Unreleased
 
+### rf-desktop
+
+- `rf-platynui` targets PlatynUI `0.14.0.dev0`. PyPI no longer has `0.12.0.dev330`, which the skill pinned, so its install command failed. The skill teaches `Get Attribute Value` instead of the deprecated `Get Attribute`, and the new `Wait Until Exists`, `Wait Until Gone`, `Wait Until Attribute Value`, `Wait Until Query`, `Set Query Settings`, `Pointer Scroll` and `Get Element At Point`. The catalogue requires `robotframework-PlatynUI>=0.14.0.dev0`.
+
 ## 5.1.0 — 2026-11-23
 
 ### rf-core

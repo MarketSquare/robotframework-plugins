@@ -29,7 +29,7 @@ Add Two Numbers
     Press Digit       3
     Pointer Click     .//control:Button[@Name="Equals" or @Name="Gleich"]
     # The results text exposes its value via the Name/Value attribute:
-    Get Attribute     .//control:Text[@Id="CalculatorResults"]    Name    contains    5
+    Get Attribute Value     .//control:Text[@Id="CalculatorResults"]    Name    contains    5
 
 *** Keywords ***
 Launch Calculator

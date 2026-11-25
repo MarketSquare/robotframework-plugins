@@ -10,7 +10,7 @@ Two layers:
    every keyword name the skill claims must be a real keyword in
    ``PlatynUI.BareMetal`` per ``robot.libdoc``. libdoc is display-free (the
    native runtime is lazy), so installing ``robotframework-PlatynUI`` in CI is
-   enough — no desktop/AT-SPI needed. Verified against 0.12.0.dev330.
+   enough — no desktop/AT-SPI needed. Verified against 0.14.0.dev0.
 """
 
 from __future__ import annotations
@@ -32,6 +32,14 @@ DOCUMENTED_KEYWORDS = {
     "Close Window",
     "Focus",
     "Get Attribute",
+    "Get Attribute Value",
+    "Get Element At Point",
+    "Pointer Scroll",
+    "Set Query Settings",
+    "Wait Until Attribute Value",
+    "Wait Until Exists",
+    "Wait Until Gone",
+    "Wait Until Query",
     "Get Pointer Position",
     "Highlight",
     "Keyboard Press",

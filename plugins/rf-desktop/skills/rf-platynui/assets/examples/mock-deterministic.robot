@@ -25,9 +25,9 @@ Inspect The Mock Desktop
 
     # Scope to the mock window, then read an attribute and act on a button.
     Set Root         //control:Window[@Name="Operations Console"]
-    ${title}=        Get Attribute    .    Name
+    ${title}=        Get Attribute Value    .    Name
     Should Be Equal    ${title}    Operations Console
 
-    Get Attribute    .//control:Button[@Name="OK"]    Name    ==    OK
+    Get Attribute Value    .//control:Button[@Name="OK"]    Name    ==    OK
     Highlight        .//control:Button[@Name="OK"]    duration=${1}
     Pointer Click    .//control:Button[@Name="OK"]

@@ -65,7 +65,7 @@ dev = [
     "robotframework-appiumlibrary",
     "robotframework-requests",
     "RESTinstance",
-    "robotframework-PlatynUI==0.12.0.dev330",
+    "robotframework-PlatynUI==0.14.0.dev0",
 ]
 
 [project.scripts]
